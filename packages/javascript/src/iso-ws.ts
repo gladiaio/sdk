@@ -12,21 +12,32 @@ export type IsoWS = {
   close(code: number): unknown
 }
 
-function getNativeWebSocket(): IsoWS | undefined {
-  return (
-    getWebSocket(global) ||
-    getWebSocket(globalThis) ||
-    // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
-    getWebSocket(window) ||
-    // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
-    getWebSocket(self)
-  )
-}
-
-function getWebSocket(_g: any): IsoWS | undefined {
-  if (typeof _g !== 'undefined' && typeof _g.WebSocket !== 'undefined') {
-    return _g.WebSocket
+function getNativeWebSocket() {
+  if (typeof WebSocket !== 'undefined') {
+    return WebSocket;
   }
+  if (typeof global !== 'undefined' && typeof global.WebSocket !== 'undefined') {
+    return global.WebSocket;
+  }
+  if (typeof globalThis !== 'undefined' && typeof globalThis.WebSocket !== 'undefined') {
+    return globalThis.WebSocket;
+  }
+  // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
+  if (typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined') {
+    // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
+    return window.WebSocket;
+  }
+  // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
+  if (typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined') {
+    // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
+    return window.WebSocket;
+  }
+  // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
+  if (typeof self !== 'undefined' && typeof self.WebSocket !== 'undefined') {
+    // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
+    return self.WebSocket;
+  }
+  return undefined;
 }
 
 async function WebSocketFactory(): Promise<(url: string) => IsoWS> {
@@ -35,6 +46,9 @@ async function WebSocketFactory(): Promise<(url: string) => IsoWS> {
     WS = getNativeWebSocket() ?? (await import('ws')).WebSocket
   } catch {
     // noop
+  }
+  if (!WS) {
+    throw new Error('WebSocket is not supported in this environment and the ws package is not installed')
   }
   return (url: string) => new WS(url)
 }

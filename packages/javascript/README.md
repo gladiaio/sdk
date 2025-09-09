@@ -34,24 +34,12 @@ const gladiaClient = new GladiaClient({
 
 ```html
 <!-- From CDN -->
-<script src="https://unpkg.com/@gladiaio/sdk/dist/gladia.browser.min.js"></script>
+<script src="https://unpkg.com/@gladiaio/sdk"></script>
 <!-- Or local file -->
-<script src="./node_modules/@gladiaio/sdk/dist/gladia.browser.min.js"></script>
+<script src="./node_modules/@gladiaio/sdk"></script>
 
 <script>
   const gladiaClient = new Gladia.GladiaClient({
-    apiKey: 'your-api-key',
-  })
-</script>
-```
-
-### Browser (ES Modules)
-
-```html
-<script type="module">
-  import { GladiaClient } from 'https://unpkg.com/@gladiaio/sdk/dist/index.js'
-
-  const gladiaClient = new GladiaClient({
     apiKey: 'your-api-key',
   })
 </script>
