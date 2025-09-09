@@ -1,0 +1,20 @@
+{
+  "name": "generator",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/generator/src",
+  "projectType": "application",
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run generate",
+        "cwd": "packages/generator"
+      }
+    },
+    "format:check": {},
+    "format:write": {},
+    "lint": {},
+    "lint:fix": {}
+  },
+  "tags": ["type:app", "scope:generator"]
+}

@@ -1,0 +1,30 @@
+/*
+ * This file is auto-generated. Do not edit manually.
+ * Generated from OpenAPI schema.
+ */
+
+import {
+  LiveV2WebSocketMessage,
+{{#messages}}  {{{typeName}}},
+{{/messages}}} from "./generated-types.js";
+
+export interface LiveV2EventEmitter {
+{{#methods}}
+{{^isEmit}}
+{{#messages}}  {{{methodName}}}(type: {{{typeName}}}['type'], cb{{#optionalCb}}?{{/optionalCb}}: (message: {{{typeName}}}) => void): this;
+{{/messages}}  {{{methodName}}}(type: 'error', cb{{#optionalCb}}?{{/optionalCb}}: (error: Error) => void): this;
+  {{{methodName}}}(type: LiveV2WebSocketMessage['type'] | 'error', cb{{#optionalCb}}?{{/optionalCb}}: (event: any) => void): this;
+
+{{/isEmit}}
+{{/methods}}
+  removeAllListeners(): this;
+
+{{#methods}}
+{{#isEmit}}
+{{#messages}}  {{{methodName}}}(type: {{{typeName}}}['type'], message: {{{typeName}}}): this;
+{{/messages}}  {{{methodName}}}(type: 'error', error: Error): this;
+  {{{methodName}}}(type: LiveV2WebSocketMessage['type'] | 'error', ...params: any[]): this;
+
+{{/isEmit}}
+{{/methods}}
+}

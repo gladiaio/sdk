@@ -1,0 +1,36 @@
+{
+  "name": "sdk-js",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/javascript/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run build",
+        "cwd": "packages/javascript"
+      },
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "build:watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run build:watch",
+        "cwd": "packages/javascript"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run clean",
+        "cwd": "packages/javascript"
+      }
+    },
+    "format:check": {},
+    "format:write": {},
+    "lint": {},
+    "lint:fix": {},
+    "test": {}
+  },
+  "tags": ["type:lib", "scope:sdk"]
+}

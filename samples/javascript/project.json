@@ -1,0 +1,13 @@
+{
+  "name": "samples-javascript",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "samples/javascript/src",
+  "projectType": "application",
+  "targets": {
+    "format:check": {},
+    "format:write": {},
+    "lint": {},
+    "lint:fix": {}
+  },
+  "tags": ["type:app", "scope:sample"]
+}
