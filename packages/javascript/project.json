@@ -32,5 +32,13 @@
     "lint:fix": {},
     "test": {}
   },
-  "tags": ["type:lib", "scope:sdk"]
+  "tags": ["type:lib", "scope:sdk"],
+  "release": {
+    "publish": {
+      "executor": "@nx/js:release-publish",
+      "options": {
+        "access": "public"
+      }
+    }
+  }
 }

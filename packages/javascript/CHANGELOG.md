@@ -2,8 +2,4 @@
 
 ### 🚀 Features
 
-- **sdk-js:** Initial JavaScript/TypeScript implementation of Gladia SDK ([6eee7ca](https://github.com/gladiaio/sdk/commit/6eee7ca))
-
-### ❤️ Thank You
-
-- Nicolas Morel
+- **sdk-js:** Initial JavaScript/TypeScript implementation of Gladia SDK

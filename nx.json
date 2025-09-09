@@ -61,7 +61,14 @@
   "release": {
     "projectsRelationship": "independent",
     "changelog": {
-      "projectChangelogs": true
+      "projectChangelogs": {
+        "renderOptions": {
+          "authors": false,
+          "applyUsernameToAuthors": false,
+          "commitReferences": false,
+          "versionTitleDate": true
+        }
+      }
     },
     "version": {
       "conventionalCommits": true
