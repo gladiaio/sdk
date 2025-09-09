@@ -1,3 +1,9 @@
+## 0.1.2 (2025-09-09)
+
+### 🩹 Fixes
+
+- **sdk-js:** iso-ws wasn't working on browser
+
 ## 0.1.1 (2025-09-09)
 
 ### 🩹 Fixes
