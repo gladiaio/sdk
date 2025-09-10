@@ -20,7 +20,7 @@ export default defineConfig([
     ...baseConfig,
     format: ['iife'],
     target: 'es2020',
-    minify: false,
+    minify: true,
     globalName: 'Gladia',
     noExternal: ['eventemitter3'],
   },
