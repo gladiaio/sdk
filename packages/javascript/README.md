@@ -33,10 +33,7 @@ const gladiaClient = new GladiaClient({
 ### Browser (Script Tag)
 
 ```html
-<!-- From CDN -->
 <script src="https://unpkg.com/@gladiaio/sdk"></script>
-<!-- Or local file -->
-<script src="./node_modules/@gladiaio/sdk"></script>
 
 <script>
   const gladiaClient = new Gladia.GladiaClient({
