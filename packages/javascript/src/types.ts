@@ -89,6 +89,13 @@ export type GladiaClientOptions = {
   apiUrl?: string
 
   /**
+   * Region to use. 
+   *
+   * If not provided, the client will take the environment variable GLADIA_REGION.
+   */
+  region?: 'eu-west' | 'us-west'
+
+  /**
    * Custom headers to add to the HTTP requests.
    */
   httpHeaders?: Headers

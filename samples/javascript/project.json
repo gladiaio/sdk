@@ -1,5 +1,5 @@
 {
-  "name": "samples-javascript",
+  "name": "samples-js",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "samples/javascript/src",
   "projectType": "application",

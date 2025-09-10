@@ -28,8 +28,9 @@ export class GladiaClient {
 
   liveV2(options?: GladiaClientOptions): LiveV2Client {
     let opts = {
-      apiUrl: getEnv('GLADIA_API_URL', 'https://api.gladia.io'),
       apiKey: getEnv('GLADIA_API_KEY'),
+      apiUrl: getEnv('GLADIA_API_URL', 'https://api.gladia.io'),
+      region: getEnv<Required<GladiaClientOptions>['region']>('GLADIA_REGION'),
       httpTimeout: 10000,
       webSocketTimeout: 10000,
       ...this.options,

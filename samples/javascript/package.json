@@ -1,5 +1,5 @@
 {
-  "name": "@gladiaio/samples-javascript",
+  "name": "@gladiaio/sdk-javascript-samples",
   "description": "Code samples of the JS SDK",
   "version": "1.0.0",
   "private": true,

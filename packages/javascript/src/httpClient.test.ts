@@ -14,11 +14,11 @@ describe('HttpClient', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    
+
     // Get the mocked function
     const { initFetch } = await import('./iso-fetch.js')
     mockInitFetch = initFetch as ReturnType<typeof vi.fn>
-    
+
     // Create a mock fetch function
     mockFetch = vi.fn()
     mockInitFetch.mockResolvedValue(mockFetch)
@@ -29,18 +29,20 @@ describe('HttpClient', () => {
     mockFetch.mockImplementation(() => {
       calls += 1
       if (calls < 2) {
-        return Promise.resolve(new Response('', { 
-          status: 500, 
-          statusText: 'Internal Server Error' 
-        }))
+        return Promise.resolve(
+          new Response('', {
+            status: 500,
+            statusText: 'Internal Server Error',
+          })
+        )
       }
       return Promise.resolve(new Response('ok', { status: 200 }))
     })
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 2, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
-      httpTimeout: 2_000,
+      retry: { limit: 2, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
+      timeout: 2_000,
     })
 
     const res = await client.get(`${BASE}/test`)
@@ -52,16 +54,18 @@ describe('HttpClient', () => {
     let calls = 0
     mockFetch.mockImplementation(() => {
       calls += 1
-      return Promise.resolve(new Response('', { 
-        status: 500, 
-        statusText: 'Internal Server Error' 
-      }))
+      return Promise.resolve(
+        new Response('', {
+          status: 500,
+          statusText: 'Internal Server Error',
+        })
+      )
     })
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 2, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
-      httpTimeout: 2_000,
+      retry: { limit: 2, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
+      timeout: 2_000,
     })
 
     await expect(client.get(`${BASE}/fail`)).rejects.toMatchObject({
@@ -91,7 +95,7 @@ describe('HttpClient', () => {
           error.name = 'AbortError'
           reject(error)
         }, 100)
-        
+
         // Listen for abort signal
         if (options?.signal) {
           options.signal.addEventListener('abort', () => {
@@ -106,8 +110,8 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 5, delay: () => 0 },
-      httpTimeout: 50,
+      retry: { limit: 5, delay: () => 0 },
+      timeout: 50,
     })
 
     await expect(client.get(`${BASE}/timeout`)).rejects.toBeInstanceOf(TimeoutError)
@@ -133,12 +137,12 @@ describe('HttpClient', () => {
     const controller = new AbortController()
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 5, delay: () => 0 },
-      httpTimeout: 1_000,
+      retry: { limit: 5, delay: () => 0 },
+      timeout: 1_000,
     })
 
     const promise = client.get(`${BASE}/abort`, { signal: controller.signal })
-    
+
     // Abort after a short delay to ensure the request has started
     setTimeout(() => {
       controller.abort('user-request')
@@ -147,22 +151,24 @@ describe('HttpClient', () => {
     await expect(promise).rejects.toMatchObject({
       message: expect.stringContaining('Request aborted by the provided AbortSignal'),
     })
-    
+
     // Should only make one call since it was aborted
     expect(fetchCalls).toBe(1)
   })
 
   it('throws HttpError immediately for non-retryable status (e.g., 404)', async () => {
     mockFetch.mockImplementation(() => {
-      return Promise.resolve(new Response('', { 
-        status: 404, 
-        statusText: 'Not Found' 
-      }))
+      return Promise.resolve(
+        new Response('', {
+          status: 404,
+          statusText: 'Not Found',
+        })
+      )
     })
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 5, statusCodes: [408, 413, 429, [500, 599]], delay: () => 0 },
+      retry: { limit: 5, statusCodes: [408, 413, 429, [500, 599]], delay: () => 0 },
     })
 
     await expect(client.get(`${BASE}/404`)).rejects.toBeInstanceOf(HttpError)
@@ -179,27 +185,35 @@ describe('HttpClient', () => {
 
     const rGet = await client.get(`${BASE}/method`)
     expect(rGet.ok).toBe(true)
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/method'), expect.objectContaining({
-      method: 'GET'
-    }))
+    {
+      const [calledUrl, calledInit] = mockFetch.mock.calls.at(-1) as [unknown, RequestInit]
+      expect(String(calledUrl)).toContain('/method')
+      expect(calledInit.method).toBe('GET')
+    }
 
     const rPost = await client.post(`${BASE}/method`)
     expect(rPost.ok).toBe(true)
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/method'), expect.objectContaining({
-      method: 'POST'
-    }))
+    {
+      const [calledUrl, calledInit] = mockFetch.mock.calls.at(-1) as [unknown, RequestInit]
+      expect(String(calledUrl)).toContain('/method')
+      expect(calledInit.method).toBe('POST')
+    }
 
     const rPut = await client.put(`${BASE}/method`)
     expect(rPut.ok).toBe(true)
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/method'), expect.objectContaining({
-      method: 'PUT'
-    }))
+    {
+      const [calledUrl, calledInit] = mockFetch.mock.calls.at(-1) as [unknown, RequestInit]
+      expect(String(calledUrl)).toContain('/method')
+      expect(calledInit.method).toBe('PUT')
+    }
 
     const rDelete = await client.delete(`${BASE}/method`)
     expect(rDelete.ok).toBe(true)
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/method'), expect.objectContaining({
-      method: 'DELETE'
-    }))
+    {
+      const [calledUrl, calledInit] = mockFetch.mock.calls.at(-1) as [unknown, RequestInit]
+      expect(String(calledUrl)).toContain('/method')
+      expect(calledInit.method).toBe('DELETE')
+    }
   })
 
   it('does not retry with limit 1 (only initial call)', async () => {
@@ -212,8 +226,8 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 1, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
-      httpTimeout: 2_000,
+      retry: { limit: 1, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
+      timeout: 2_000,
     })
 
     const res = await client.get(`${BASE}/test`)
@@ -225,16 +239,18 @@ describe('HttpClient', () => {
     let calls = 0
     mockFetch.mockImplementation(() => {
       calls += 1
-      return Promise.resolve(new Response('', { 
-        status: 500, 
-        statusText: 'Internal Server Error' 
-      }))
+      return Promise.resolve(
+        new Response('', {
+          status: 500,
+          statusText: 'Internal Server Error',
+        })
+      )
     })
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 1, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
-      httpTimeout: 2_000,
+      retry: { limit: 1, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
+      timeout: 2_000,
     })
 
     await expect(client.get(`${BASE}/fail`)).rejects.toMatchObject({
@@ -249,18 +265,20 @@ describe('HttpClient', () => {
     mockFetch.mockImplementation(() => {
       calls += 1
       if (calls < 2) {
-        return Promise.resolve(new Response('', { 
-          status: 500, 
-          statusText: 'Internal Server Error' 
-        }))
+        return Promise.resolve(
+          new Response('', {
+            status: 500,
+            statusText: 'Internal Server Error',
+          })
+        )
       }
       return Promise.resolve(new Response('ok', { status: 200 }))
     })
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 2, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
-      httpTimeout: 2_000,
+      retry: { limit: 2, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
+      timeout: 2_000,
     })
 
     const res = await client.get(`${BASE}/test`)
@@ -273,18 +291,20 @@ describe('HttpClient', () => {
     mockFetch.mockImplementation(() => {
       calls += 1
       if (calls < 5) {
-        return Promise.resolve(new Response('', { 
-          status: 500, 
-          statusText: 'Internal Server Error' 
-        }))
+        return Promise.resolve(
+          new Response('', {
+            status: 500,
+            statusText: 'Internal Server Error',
+          })
+        )
       }
       return Promise.resolve(new Response('ok', { status: 200 }))
     })
 
     const client = new HttpClient({
       baseUrl: BASE,
-      httpRetry: { limit: 0, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
-      httpTimeout: 2_000,
+      retry: { limit: 0, statusCodes: [[500, 599]], delay: () => 0, backoffLimit: 0 },
+      timeout: 2_000,
     })
 
     const res = await client.get(`${BASE}/test`)
@@ -292,4 +312,61 @@ describe('HttpClient', () => {
     expect(calls).toBe(5) // Initial attempt + 4 retries
   })
 
+  it('applies queryParams from client options to all requests', async () => {
+    mockFetch.mockResolvedValue(new Response('ok', { status: 200 }))
+
+    const client = new HttpClient({
+      baseUrl: BASE,
+      queryParams: {
+        apiKey: 'test-key',
+        version: '1.0',
+      },
+    })
+
+    const response = await client.get(`/query-test`)
+    expect(response.ok).toBe(true)
+
+    expect(mockFetch).toHaveBeenCalledExactlyOnceWith(
+      new URL(`${BASE}/query-test?apiKey=test-key&version=1.0`),
+      expect.objectContaining({ method: 'GET' })
+    )
+  })
+
+  it('preserves existing query params in URL when adding default queryParams', async () => {
+    mockFetch.mockResolvedValue(new Response('ok', { status: 200 }))
+
+    const client = new HttpClient({
+      baseUrl: BASE,
+      queryParams: {
+        defaultParam: 'default-value',
+      },
+    })
+
+    const response = await client.get(`/query-preserve?existingParam=existing-value`)
+    expect(response.ok).toBe(true)
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      new URL(`${BASE}/query-preserve?existingParam=existing-value&defaultParam=default-value`),
+      expect.objectContaining({ method: 'GET' })
+    )
+  })
+
+  it('preserves URL query params when they conflict with default queryParams', async () => {
+    mockFetch.mockResolvedValue(new Response('ok', { status: 200 }))
+
+    const client = new HttpClient({
+      baseUrl: BASE,
+      queryParams: {
+        param: 'default-value',
+      },
+    })
+
+    const response = await client.get(`${BASE}/query-priority?param=url-value`)
+    expect(response.ok).toBe(true)
+
+    expect(mockFetch).toHaveBeenCalledExactlyOnceWith(
+      new URL(`${BASE}/query-priority?param=url-value`),
+      expect.objectContaining({ method: 'GET' })
+    )
+  })
 })

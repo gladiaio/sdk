@@ -38,8 +38,9 @@ type RequestOptions = Omit<RequestInit, 'method' | 'headers'> & { headers?: Head
 export type HttpClientOptions = {
   baseUrl: string
   headers?: Headers
-  httpRetry?: HttpRetryOptions
-  httpTimeout?: number
+  queryParams?: Record<string, string>
+  retry?: HttpRetryOptions
+  timeout?: number
 }
 
 function defaultRetry(): Required<HttpRetryOptions> {
@@ -88,6 +89,7 @@ async function sleep(ms: number): Promise<void> {
 export class HttpClient {
   private baseUrl: string
   private defaultHeaders?: Headers
+  private defaultQueryParams?: Record<string, string>
 
   private retry: Required<HttpRetryOptions>
   private timeoutMs: number
@@ -96,8 +98,9 @@ export class HttpClient {
   constructor(options: HttpClientOptions) {
     this.baseUrl = options.baseUrl
     this.defaultHeaders = options.headers
-    this.retry = { ...defaultRetry(), ...(options?.httpRetry ?? {}) }
-    this.timeoutMs = options?.httpTimeout ?? 10_000
+    this.defaultQueryParams = options.queryParams
+    this.retry = { ...defaultRetry(), ...(options?.retry ?? {}) }
+    this.timeoutMs = options?.timeout ?? 10_000
 
     // Ensure limit, backoffLimit and timeout are non-negative integers
     this.retry.limit = Math.max(0, Math.floor(this.retry.limit))
@@ -128,7 +131,16 @@ export class HttpClient {
     url: string | URL,
     init: RequestOptions = {}
   ): Promise<Response> {
-    url = new URL(url, this.baseUrl).toString()
+    url = new URL(url, this.baseUrl)
+    if (this.defaultQueryParams) {
+      for (const [key, value] of Object.entries(this.defaultQueryParams)) {
+        // Only set default param if it's not already present in the URL
+        if (!url.searchParams.has(key)) {
+          url.searchParams.set(key, value)
+        }
+      }
+    }
+
     const { signal: userSignal, headers, ...rest } = init
 
     const overallStart = Date.now()
@@ -182,7 +194,7 @@ export class HttpClient {
           const httpErr = new HttpError(
             `HTTP ${response.status} ${response.statusText} for ${method} ${url}`,
             response.status,
-            url,
+            url.toString(),
             response
           )
 

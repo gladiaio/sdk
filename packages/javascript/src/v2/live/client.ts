@@ -15,8 +15,9 @@ export class LiveV2Client {
     this.httpClient = new HttpClient({
       baseUrl: options.apiUrl,
       headers: options.httpHeaders,
-      httpRetry: options.httpRetry,
-      httpTimeout: options.httpTimeout,
+      ...(options.region ? { queryParams: { region: options.region } } : {}),
+      retry: options.httpRetry,
+      timeout: options.httpTimeout,
     })
 
     this.webSocketClient = new WebSocketClient({
