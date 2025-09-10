@@ -1,3 +1,13 @@
+## 0.3.0 (2025-09-10)
+
+### 🚀 Features
+
+- **sdk-js:** Add 'message' event
+
+### 🩹 Fixes
+
+- **sdk-js:** Minify iife build
+
 ## 0.2.1 (2025-09-10)
 
 ### 🩹 Fixes
