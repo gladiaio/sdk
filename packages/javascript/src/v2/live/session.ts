@@ -211,7 +211,6 @@ export class LiveV2Session implements LiveV2EventEmitter {
     })
 
     this.webSocketSession.on('close', (code, reason) => {
-      console.log(`[${code}] WS closed${reason ? `: ${reason}` : ''}`)
       if (code === 1000) {
         this.destroy()
       }
