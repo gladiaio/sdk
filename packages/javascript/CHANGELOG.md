@@ -1,3 +1,9 @@
+## 0.3.1 (2025-09-10)
+
+### 🩹 Fixes
+
+- **sdk-js:** Remove console.log
+
 ## 0.3.0 (2025-09-10)
 
 ### 🚀 Features
