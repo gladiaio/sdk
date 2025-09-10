@@ -110,27 +110,39 @@ export class HttpClient {
     this.fetchPromise = initFetch()
   }
 
-  async get(url: string | URL, init: RequestOptions = {}): Promise<Response> {
+  async get<ResponseType = Response>(
+    url: string | URL,
+    init: RequestOptions = {}
+  ): Promise<ResponseType> {
     return this.request('GET', url, init)
   }
 
-  async post(url: string | URL, init: RequestOptions = {}): Promise<Response> {
+  async post<ResponseType = Response>(
+    url: string | URL,
+    init: RequestOptions = {}
+  ): Promise<ResponseType> {
     return this.request('POST', url, init)
   }
 
-  async put(url: string | URL, init: RequestOptions = {}): Promise<Response> {
+  async put<ResponseType = Response>(
+    url: string | URL,
+    init: RequestOptions = {}
+  ): Promise<ResponseType> {
     return this.request('PUT', url, init)
   }
 
-  async delete(url: string | URL, init: RequestOptions = {}): Promise<Response> {
+  async delete<ResponseType = Response>(
+    url: string | URL,
+    init: RequestOptions = {}
+  ): Promise<ResponseType> {
     return this.request('DELETE', url, init)
   }
 
-  async request(
+  async request<ResponseType>(
     method: HttpMethod,
     url: string | URL,
     init: RequestOptions = {}
-  ): Promise<Response> {
+  ): Promise<ResponseType> {
     url = new URL(url, this.baseUrl)
     if (this.defaultQueryParams) {
       for (const [key, value] of Object.entries(this.defaultQueryParams)) {
@@ -214,8 +226,10 @@ export class HttpClient {
           throw httpErr
         }
 
-        // Success
-        return response
+        if (response.headers.get('content-type')?.includes('application/json')) {
+          return (await response.json()) as ResponseType
+        }
+        return response as ResponseType
       } catch (err) {
         // Clear timers and listeners
         if (timeoutId) clearTimeout(timeoutId)

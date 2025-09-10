@@ -12,7 +12,7 @@ type BaseRetryOptions = {
 
 export type HttpRetryOptions = {
   /**
-   * Maximum number of attempts for an HTTP request. 
+   * Maximum number of attempts for an HTTP request.
    * 0 for unlimited. 1 for no retry.
    *
    * Default is 2.
@@ -36,10 +36,10 @@ export type HttpRetryOptions = {
 
 export type WebSocketRetryOptions = {
   /**
-   * Maximum number of attempts for a WS connection. 
+   * Maximum number of attempts for a WS connection.
    * 0 for unlimited. 1 for no retry.
    * Once connected, the number of attempts to reconnect is reset.
-   * 
+   *
    * Default is 5.
    */
   limit?: number
@@ -51,21 +51,20 @@ export type WebSocketRetryOptions = {
    */
   backoffLimit?: number
 } & BaseRetryOptions & {
+    /**
+     * Maximum number of WS connections.
+     * 0 for unlimited. 1 for no reconnection.
+     *
+     * Default is 0.
+     */
+    limitConnections?: number
 
-  /**
-   * Maximum number of WS connections. 
-   * 0 for unlimited. 1 for no reconnection.
-   * 
-   * Default is 0.
-   */
-  limitConnections?: number
-
-  /**
-   * List of close code eligible for reconnection. You can specify a range by using a tuple.
-   * Default is [[1002, 4399], [4500, 9999]].
-   */
-  closeCodes?: (number | [start: number, end: number])[]
-}
+    /**
+     * List of close code eligible for reconnection. You can specify a range by using a tuple.
+     * Default is [[1002, 4399], [4500, 9999]].
+     */
+    closeCodes?: (number | [start: number, end: number])[]
+  }
 
 export type GladiaClientOptions = {
   /**
@@ -89,7 +88,7 @@ export type GladiaClientOptions = {
   apiUrl?: string
 
   /**
-   * Region to use. 
+   * Region to use.
    *
    * If not provided, the client will take the environment variable GLADIA_REGION.
    */

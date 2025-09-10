@@ -21,7 +21,10 @@ export type WebSocketEventMap = {
 function defaultRetry(): Required<WebSocketRetryOptions> {
   return {
     limit: 5,
-    closeCodes: [[1002, 4399], [4500, 9999]],
+    closeCodes: [
+      [1002, 4399],
+      [4500, 9999],
+    ],
     backoffLimit: 2000,
     delay: (attemptCount: number) => 0.3 * 2 ** (attemptCount - 1) * 1000,
     limitConnections: 0,
@@ -57,7 +60,11 @@ export class WebSocketSession extends EventEmitter<WebSocketEventMap> {
   private isManualClose = false
   private hasOpened = false
 
-  constructor({ retry, timeout, url }: {
+  constructor({
+    retry,
+    timeout,
+    url,
+  }: {
     retry: Required<WebSocketRetryOptions>
     timeout: number
     url: string | URL
@@ -162,7 +169,10 @@ export class WebSocketSession extends EventEmitter<WebSocketEventMap> {
         const isRetryableCode = matchesCloseCode(event.code, this.retry.closeCodes)
 
         // Enforce reconnection limit on close first
-        if (this.retry.limitConnections > 0 && this.totalConnections >= this.retry.limitConnections) {
+        if (
+          this.retry.limitConnections > 0 &&
+          this.totalConnections >= this.retry.limitConnections
+        ) {
           this.emit('close', event.code, event.reason || '')
           return
         }
@@ -178,7 +188,6 @@ export class WebSocketSession extends EventEmitter<WebSocketEventMap> {
       this.ws.onmessage = (event) => {
         this.emit('message', event.data as string | ArrayBuffer)
       }
-
     } catch (error) {
       this.clearTimeout()
       this.setStatus('closed')
@@ -195,10 +204,7 @@ export class WebSocketSession extends EventEmitter<WebSocketEventMap> {
   }
 
   private async scheduleReconnect(): Promise<void> {
-    const delayMs = Math.min(
-      this.retry.delay(this.connectionAttempts + 1),
-      this.retry.backoffLimit
-    )
+    const delayMs = Math.min(this.retry.delay(this.connectionAttempts + 1), this.retry.backoffLimit)
     await sleep(delayMs)
     if (!this.isManualClose && this.status === 'closed') {
       await this.connect()

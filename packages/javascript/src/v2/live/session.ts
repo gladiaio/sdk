@@ -5,6 +5,7 @@ import { LiveV2EventEmitter } from './generated-eventemitter.js'
 import type {
   LiveV2InitRequest,
   LiveV2InitResponse,
+  LiveV2StartSessionMessage,
   LiveV2WebSocketMessage,
 } from './generated-types.js'
 
@@ -12,8 +13,10 @@ function concatArrayBuffer(
   buffer1?: ArrayBufferLike | Buffer | ArrayLike<number> | null,
   buffer2?: ArrayBufferLike | Buffer | ArrayLike<number> | null
 ): ArrayBuffer {
-  const buffer1Length = buffer1 && "byteLength" in buffer1 ? buffer1.byteLength : buffer1?.length ?? 0
-  const buffer2Length = buffer2 && "byteLength" in buffer2 ? buffer2.byteLength : buffer2?.length ?? 0
+  const buffer1Length =
+    buffer1 && 'byteLength' in buffer1 ? buffer1.byteLength : (buffer1?.length ?? 0)
+  const buffer2Length =
+    buffer2 && 'byteLength' in buffer2 ? buffer2.byteLength : (buffer2?.length ?? 0)
   const newBuffer = new Uint8Array(buffer1Length + buffer2Length)
   if (buffer1) {
     newBuffer.set(new Uint8Array(buffer1), 0)
@@ -58,38 +61,46 @@ export class LiveV2Session implements LiveV2EventEmitter {
       }
 
       if (this.sessionOptions.messages_config?.receive_lifecycle_events) {
-        this.emit('start_session', {
+        const startSessionMessage: LiveV2StartSessionMessage = {
           type: 'start_session',
           session_id: session.id,
           created_at: session.created_at,
-        })
+        }
+        this.emit('start_session', startSessionMessage)
+        this.emit('message', startSessionMessage)
       }
 
       return this.resumeWebsocket()
     })
   }
 
-  on(type: LiveV2WebSocketMessage['type'] | 'error', cb: (event: any) => void): this {
+  on(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb: (event: any) => void): this {
     this.eventEmitter?.on(type, cb)
     return this
   }
 
-  once(type: LiveV2WebSocketMessage['type'] | 'error', cb: (event: any) => void): this {
+  once(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb: (event: any) => void): this {
     this.eventEmitter?.once(type, cb)
     return this
   }
 
-  off(type: LiveV2WebSocketMessage['type'] | 'error', cb?: (event: any) => void): this {
+  off(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb?: (event: any) => void): this {
     this.eventEmitter?.off(type, cb)
     return this
   }
 
-  addListener(type: LiveV2WebSocketMessage['type'] | 'error', cb: (event: any) => void): this {
+  addListener(
+    type: LiveV2WebSocketMessage['type'] | 'message' | 'error',
+    cb: (event: any) => void
+  ): this {
     this.eventEmitter?.addListener(type, cb)
     return this
   }
 
-  removeListener(type: LiveV2WebSocketMessage['type'] | 'error', cb?: (event: any) => void): this {
+  removeListener(
+    type: LiveV2WebSocketMessage['type'] | 'message' | 'error',
+    cb?: (event: any) => void
+  ): this {
     this.eventEmitter?.removeListener(type, cb)
     return this
   }
@@ -99,7 +110,7 @@ export class LiveV2Session implements LiveV2EventEmitter {
     return this
   }
 
-  emit(type: LiveV2WebSocketMessage['type'] | 'error', ...params: any[]): this {
+  emit(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', ...params: any[]): this {
     this.eventEmitter?.emit(type, ...params)
     return this
   }
@@ -125,7 +136,7 @@ export class LiveV2Session implements LiveV2EventEmitter {
     this.audioBuffer = concatArrayBuffer(this.audioBuffer, audio)
 
     if (this.webSocketSession?.currentStatus === 'open') {
-      this.webSocketSession?.send("byteLength" in audio ? audio : new Uint8Array(audio))
+      this.webSocketSession?.send('byteLength' in audio ? audio : new Uint8Array(audio))
     }
   }
 
@@ -188,6 +199,7 @@ export class LiveV2Session implements LiveV2EventEmitter {
     this.webSocketSession.on('message', (data) => {
       const message = this.parseMessage(data.toString())
       this.emit(message.type, message)
+      this.emit('message', message)
       if (message.type === 'audio_chunk') {
         if (message.acknowledged && message.data) {
           const byteEnd = message.data.byte_range[1]
@@ -212,25 +224,25 @@ export class LiveV2Session implements LiveV2EventEmitter {
   }
 
   private async createSession(): Promise<LiveV2InitResponse> {
-    const response = await this.httpClient.post(`/v2/live`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...this.sessionOptions,
-        messages_config: {
-          ...this.sessionOptions.messages_config,
-          // Force ack reception for resume
-          receive_acknowledgments: true,
+    try {
+      return await this.httpClient.post<LiveV2InitResponse>(`/v2/live`, {
+        headers: {
+          'Content-Type': 'application/json',
         },
-      } satisfies LiveV2InitRequest),
-    })
-    if (!response.ok) {
-      console.error(`${response.status}: ${(await response.text()) || response.statusText}`)
-      process.exit(response.status)
+        body: JSON.stringify({
+          ...this.sessionOptions,
+          messages_config: {
+            ...this.sessionOptions.messages_config,
+            // Force ack reception for resume
+            receive_acknowledgments: true,
+          },
+        } satisfies LiveV2InitRequest),
+      })
+    } catch (error) {
+      this.emit('error', error)
+      this.destroy()
+      throw error
     }
-
-    return (await response.json()) as LiveV2InitResponse
   }
 
   private parseMessage(data: string): LiveV2WebSocketMessage {

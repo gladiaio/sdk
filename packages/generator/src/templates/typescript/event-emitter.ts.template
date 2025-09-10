@@ -12,8 +12,9 @@ export interface LiveV2EventEmitter {
 {{#methods}}
 {{^isEmit}}
 {{#messages}}  {{{methodName}}}(type: {{{typeName}}}['type'], cb{{#optionalCb}}?{{/optionalCb}}: (message: {{{typeName}}}) => void): this;
-{{/messages}}  {{{methodName}}}(type: 'error', cb{{#optionalCb}}?{{/optionalCb}}: (error: Error) => void): this;
-  {{{methodName}}}(type: LiveV2WebSocketMessage['type'] | 'error', cb{{#optionalCb}}?{{/optionalCb}}: (event: any) => void): this;
+{{/messages}}  {{{methodName}}}(type: 'message', cb{{#optionalCb}}?{{/optionalCb}}: (message: LiveV2WebSocketMessage) => void): this;
+  {{{methodName}}}(type: 'error', cb{{#optionalCb}}?{{/optionalCb}}: (error: Error) => void): this;
+  {{{methodName}}}(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb{{#optionalCb}}?{{/optionalCb}}: (event: any) => void): this;
 
 {{/isEmit}}
 {{/methods}}
@@ -22,8 +23,9 @@ export interface LiveV2EventEmitter {
 {{#methods}}
 {{#isEmit}}
 {{#messages}}  {{{methodName}}}(type: {{{typeName}}}['type'], message: {{{typeName}}}): this;
-{{/messages}}  {{{methodName}}}(type: 'error', error: Error): this;
-  {{{methodName}}}(type: LiveV2WebSocketMessage['type'] | 'error', ...params: any[]): this;
+{{/messages}}  {{{methodName}}}(type: 'message', message: LiveV2WebSocketMessage): this;
+  {{{methodName}}}(type: 'error', error: Error): this;
+  {{{methodName}}}(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', ...params: any[]): this;
 
 {{/isEmit}}
 {{/methods}}

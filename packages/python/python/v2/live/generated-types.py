@@ -2,7 +2,6 @@
 # Generated from OpenAPI schema.
 from typing import Any, Literal, TypedDict
 
-
 # Shared Types Types
 LiveV2Encoding = Literal["wav/pcm", "wav/alaw", "wav/ulaw"]
 

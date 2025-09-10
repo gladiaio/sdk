@@ -29,11 +29,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    
+
     // Get the mocked function
     const { newWebSocket } = await import('./iso-ws.js')
     mockNewWebSocket = newWebSocket as ReturnType<typeof vi.fn>
-    
+
     // Create a mock WebSocket with proper typing
     mockWs = {
       onopen: null,
@@ -44,34 +44,42 @@ describe('WebSocketClient + WebSocketSession', () => {
       send: vi.fn(),
       close: vi.fn(),
     } as MockWebSocket
-    
+
     eventHandlers = {
       onopen: null,
       onerror: null,
       onclose: null,
       onmessage: null,
     }
-    
+
     // Mock newWebSocket to return our mock
     mockNewWebSocket.mockImplementation(() => {
       // Store event handlers when they're set
       Object.defineProperty(mockWs, 'onopen', {
         get: () => eventHandlers.onopen,
-        set: (fn) => { eventHandlers.onopen = fn }
+        set: (fn) => {
+          eventHandlers.onopen = fn
+        },
       })
       Object.defineProperty(mockWs, 'onerror', {
         get: () => eventHandlers.onerror,
-        set: (fn) => { eventHandlers.onerror = fn }
+        set: (fn) => {
+          eventHandlers.onerror = fn
+        },
       })
       Object.defineProperty(mockWs, 'onclose', {
         get: () => eventHandlers.onclose,
-        set: (fn) => { eventHandlers.onclose = fn }
+        set: (fn) => {
+          eventHandlers.onclose = fn
+        },
       })
       Object.defineProperty(mockWs, 'onmessage', {
         get: () => eventHandlers.onmessage,
-        set: (fn) => { eventHandlers.onmessage = fn }
+        set: (fn) => {
+          eventHandlers.onmessage = fn
+        },
       })
-      
+
       return Promise.resolve(mockWs)
     })
   })
@@ -148,11 +156,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 2, 
-        delay: () => 10, 
+      webSocketRetry: {
+        limit: 2,
+        delay: () => 10,
         backoffLimit: 100,
-        closeCodes: [1002, [1003, 1006]]
+        closeCodes: [1002, [1003, 1006]],
       },
       webSocketTimeout: 1000,
     })
@@ -160,7 +168,8 @@ describe('WebSocketClient + WebSocketSession', () => {
     session.on('connecting', connectingSpy)
     session.on('open', openSpy)
     session.on('close', closeSpy)
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
     expect(connectingSpy).toHaveBeenCalledTimes(1)
 
     // Simulate WebSocket opening
@@ -169,10 +178,10 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Simulate close with retryable code
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close' })
-    
+
     // Wait for retry
-    await new Promise(resolve => setTimeout(resolve, 50))
-    
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
     expect(connectingSpy).toHaveBeenCalledTimes(2) // Should retry
     expect(closeSpy).not.toHaveBeenCalled() // Should not emit close event yet
   })
@@ -182,21 +191,22 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 2, 
-        delay: () => 10, 
+      webSocketRetry: {
+        limit: 2,
+        delay: () => 10,
         backoffLimit: 100,
-        closeCodes: [1002, [1003, 1006]]
+        closeCodes: [1002, [1003, 1006]],
       },
       webSocketTimeout: 1000,
     })
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
 
     // Simulate close with non-retryable code
     eventHandlers.onclose?.({ code: 1000, reason: 'Normal closure' })
-    
+
     expect(closeSpy).toHaveBeenCalledWith(1000, 'Normal closure')
   })
 
@@ -206,11 +216,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 1, 
-        delay: () => 10, 
+      webSocketRetry: {
+        limit: 1,
+        delay: () => 10,
         backoffLimit: 100,
-        closeCodes: [1002]
+        closeCodes: [1002],
       },
       webSocketTimeout: 1000,
     })
@@ -222,10 +232,10 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Simulate close with retryable code
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close' })
-    
+
     // Wait for potential retry
-    await new Promise(resolve => setTimeout(resolve, 50))
-    
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
     expect(connectingSpy).toHaveBeenCalledTimes(1) // Should not retry
     expect(closeSpy).toHaveBeenCalledWith(1002, 'Test close')
   })
@@ -240,14 +250,17 @@ describe('WebSocketClient + WebSocketSession', () => {
     })
     session = client.createSession('ws://localhost:8080')
     session.on('error', errorSpy)
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
 
     // Wait for timeout
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
-    expect(errorSpy).toHaveBeenCalledWith(expect.objectContaining({
-      message: expect.stringContaining('timeout')
-    }))
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('timeout'),
+      })
+    )
     expect(session.currentStatus).toBe('closed')
   })
 
@@ -258,7 +271,8 @@ describe('WebSocketClient + WebSocketSession', () => {
       webSocketTimeout: 1000,
     })
     session = client.createSession('ws://localhost:8080')
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
     eventHandlers.onopen?.()
     session.send('test data')
     expect(mockWs.send).toHaveBeenCalledWith('test data')
@@ -271,7 +285,8 @@ describe('WebSocketClient + WebSocketSession', () => {
       webSocketTimeout: 1000,
     })
     session = client.createSession('ws://localhost:8080')
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
 
     expect(() => session.send('test data')).toThrow('WebSocket is not open')
   })
@@ -286,7 +301,8 @@ describe('WebSocketClient + WebSocketSession', () => {
     })
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
     eventHandlers.onopen?.()
     session.close(1000)
     expect(mockWs.close).toHaveBeenCalledWith(1000)
@@ -302,11 +318,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 1, 
-        delay: () => 0, 
+      webSocketRetry: {
+        limit: 1,
+        delay: () => 0,
         backoffLimit: 0,
-        limitConnections: 1
+        limitConnections: 1,
       },
       webSocketTimeout: 1000,
     })
@@ -317,7 +333,7 @@ describe('WebSocketClient + WebSocketSession', () => {
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close' })
 
     // Wait for potential retry
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
     // Limit reached blocks reconnection and mirrors last close
     expect(closeSpy).toHaveBeenCalledWith(1002, 'Test close')
@@ -328,26 +344,27 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 2, 
-        delay: () => 10, 
+      webSocketRetry: {
+        limit: 2,
+        delay: () => 10,
         backoffLimit: 100,
-        closeCodes: [1002]
+        closeCodes: [1002],
       },
       webSocketTimeout: 1000,
     })
 
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
     eventHandlers.onopen?.() // Successful connection
 
     // Simulate close and retry
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close' })
-    
+
     // Wait for retry
-    await new Promise(resolve => setTimeout(resolve, 50))
-    
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
     expect(connectingSpy).toHaveBeenCalledTimes(2) // Should retry once more
   })
 
@@ -362,7 +379,8 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
-    await Promise.resolve(); await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
     eventHandlers.onopen?.()
 
     session.destroy()
@@ -377,11 +395,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 1, 
-        delay: () => 10, 
+      webSocketRetry: {
+        limit: 1,
+        delay: () => 10,
         backoffLimit: 100,
-        closeCodes: [1002]
+        closeCodes: [1002],
       },
       webSocketTimeout: 1000,
     })
@@ -395,7 +413,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Simulate connection error before open
     eventHandlers.onerror?.()
-    await new Promise(resolve => setTimeout(resolve, 20))
+    await new Promise((resolve) => setTimeout(resolve, 20))
 
     expect(errorSpy).toHaveBeenCalled()
     expect(connectingSpy).toHaveBeenCalledTimes(1) // no retry
@@ -408,11 +426,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 2, 
-        delay: () => 10, 
+      webSocketRetry: {
+        limit: 2,
+        delay: () => 10,
         backoffLimit: 100,
-        closeCodes: [1002]
+        closeCodes: [1002],
       },
       webSocketTimeout: 1000,
     })
@@ -424,7 +442,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Simulate pre-open error to trigger retry logic
     eventHandlers.onerror?.()
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
     expect(connectingSpy).toHaveBeenCalledTimes(2) // Initial + 1 retry
     // pre-open error also emits close(1006, '') in our impl
@@ -432,10 +450,10 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Simulate close again
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close 2' })
-    
+
     // Wait for potential retry
-    await new Promise(resolve => setTimeout(resolve, 50))
-    
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
     expect(connectingSpy).toHaveBeenCalledTimes(2) // Should not retry again
     expect(closeSpy).toHaveBeenCalledWith(1002, 'Test close 2')
   })
@@ -446,11 +464,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 0, 
-        delay: () => 10, 
+      webSocketRetry: {
+        limit: 0,
+        delay: () => 10,
         backoffLimit: 100,
-        closeCodes: [1002]
+        closeCodes: [1002],
       },
       webSocketTimeout: 1000,
     })
@@ -463,9 +481,9 @@ describe('WebSocketClient + WebSocketSession', () => {
     // Simulate multiple pre-open errors
     for (let i = 0; i < 3; i++) {
       eventHandlers.onerror?.()
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
-    
+
     expect(connectingSpy).toHaveBeenCalledTimes(4) // Initial + 3 retries
     // Each pre-open error emits close(1006, '')
     expect(closeSpy).toHaveBeenCalledTimes(3)
@@ -477,11 +495,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 5, 
-        delay: () => 0, 
+      webSocketRetry: {
+        limit: 5,
+        delay: () => 0,
         backoffLimit: 0,
-        limitConnections: 1
+        limitConnections: 1,
       },
       webSocketTimeout: 1000,
     })
@@ -491,7 +509,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Simulate close and try to reconnect
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close' })
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     // Second connection blocked by limit emits close with same code/reason
     expect(closeSpy).toHaveBeenCalledWith(1002, 'Test close')
@@ -502,11 +520,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 5, 
-        delay: () => 0, 
+      webSocketRetry: {
+        limit: 5,
+        delay: () => 0,
         backoffLimit: 0,
-        limitConnections: 2
+        limitConnections: 2,
       },
       webSocketTimeout: 1000,
     })
@@ -516,14 +534,14 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Simulate close and try to reconnect
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close 1' })
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     // Second connection should work (no close emitted yet by limit)
     expect(closeSpy).not.toHaveBeenCalledWith(1002, 'Test close 1')
 
     // Simulate close and try to reconnect again
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close 2' })
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     // Third connection blocked by limit mirrors the last close
     expect(closeSpy).toHaveBeenCalledWith(1002, 'Test close 2')
@@ -534,11 +552,11 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 5, 
-        delay: () => 0, 
+      webSocketRetry: {
+        limit: 5,
+        delay: () => 0,
         backoffLimit: 0,
-        limitConnections: 0
+        limitConnections: 0,
       },
       webSocketTimeout: 1000,
     })
@@ -550,7 +568,7 @@ describe('WebSocketClient + WebSocketSession', () => {
       // autoconnect already scheduled
       await Promise.resolve()
       eventHandlers.onclose?.({ code: 1002, reason: `Test close ${i}` })
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
     }
 
     expect(errorSpy).not.toHaveBeenCalled()
@@ -602,9 +620,11 @@ describe('WebSocketClient + WebSocketSession', () => {
     // Test error event
     eventHandlers.onerror?.()
     expect(errorSpy).toHaveBeenCalledTimes(1)
-    expect(errorSpy).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'WebSocket connection error'
-    }))
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'WebSocket connection error',
+      })
+    )
 
     // Test close event
     eventHandlers.onclose?.({ code: 1000, reason: 'Normal closure' })
@@ -620,7 +640,11 @@ describe('WebSocketClient + WebSocketSession', () => {
       webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
       webSocketTimeout: 1000,
     })
-    session = new WebSocketClient({ baseUrl: 'http://localhost:8080', webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 }, webSocketTimeout: 1000 }).createSession('ws://localhost:8080')
+    session = new WebSocketClient({
+      baseUrl: 'http://localhost:8080',
+      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
+      webSocketTimeout: 1000,
+    }).createSession('ws://localhost:8080')
     session.on('close', closeSpy)
     await tick()
     // already connected via session
@@ -667,9 +691,11 @@ describe('WebSocketClient + WebSocketSession', () => {
     connectionSession.on('error', connectionErrorSpy)
     await tick()
     eventHandlers.onerror?.()
-    expect(connectionErrorSpy).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'WebSocket connection error'
-    }))
+    expect(connectionErrorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'WebSocket connection error',
+      })
+    )
 
     // Test timeout error
     const timeoutErrorSpy = vi.fn()
@@ -683,19 +709,21 @@ describe('WebSocketClient + WebSocketSession', () => {
     await tick()
     // Simulate timeout by calling handleTimeout directly
     timeoutSession['handleTimeout']()
-    expect(timeoutErrorSpy).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'WebSocket connection timeout'
-    }))
+    expect(timeoutErrorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'WebSocket connection timeout',
+      })
+    )
 
     // Test connection limit on close → expect close (not error)
     const limitCloseSpy = vi.fn()
     const limitClient = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { 
-        limit: 5, 
-        delay: () => 0, 
+      webSocketRetry: {
+        limit: 5,
+        delay: () => 0,
         backoffLimit: 0,
-        limitConnections: 1
+        limitConnections: 1,
       },
       webSocketTimeout: 1000,
     })
@@ -703,7 +731,7 @@ describe('WebSocketClient + WebSocketSession', () => {
     limitSession.on('close', limitCloseSpy)
     await tick()
     eventHandlers.onclose?.({ code: 1002, reason: 'Test close' })
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     expect(limitCloseSpy).toHaveBeenCalledWith(1002, 'Test close')
   })

@@ -58,7 +58,7 @@ const liveSession = gladiaClient.liveV2().newSession({
 })
 
 // Add listeners
-liveSession.on('transcript', transcript => {
+liveSession.on('transcript', (transcript) => {
   console.log(`${transcript.data.is_final ? 'F' : 'P'} | ${transcript.data.utterance.text.trim()}`)
 })
 

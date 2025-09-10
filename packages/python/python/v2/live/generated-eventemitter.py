@@ -1,8 +1,9 @@
 # This file is auto-generated. Do not edit manually.
 # Generated from OpenAPI schema.
 
-from typing import Callable, Any, Union
-from abc import ABC, abstractmethod
+from abc import ABC
+from collections.abc import Callable
+from typing import Any
 
 # Import all message types
 

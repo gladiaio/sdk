@@ -14,30 +14,30 @@ export type IsoWS = {
 
 function getNativeWebSocket() {
   if (typeof WebSocket !== 'undefined') {
-    return WebSocket;
+    return WebSocket
   }
   if (typeof global !== 'undefined' && typeof global.WebSocket !== 'undefined') {
-    return global.WebSocket;
+    return global.WebSocket
   }
   if (typeof globalThis !== 'undefined' && typeof globalThis.WebSocket !== 'undefined') {
-    return globalThis.WebSocket;
+    return globalThis.WebSocket
   }
   // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
   if (typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined') {
     // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
-    return window.WebSocket;
+    return window.WebSocket
   }
   // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
   if (typeof window !== 'undefined' && typeof window.WebSocket !== 'undefined') {
     // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
-    return window.WebSocket;
+    return window.WebSocket
   }
   // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
   if (typeof self !== 'undefined' && typeof self.WebSocket !== 'undefined') {
     // @ts-expect-error unknown variable in NodeJS but can be defined in other environment
-    return self.WebSocket;
+    return self.WebSocket
   }
-  return undefined;
+  return undefined
 }
 
 async function WebSocketFactory(): Promise<(url: string | URL) => IsoWS> {
@@ -48,7 +48,9 @@ async function WebSocketFactory(): Promise<(url: string | URL) => IsoWS> {
     // noop
   }
   if (!WS) {
-    throw new Error('WebSocket is not supported in this environment and the `ws` package is not installed')
+    throw new Error(
+      'WebSocket is not supported in this environment and the `ws` package is not installed'
+    )
   }
   return (url: string | URL) => new WS(url)
 }

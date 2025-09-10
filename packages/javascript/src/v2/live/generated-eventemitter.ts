@@ -4,23 +4,23 @@
  */
 
 import {
+  LiveV2WebSocketMessage,
   LiveV2AudioChunkAckMessage,
   LiveV2EndRecordingMessage,
   LiveV2EndSessionMessage,
+  LiveV2TranslationMessage,
   LiveV2NamedEntityRecognitionMessage,
   LiveV2PostChapterizationMessage,
   LiveV2PostFinalTranscriptMessage,
   LiveV2PostSummarizationMessage,
   LiveV2PostTranscriptMessage,
   LiveV2SentimentAnalysisMessage,
-  LiveV2SpeechEndMessage,
-  LiveV2SpeechStartMessage,
   LiveV2StartRecordingMessage,
   LiveV2StartSessionMessage,
   LiveV2StopRecordingAckMessage,
   LiveV2TranscriptMessage,
-  LiveV2TranslationMessage,
-  LiveV2WebSocketMessage,
+  LiveV2SpeechStartMessage,
+  LiveV2SpeechEndMessage,
 } from './generated-types.js'
 
 export interface LiveV2EventEmitter {
@@ -73,8 +73,9 @@ export interface LiveV2EventEmitter {
   on(type: LiveV2TranscriptMessage['type'], cb: (message: LiveV2TranscriptMessage) => void): this
   on(type: LiveV2SpeechStartMessage['type'], cb: (message: LiveV2SpeechStartMessage) => void): this
   on(type: LiveV2SpeechEndMessage['type'], cb: (message: LiveV2SpeechEndMessage) => void): this
+  on(type: 'message', cb: (message: LiveV2WebSocketMessage) => void): this
   on(type: 'error', cb: (error: Error) => void): this
-  on(type: LiveV2WebSocketMessage['type'] | 'error', cb: (event: any) => void): this
+  on(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb: (event: any) => void): this
 
   once(
     type: LiveV2AudioChunkAckMessage['type'],
@@ -131,8 +132,9 @@ export interface LiveV2EventEmitter {
     cb: (message: LiveV2SpeechStartMessage) => void
   ): this
   once(type: LiveV2SpeechEndMessage['type'], cb: (message: LiveV2SpeechEndMessage) => void): this
+  once(type: 'message', cb: (message: LiveV2WebSocketMessage) => void): this
   once(type: 'error', cb: (error: Error) => void): this
-  once(type: LiveV2WebSocketMessage['type'] | 'error', cb: (event: any) => void): this
+  once(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb: (event: any) => void): this
 
   off(
     type: LiveV2AudioChunkAckMessage['type'],
@@ -189,8 +191,9 @@ export interface LiveV2EventEmitter {
     cb?: (message: LiveV2SpeechStartMessage) => void
   ): this
   off(type: LiveV2SpeechEndMessage['type'], cb?: (message: LiveV2SpeechEndMessage) => void): this
+  off(type: 'message', cb?: (message: LiveV2WebSocketMessage) => void): this
   off(type: 'error', cb?: (error: Error) => void): this
-  off(type: LiveV2WebSocketMessage['type'] | 'error', cb?: (event: any) => void): this
+  off(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb?: (event: any) => void): this
 
   addListener(
     type: LiveV2AudioChunkAckMessage['type'],
@@ -256,8 +259,12 @@ export interface LiveV2EventEmitter {
     type: LiveV2SpeechEndMessage['type'],
     cb: (message: LiveV2SpeechEndMessage) => void
   ): this
+  addListener(type: 'message', cb: (message: LiveV2WebSocketMessage) => void): this
   addListener(type: 'error', cb: (error: Error) => void): this
-  addListener(type: LiveV2WebSocketMessage['type'] | 'error', cb: (event: any) => void): this
+  addListener(
+    type: LiveV2WebSocketMessage['type'] | 'message' | 'error',
+    cb: (event: any) => void
+  ): this
 
   removeListener(
     type: LiveV2AudioChunkAckMessage['type'],
@@ -323,8 +330,12 @@ export interface LiveV2EventEmitter {
     type: LiveV2SpeechEndMessage['type'],
     cb?: (message: LiveV2SpeechEndMessage) => void
   ): this
+  removeListener(type: 'message', cb?: (message: LiveV2WebSocketMessage) => void): this
   removeListener(type: 'error', cb?: (error: Error) => void): this
-  removeListener(type: LiveV2WebSocketMessage['type'] | 'error', cb?: (event: any) => void): this
+  removeListener(
+    type: LiveV2WebSocketMessage['type'] | 'message' | 'error',
+    cb?: (event: any) => void
+  ): this
 
   removeAllListeners(): this
 
@@ -353,6 +364,7 @@ export interface LiveV2EventEmitter {
   emit(type: LiveV2TranscriptMessage['type'], message: LiveV2TranscriptMessage): this
   emit(type: LiveV2SpeechStartMessage['type'], message: LiveV2SpeechStartMessage): this
   emit(type: LiveV2SpeechEndMessage['type'], message: LiveV2SpeechEndMessage): this
+  emit(type: 'message', message: LiveV2WebSocketMessage): this
   emit(type: 'error', error: Error): this
-  emit(type: LiveV2WebSocketMessage['type'] | 'error', ...params: any[]): this
+  emit(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', ...params: any[]): this
 }
