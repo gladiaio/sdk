@@ -1,3 +1,9 @@
+## 0.2.1 (2025-09-10)
+
+### 🩹 Fixes
+
+- **sdk-js:** Add Buffer and ArrayLike<number> to allowed audio chunk parameter
+
 ## 0.2.0 (2025-09-10)
 
 ### 🚀 Features
