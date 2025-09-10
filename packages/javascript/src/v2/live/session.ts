@@ -9,15 +9,17 @@ import type {
 } from './generated-types.js'
 
 function concatArrayBuffer(
-  buffer1?: ArrayBufferLike | null,
-  buffer2?: ArrayBufferLike | null
+  buffer1?: ArrayBufferLike | Buffer | ArrayLike<number> | null,
+  buffer2?: ArrayBufferLike | Buffer | ArrayLike<number> | null
 ): ArrayBuffer {
-  const newBuffer = new Uint8Array((buffer1?.byteLength ?? 0) + (buffer2?.byteLength ?? 0))
-  if (buffer1?.byteLength) {
+  const buffer1Length = buffer1 && "byteLength" in buffer1 ? buffer1.byteLength : buffer1?.length ?? 0
+  const buffer2Length = buffer2 && "byteLength" in buffer2 ? buffer2.byteLength : buffer2?.length ?? 0
+  const newBuffer = new Uint8Array(buffer1Length + buffer2Length)
+  if (buffer1) {
     newBuffer.set(new Uint8Array(buffer1), 0)
   }
-  if (buffer2?.byteLength) {
-    newBuffer.set(new Uint8Array(buffer2), buffer1?.byteLength ?? 0)
+  if (buffer2) {
+    newBuffer.set(new Uint8Array(buffer2), buffer1Length)
   }
   return newBuffer.buffer
 }
@@ -107,7 +109,7 @@ export class LiveV2Session implements LiveV2EventEmitter {
     return id
   }
 
-  sendAudio(audio: ArrayBufferLike): void {
+  sendAudio(audio: ArrayBufferLike | Buffer | ArrayLike<number>): void {
     if (this.status === 'destroyed') {
       // throw new Error(`The session stopped, you can no longer send audio.`)
       return
@@ -123,7 +125,7 @@ export class LiveV2Session implements LiveV2EventEmitter {
     this.audioBuffer = concatArrayBuffer(this.audioBuffer, audio)
 
     if (this.webSocketSession?.currentStatus === 'open') {
-      this.webSocketSession?.send(audio)
+      this.webSocketSession?.send("byteLength" in audio ? audio : new Uint8Array(audio))
     }
   }
 

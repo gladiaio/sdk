@@ -1,4 +1,4 @@
-import type { Live } from '@gladiaio/sdk'
+import type { LiveV2InitRequest } from '@gladiaio/sdk'
 
 export type Recorder = {
   start(): void
@@ -6,5 +6,5 @@ export type Recorder = {
 }
 
 export type StreamingAudioFormat = Required<
-  Pick<Live.StreamingRequest, 'bit_depth' | 'channels' | 'encoding' | 'sample_rate'>
+  Pick<LiveV2InitRequest, 'bit_depth' | 'channels' | 'encoding' | 'sample_rate'>
 >
