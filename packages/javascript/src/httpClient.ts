@@ -187,7 +187,11 @@ export class HttpClient {
           )
 
           // Retry only if status is retryable and attempts remain
-          if (attempt <= limit && matchesStatus(response.status, this.retry.statusCodes)) {
+          // When limit is 0, retry unlimited times
+          // When limit is 1, no retries (only initial attempt)
+          // When limit is 2, 1 retry (initial + 1 retry)
+          const shouldRetry = limit === 0 ? true : attempt < limit
+          if (shouldRetry && matchesStatus(response.status, this.retry.statusCodes)) {
             attemptErrors.push(httpErr)
             const delayMs = Math.min(this.retry.delay(attempt), this.retry.backoffLimit)
             await sleep(delayMs)
@@ -231,7 +235,11 @@ export class HttpClient {
 
         if (asError instanceof HttpError) {
           const retryable = matchesStatus(asError.status, this.retry.statusCodes)
-          if (retryable && attempt <= limit) {
+          // When limit is 0, retry unlimited times
+          // When limit is 1, no retries (only initial attempt)
+          // When limit is 2, 1 retry (initial + 1 retry)
+          const shouldRetry = limit === 0 ? true : attempt < limit
+          if (retryable && shouldRetry) {
             attemptErrors.push(asError)
             const delayMs = Math.min(this.retry.delay(attempt), this.retry.backoffLimit)
             await sleep(delayMs)
@@ -254,7 +262,11 @@ export class HttpClient {
         }
 
         // Non-HTTP (e.g., network) error
-        if (attempt <= limit) {
+        // When limit is 0, retry unlimited times
+        // When limit is 1, no retries (only initial attempt)
+        // When limit is 2, 1 retry (initial + 1 retry)
+        const shouldRetry = limit === 0 ? true : attempt < limit
+        if (shouldRetry) {
           attemptErrors.push(asError)
           const delayMs = Math.min(this.retry.delay(attempt), this.retry.backoffLimit)
           await sleep(delayMs)

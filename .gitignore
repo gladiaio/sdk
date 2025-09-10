@@ -4,3 +4,4 @@ dist/
 .nx/workspace-data
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+__pycache__/

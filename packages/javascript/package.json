@@ -36,7 +36,6 @@
     "@tsconfig/node20": "^20.1.6",
     "@types/node": "^20.19.13",
     "@types/ws": "^8.18.1",
-    "msw": "^2.11.1",
     "tsdown": "^0.14.2"
   },
   "peerDependencies": {

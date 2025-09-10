@@ -12,14 +12,15 @@ type BaseRetryOptions = {
 
 export type HttpRetryOptions = {
   /**
-   * Number of times to retry a HTTP request.
+   * Maximum number of attempts for an HTTP request. 
+   * 0 for unlimited. 1 for no retry.
    *
    * Default is 2.
    */
   limit?: number
 
   /**
-   * List of status codes to retry. You can specify a range by using a tuple.
+   * List of status codes eligible for retry. You can specify a range by using a tuple.
    *
    * Default for HTTP is [408, 413, 429, [500, 599]].
    */
@@ -35,15 +36,13 @@ export type HttpRetryOptions = {
 
 export type WebSocketRetryOptions = {
   /**
-   * Number of times to retry a WS connection. Default is 5.
+   * Maximum number of attempts for a WS connection. 
+   * 0 for unlimited. 1 for no retry.
+   * Once connected, the number of attempts to reconnect is reset.
+   * 
+   * Default is 5.
    */
   limit?: number
-
-  /**
-   * List of close code to retry. You can specify a range by using a tuple.
-   * Default is [[1002, 4399], [4500, 9999]].
-   */
-  closeCodes?: (number | [start: number, end: number])[]
 
   /**
    * The upper limit of the delay per retry in milliseconds.
@@ -51,7 +50,22 @@ export type WebSocketRetryOptions = {
    * Default is 2000.
    */
   backoffLimit?: number
-} & BaseRetryOptions
+} & BaseRetryOptions & {
+
+  /**
+   * Maximum number of WS connections. 
+   * 0 for unlimited. 1 for no reconnection.
+   * 
+   * Default is 0.
+   */
+  limitConnections?: number
+
+  /**
+   * List of close code eligible for reconnection. You can specify a range by using a tuple.
+   * Default is [[1002, 4399], [4500, 9999]].
+   */
+  closeCodes?: (number | [start: number, end: number])[]
+}
 
 export type GladiaClientOptions = {
   /**

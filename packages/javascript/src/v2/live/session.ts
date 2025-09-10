@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3'
 import { HttpClient } from '../../httpClient.js'
-import { newWebSocket, type IsoWS } from '../../iso-ws.js'
+import { WebSocketClient, WebSocketSession } from '../../webSocketClient.js'
 import { LiveV2EventEmitter } from './generated-eventemitter.js'
 import type {
   LiveV2InitRequest,
@@ -25,18 +25,29 @@ function concatArrayBuffer(
 export class LiveV2Session implements LiveV2EventEmitter {
   private sessionOptions: LiveV2InitRequest
   private httpClient: HttpClient
+  private webSocketClient: WebSocketClient
 
   private initSessionPromise: Promise<LiveV2InitResponse>
-  private ws?: IsoWS | null
+  private webSocketSession: WebSocketSession | null = null
+
+  private eventEmitter: EventEmitter | null = new EventEmitter()
   private bytesSent = 0
   private audioBuffer: ArrayBuffer | null = null
-  private eventEmitter: EventEmitter | null = new EventEmitter()
 
   private status: 'init' | 'created' | 'stopped' | 'destroyed' = 'init'
 
-  constructor({ options, httpClient }: { options: LiveV2InitRequest; httpClient: HttpClient }) {
+  constructor({
+    options,
+    httpClient,
+    webSocketClient,
+  }: {
+    options: LiveV2InitRequest
+    httpClient: HttpClient
+    webSocketClient: WebSocketClient
+  }) {
     this.sessionOptions = options
     this.httpClient = httpClient
+    this.webSocketClient = webSocketClient
 
     this.initSessionPromise = this.createSession()
     this.initSessionPromise.then((session) => {
@@ -110,7 +121,10 @@ export class LiveV2Session implements LiveV2EventEmitter {
     // If it does, check with config and remove it
 
     this.audioBuffer = concatArrayBuffer(this.audioBuffer, audio)
-    this.ws?.send(audio)
+
+    if (this.webSocketSession?.currentStatus === 'open') {
+      this.webSocketSession?.send(audio)
+    }
   }
 
   stop(): void {
@@ -127,7 +141,9 @@ export class LiveV2Session implements LiveV2EventEmitter {
 
     // TODO force a timeout if ws connection is not ready to destroy the client
     // TODO buffer the message
-    this.ws?.send(JSON.stringify({ type: 'stop_recording' }))
+    if (this.webSocketSession?.currentStatus === 'open') {
+      this.webSocketSession?.send(JSON.stringify({ type: 'stop_recording' }))
+    }
   }
 
   destroy(): void {
@@ -149,26 +165,26 @@ export class LiveV2Session implements LiveV2EventEmitter {
     this.removeAllListeners()
     this.eventEmitter = null
 
-    if (this.ws) {
-      this.ws.onclose = null
-      this.ws.onerror = null
-      this.ws.onmessage = null
-      this.ws.onopen = null
-      // if connecting or opened, close the ws
-      if (this.ws.readyState < 2) {
-        this.ws.close(1000)
-      }
-    }
+    // Close the WebSocket connection
+    this.webSocketSession?.close(1000)
+    this.webSocketSession?.destroy()
+    this.webSocketSession = null
   }
 
   private async resumeWebsocket(): Promise<void> {
     const session = await this.initSessionPromise
-    this.ws = await this.initWebSocket(session)
-    if (this.audioBuffer?.byteLength) {
-      this.ws.send(this.audioBuffer)
-    }
-    this.ws.onmessage = (evt) => {
-      const message = this.parseMessage(evt.data.toString())
+
+    // Create a WebSocket session and bridge its events
+    this.webSocketSession = this.webSocketClient.createSession(session.url)
+
+    this.webSocketSession.on('open', () => {
+      if (this.audioBuffer?.byteLength) {
+        this.webSocketSession?.send(this.audioBuffer)
+      }
+    })
+
+    this.webSocketSession.on('message', (data) => {
+      const message = this.parseMessage(data.toString())
       this.emit(message.type, message)
       if (message.type === 'audio_chunk') {
         if (message.acknowledged && message.data) {
@@ -178,14 +194,19 @@ export class LiveV2Session implements LiveV2EventEmitter {
           this.bytesSent = byteEnd
         }
       }
-    }
-    this.ws.onclose = (evt) => {
-      // TODO
-      console.log(`[${evt.code}] WS closed${evt.reason ? `: ${evt.reason}` : ''}`)
-      if (evt.code === 1000) {
+    })
+
+    this.webSocketSession.on('close', (code, reason) => {
+      console.log(`[${code}] WS closed${reason ? `: ${reason}` : ''}`)
+      if (code === 1000) {
         this.destroy()
       }
-    }
+    })
+
+    this.webSocketSession.on('error', (error) => {
+      console.error('WebSocket error:', error)
+      this.emit('error', error)
+    })
   }
 
   private async createSession(): Promise<LiveV2InitResponse> {
@@ -208,32 +229,6 @@ export class LiveV2Session implements LiveV2EventEmitter {
     }
 
     return (await response.json()) as LiveV2InitResponse
-  }
-
-  private async initWebSocket({ url }: LiveV2InitResponse): Promise<IsoWS> {
-    try {
-      const ws = await newWebSocket(url)
-      let resolve: () => void
-      let reject: (reason?: any) => void
-      const promise = new Promise<void>((res, rej) => {
-        resolve = res
-        reject = rej
-      })
-      ws.onopen = () => {
-        ws.onopen = null
-        ws.onerror = null
-        resolve()
-      }
-      ws.onerror = (event) => {
-        ws.onopen = null
-        ws.onerror = null
-        reject(event.error)
-      }
-      await promise
-      return ws
-    } catch (err: unknown) {
-      throw new Error(`Couldn't connect to ws url: ${url}`, { cause: err })
-    }
   }
 
   private parseMessage(data: string): LiveV2WebSocketMessage {

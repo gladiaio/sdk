@@ -40,7 +40,7 @@ function getNativeWebSocket() {
   return undefined;
 }
 
-async function WebSocketFactory(): Promise<(url: string) => IsoWS> {
+async function WebSocketFactory(): Promise<(url: string | URL) => IsoWS> {
   let WS: any
   try {
     WS = getNativeWebSocket() ?? (await import('ws')).WebSocket
@@ -48,12 +48,12 @@ async function WebSocketFactory(): Promise<(url: string) => IsoWS> {
     // noop
   }
   if (!WS) {
-    throw new Error('WebSocket is not supported in this environment and the ws package is not installed')
+    throw new Error('WebSocket is not supported in this environment and the `ws` package is not installed')
   }
-  return (url: string) => new WS(url)
+  return (url: string | URL) => new WS(url)
 }
 
-export async function newWebSocket(url: string): Promise<IsoWS> {
+export async function newWebSocket(url: string | URL): Promise<IsoWS> {
   const wsFactory = await WebSocketFactory()
   return wsFactory(url)
 }

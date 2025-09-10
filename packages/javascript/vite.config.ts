@@ -16,7 +16,6 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    setupFiles: ['src/test/setup-msw.ts'],
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
