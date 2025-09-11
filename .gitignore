@@ -5,3 +5,10 @@ dist/
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
 __pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage
+coverage/
+reports/
+*.tsbuildinfo

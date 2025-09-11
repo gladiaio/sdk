@@ -4,6 +4,9 @@
   "sourceRoot": "samples/javascript/src",
   "projectType": "application",
   "targets": {
+    "add": {},
+    "update": {},
+    "remove": {},
     "format:check": {},
     "format:write": {},
     "lint": {},

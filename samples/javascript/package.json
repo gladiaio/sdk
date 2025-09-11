@@ -9,8 +9,9 @@
     "live-from-microphone": "node --experimental-strip-types src/live/live-from-microphone.ts"
   },
   "dependencies": {
-    "@gladiaio/sdk": "*",
-    "node-mic": "^1.0.1"
+    "@gladiaio/sdk": "workspace:*",
+    "node-mic": "^1.0.1",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.6",

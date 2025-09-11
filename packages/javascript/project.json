@@ -26,6 +26,9 @@
         "cwd": "packages/javascript"
       }
     },
+    "add": {},
+    "update": {},
+    "remove": {},
     "format:check": {},
     "format:write": {},
     "lint": {},

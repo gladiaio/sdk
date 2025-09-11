@@ -4,6 +4,15 @@
   "projectType": "application",
   "sourceRoot": "packages/python/python",
   "targets": {
+    "install": {
+      "executor": "@nxlv/python:install",
+      "options": {
+        "silent": false,
+        "args": "",
+        "verbose": false,
+        "debug": false
+      }
+    },
     "lock": {
       "executor": "@nxlv/python:lock",
       "options": {
@@ -80,15 +89,6 @@
         "cwd": "{projectRoot}"
       },
       "cache": true
-    },
-    "install": {
-      "executor": "@nxlv/python:install",
-      "options": {
-        "silent": false,
-        "args": "",
-        "verbose": false,
-        "debug": false
-      }
     },
     "nx-release-publish": {
       "executor": "@nxlv/python:publish",

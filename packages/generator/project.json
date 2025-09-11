@@ -11,6 +11,9 @@
         "cwd": "packages/generator"
       }
     },
+    "add": {},
+    "update": {},
+    "remove": {},
     "format:check": {},
     "format:write": {},
     "lint": {},

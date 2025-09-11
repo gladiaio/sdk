@@ -23,6 +23,27 @@
     }
   ],
   "targetDefaults": {
+    "add": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun add",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "update": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun update",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "remove": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun remove",
+        "cwd": "{projectRoot}"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
