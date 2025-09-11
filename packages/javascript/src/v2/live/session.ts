@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3'
-import { HttpClient } from '../../httpClient.js'
-import { WebSocketClient, WebSocketSession } from '../../webSocketClient.js'
+import { HttpClient } from '../../network/httpClient.js'
+import { WebSocketClient, WebSocketSession } from '../../network/webSocketClient.js'
 import { LiveV2EventEmitter } from './generated-eventemitter.js'
 import type {
   LiveV2InitRequest,
@@ -9,22 +9,24 @@ import type {
   LiveV2WebSocketMessage,
 } from './generated-types.js'
 
-function concatArrayBuffer(
-  buffer1?: ArrayBufferLike | Buffer | ArrayLike<number> | null,
-  buffer2?: ArrayBufferLike | Buffer | ArrayLike<number> | null
-): ArrayBuffer {
-  const buffer1Length =
-    buffer1 && 'byteLength' in buffer1 ? buffer1.byteLength : (buffer1?.length ?? 0)
-  const buffer2Length =
-    buffer2 && 'byteLength' in buffer2 ? buffer2.byteLength : (buffer2?.length ?? 0)
-  const newBuffer = new Uint8Array(buffer1Length + buffer2Length)
+function toUint8Array(
+  audio: ArrayBufferLike | Buffer<ArrayBufferLike> | ArrayLike<number>
+): Uint8Array {
+  if (audio instanceof SharedArrayBuffer) {
+    return new Uint8Array(audio)
+  }
+  return new Uint8Array(audio)
+}
+
+function concatArrayBuffer(buffer1?: Uint8Array | null, buffer2?: Uint8Array | null): Uint8Array {
+  const newBuffer = new Uint8Array((buffer1?.byteLength ?? 0) + (buffer2?.byteLength ?? 0))
   if (buffer1) {
     newBuffer.set(new Uint8Array(buffer1), 0)
   }
   if (buffer2) {
-    newBuffer.set(new Uint8Array(buffer2), buffer1Length)
+    newBuffer.set(new Uint8Array(buffer2), buffer1?.byteLength ?? 0)
   }
-  return newBuffer.buffer
+  return newBuffer
 }
 
 export class LiveV2Session implements LiveV2EventEmitter {
@@ -37,7 +39,7 @@ export class LiveV2Session implements LiveV2EventEmitter {
 
   private eventEmitter: EventEmitter | null = new EventEmitter()
   private bytesSent = 0
-  private audioBuffer: ArrayBuffer | null = null
+  private audioBuffer: Uint8Array | null = null
 
   private status: 'init' | 'created' | 'stopped' | 'destroyed' = 'init'
 
@@ -120,7 +122,7 @@ export class LiveV2Session implements LiveV2EventEmitter {
     return id
   }
 
-  sendAudio(audio: ArrayBufferLike | Buffer | ArrayLike<number>): void {
+  sendAudio(audio: ArrayBufferLike | Buffer<ArrayBufferLike> | ArrayLike<number>): void {
     if (this.status === 'destroyed') {
       // throw new Error(`The session stopped, you can no longer send audio.`)
       return
@@ -133,10 +135,11 @@ export class LiveV2Session implements LiveV2EventEmitter {
     // TODO check if it has a wav header.
     // If it does, check with config and remove it
 
-    this.audioBuffer = concatArrayBuffer(this.audioBuffer, audio)
+    const audioArray = toUint8Array(audio)
+    this.audioBuffer = concatArrayBuffer(this.audioBuffer, audioArray)
 
     if (this.webSocketSession?.currentStatus === 'open') {
-      this.webSocketSession?.send('byteLength' in audio ? audio : new Uint8Array(audio))
+      this.webSocketSession?.send(audioArray)
     }
   }
 

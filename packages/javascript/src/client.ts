@@ -1,5 +1,4 @@
-import { mergeHeaders } from './helpers.js'
-import { getEnv } from './iso-env.js'
+import { getEnv, mergeHeaders } from './helpers.js'
 import type { GladiaClientOptions } from './types.js'
 import { LiveV2Client } from './v2/live/index.js'
 

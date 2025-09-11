@@ -1,4 +1,4 @@
-import { getEnv } from './iso-env.js'
+import { getEnv } from '../helpers.js'
 
 export async function initFetch(): Promise<typeof fetch> {
   if (getEnv('VITEST_WORKER_ID')) {
@@ -11,6 +11,7 @@ export async function initFetch(): Promise<typeof fetch> {
 
   try {
     // For Node based undici fetch, we disable the timeout
+    // @ts-expect-error undici is an optional dependency
     const { fetch: uFetch, Agent } = await import('undici')
     const agent = new Agent({
       connectTimeout: Number.MAX_SAFE_INTEGER,

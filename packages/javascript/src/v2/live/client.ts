@@ -1,5 +1,5 @@
-import { HttpClient } from '../../httpClient.js'
-import { WebSocketClient } from '../../webSocketClient.js'
+import { HttpClient } from '../../network/httpClient.js'
+import { WebSocketClient } from '../../network/webSocketClient.js'
 import type { LiveV2InitRequest } from './generated-types.js'
 import { LiveV2Session as BaseLiveV2Session } from './session.js'
 import type { LiveV2ClientOptions, LiveV2Session } from './types.js'

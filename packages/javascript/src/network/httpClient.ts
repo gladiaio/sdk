@@ -1,6 +1,6 @@
-import { mergeHeaders } from './helpers.js'
+import { mergeHeaders } from '../helpers.js'
+import type { Headers, HttpRetryOptions } from '../types.js'
 import { initFetch } from './iso-fetch.js'
-import type { Headers, HttpRetryOptions } from './types.js'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 

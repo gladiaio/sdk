@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3'
+import type { WebSocketRetryOptions } from '../types.js'
 import { newWebSocket, type IsoWS } from './iso-ws.js'
-import type { WebSocketRetryOptions } from './types.js'
 
 export type WebSocketStatus = 'connecting' | 'open' | 'closing' | 'closed'
 
@@ -211,7 +211,7 @@ export class WebSocketSession extends EventEmitter<WebSocketEventMap> {
     }
   }
 
-  send(data: string | ArrayBuffer): void {
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
     if (this.ws && this.status === 'open') {
       this.ws.send(data)
     } else {

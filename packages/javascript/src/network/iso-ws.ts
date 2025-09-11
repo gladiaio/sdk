@@ -8,7 +8,7 @@ export type IsoWS = {
     | import('ws').WebSocket['OPEN']
     | import('ws').WebSocket['CLOSING']
     | import('ws').WebSocket['CLOSED']
-  send(data: string | ArrayBuffer): unknown
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): unknown
   close(code: number): unknown
 }
 
