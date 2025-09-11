@@ -110,7 +110,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { limit: 5, delay: () => 0 },
+      retry: { limit: 5, delay: () => 0, backoffLimit: 10_000, statusCodes: [0, 999] },
       timeout: 50,
     })
 
@@ -137,7 +137,12 @@ describe('HttpClient', () => {
     const controller = new AbortController()
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { limit: 5, delay: () => 0 },
+      retry: {
+        limit: 5,
+        delay: () => 0,
+        backoffLimit: 10_000,
+        statusCodes: [[0, 999]],
+      },
       timeout: 1_000,
     })
 
@@ -168,7 +173,13 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { limit: 5, statusCodes: [408, 413, 429, [500, 599]], delay: () => 0 },
+      retry: {
+        limit: 5,
+        statusCodes: [408, 413, 429, [500, 599]],
+        delay: () => 0,
+        backoffLimit: 10_000,
+      },
+      timeout: 10_000,
     })
 
     await expect(client.get(`${BASE}/404`)).rejects.toBeInstanceOf(HttpError)
@@ -181,6 +192,13 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
+      retry: {
+        limit: 5,
+        statusCodes: [[0, 999]],
+        delay: () => 0,
+        backoffLimit: 10_000,
+      },
+      timeout: 10_000,
     })
 
     const rGet = await client.get(`${BASE}/method`)
@@ -332,6 +350,8 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
+      retry: { limit: 5, statusCodes: [[0, 999]], delay: () => 0, backoffLimit: 10_000 },
+      timeout: 10_000,
       queryParams: {
         apiKey: 'test-key',
         version: '1.0',
@@ -352,6 +372,8 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
+      retry: { limit: 5, statusCodes: [[0, 999]], delay: () => 0, backoffLimit: 10_000 },
+      timeout: 10_000,
       queryParams: {
         defaultParam: 'default-value',
       },
@@ -371,6 +393,8 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
+      retry: { limit: 5, statusCodes: [], delay: () => 0, backoffLimit: 10_000 },
+      timeout: 10_000,
       queryParams: {
         param: 'default-value',
       },

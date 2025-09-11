@@ -1,6 +1,11 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { WebSocketClient, WebSocketSession } from './webSocketClient.js'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { WebSocketRetryOptions } from '../types.js'
 import type { IsoWS } from './iso-ws.js'
+import {
+  WebSocketClient,
+  type WebSocketClientOptions,
+  WebSocketSession,
+} from './webSocketClient.js'
 
 // Mock the iso-ws module
 vi.mock('./iso-ws.js', () => ({
@@ -18,6 +23,26 @@ interface EventHandlers {
   onerror: (() => void) | null
   onclose: ((event: { code: number; reason: string }) => void) | null
   onmessage: ((event: { data: string | ArrayBuffer }) => void) | null
+}
+
+function partialOptions(
+  options?: Partial<Omit<WebSocketClientOptions, 'webSocketRetry'>> & {
+    webSocketRetry?: Partial<WebSocketRetryOptions>
+  }
+): WebSocketClientOptions {
+  return {
+    baseUrl: 'ws://localhost:8080',
+    webSocketTimeout: 1000,
+    ...options,
+    webSocketRetry: {
+      limit: 0,
+      delay: () => 0,
+      backoffLimit: 0,
+      limitConnections: 0,
+      closeCodes: [],
+      ...options?.webSocketRetry,
+    },
+  }
 }
 
 describe('WebSocketClient + WebSocketSession', () => {
@@ -97,11 +122,7 @@ describe('WebSocketClient + WebSocketSession', () => {
     const openSpy = vi.fn()
     const messageSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(partialOptions())
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
     session.on('open', openSpy)
@@ -130,11 +151,11 @@ describe('WebSocketClient + WebSocketSession', () => {
     const errorSpy = vi.fn()
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 2, delay: () => 10, backoffLimit: 100 },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: { limit: 2, delay: () => 10, backoffLimit: 100 },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('error', errorSpy)
     session.on('close', closeSpy)
@@ -154,16 +175,16 @@ describe('WebSocketClient + WebSocketSession', () => {
     const openSpy = vi.fn()
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 2,
-        delay: () => 10,
-        backoffLimit: 100,
-        closeCodes: [1002, [1003, 1006]],
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 2,
+          delay: () => 10,
+          backoffLimit: 100,
+          closeCodes: [1002, [1003, 1006]],
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
     session.on('open', openSpy)
@@ -189,16 +210,16 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should not retry on close with non-retryable code', async () => {
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 2,
-        delay: () => 10,
-        backoffLimit: 100,
-        closeCodes: [1002, [1003, 1006]],
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 2,
+          delay: () => 10,
+          backoffLimit: 100,
+          closeCodes: [1002, [1003, 1006]],
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
     await Promise.resolve()
@@ -214,16 +235,16 @@ describe('WebSocketClient + WebSocketSession', () => {
     const connectingSpy = vi.fn()
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 1,
-        delay: () => 10,
-        backoffLimit: 100,
-        closeCodes: [1002],
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 1,
+          delay: () => 10,
+          backoffLimit: 100,
+          closeCodes: [1002],
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
     session.on('close', closeSpy)
@@ -243,11 +264,12 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should handle timeout', async () => {
     const errorSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 50,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
+        webSocketTimeout: 50,
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('error', errorSpy)
     await Promise.resolve()
@@ -265,11 +287,12 @@ describe('WebSocketClient + WebSocketSession', () => {
   })
 
   it('should send data when open', async () => {
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
+        webSocketTimeout: 1000,
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     await Promise.resolve()
     await Promise.resolve()
@@ -279,11 +302,7 @@ describe('WebSocketClient + WebSocketSession', () => {
   })
 
   it('should throw error when sending while not open', async () => {
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(partialOptions())
     session = client.createSession('ws://localhost:8080')
     await Promise.resolve()
     await Promise.resolve()
@@ -294,11 +313,7 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should close manually and emit close event', async () => {
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(partialOptions())
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
     await Promise.resolve()
@@ -316,16 +331,13 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should respect connection limit', async () => {
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 1,
-        delay: () => 0,
-        backoffLimit: 0,
-        limitConnections: 1,
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limitConnections: 1,
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
     await tick()
@@ -342,16 +354,16 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should reset connection attempts after successful connection', async () => {
     const connectingSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 2,
-        delay: () => 10,
-        backoffLimit: 100,
-        closeCodes: [1002],
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 2,
+          delay: () => 10,
+          backoffLimit: 100,
+          closeCodes: [1002],
+        },
+      })
+    )
 
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
@@ -371,11 +383,7 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should clean up resources on destroy', async () => {
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(partialOptions())
 
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
@@ -393,16 +401,16 @@ describe('WebSocketClient + WebSocketSession', () => {
     const closeSpy = vi.fn()
     const errorSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 1,
-        delay: () => 10,
-        backoffLimit: 100,
-        closeCodes: [1002],
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 1,
+          delay: () => 10,
+          backoffLimit: 100,
+          closeCodes: [1002],
+        },
+      })
+    )
 
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
@@ -424,16 +432,16 @@ describe('WebSocketClient + WebSocketSession', () => {
     const connectingSpy = vi.fn()
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 2,
-        delay: () => 10,
-        backoffLimit: 100,
-        closeCodes: [1002],
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 2,
+          delay: () => 10,
+          backoffLimit: 100,
+          closeCodes: [1002],
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
     session.on('close', closeSpy)
@@ -462,16 +470,16 @@ describe('WebSocketClient + WebSocketSession', () => {
     const connectingSpy = vi.fn()
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 0,
-        delay: () => 10,
-        backoffLimit: 100,
-        closeCodes: [1002],
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 0,
+          delay: () => 10,
+          backoffLimit: 100,
+          closeCodes: [1002],
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
     session.on('close', closeSpy)
@@ -493,16 +501,16 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should respect limitConnections = 1', async () => {
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 5,
-        delay: () => 0,
-        backoffLimit: 0,
-        limitConnections: 1,
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 5,
+          delay: () => 0,
+          backoffLimit: 0,
+          limitConnections: 1,
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
     await tick()
@@ -518,16 +526,14 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should respect limitConnections = 2', async () => {
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 5,
-        delay: () => 0,
-        backoffLimit: 0,
-        limitConnections: 2,
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          closeCodes: [1002],
+          limitConnections: 2,
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('close', closeSpy)
     await tick()
@@ -550,16 +556,14 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should allow unlimited connections with limitConnections = 0', async () => {
     const errorSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 5,
-        delay: () => 0,
-        backoffLimit: 0,
-        limitConnections: 0,
-      },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 5,
+          limitConnections: 0,
+        },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('error', errorSpy)
 
@@ -581,11 +585,11 @@ describe('WebSocketClient + WebSocketSession', () => {
     const closeSpy = vi.fn()
     const messageSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
+    client = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: { limit: 1, closeCodes: [] },
+      })
+    )
     session = client.createSession('ws://localhost:8080')
     session.on('connecting', connectingSpy)
     session.on('open', openSpy)
@@ -635,16 +639,7 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should emit close event with correct parameters for different close codes', async () => {
     const closeSpy = vi.fn()
 
-    client = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
-    session = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    }).createSession('ws://localhost:8080')
+    session = new WebSocketClient(partialOptions()).createSession('ws://localhost:8080')
     session.on('close', closeSpy)
     await tick()
     // already connected via session
@@ -663,11 +658,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     for (const testCase of testCases) {
       // Create a new client for each test case to avoid interference
-      const testClient = new WebSocketClient({
-        baseUrl: 'http://localhost:8080',
-        webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-        webSocketTimeout: 1000,
-      })
+      const testClient = new WebSocketClient(partialOptions())
       const testSession = testClient.createSession('ws://localhost:8080')
       const testCloseSpy = vi.fn()
       testSession.on('close', testCloseSpy)
@@ -684,7 +675,16 @@ describe('WebSocketClient + WebSocketSession', () => {
     const connectionErrorSpy = vi.fn()
     const connectionClient = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
+      webSocketRetry: {
+        limit: 1,
+        delay: () => 0,
+        backoffLimit: 0,
+        closeCodes: [
+          [1002, 4399],
+          [4500, 9999],
+        ],
+        limitConnections: 0,
+      },
       webSocketTimeout: 1000,
     })
     const connectionSession = connectionClient.createSession('ws://localhost:8080')
@@ -699,11 +699,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Test timeout error
     const timeoutErrorSpy = vi.fn()
-    const timeoutClient = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: { limit: 1, delay: () => 0, backoffLimit: 0 },
-      webSocketTimeout: 1000,
-    })
+    const timeoutClient = new WebSocketClient(partialOptions())
     const timeoutSession = timeoutClient.createSession('ws://localhost:8080')
     timeoutSession.on('error', timeoutErrorSpy)
     await tick()
@@ -717,16 +713,16 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     // Test connection limit on close → expect close (not error)
     const limitCloseSpy = vi.fn()
-    const limitClient = new WebSocketClient({
-      baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
-        limit: 5,
-        delay: () => 0,
-        backoffLimit: 0,
-        limitConnections: 1,
-      },
-      webSocketTimeout: 1000,
-    })
+    const limitClient = new WebSocketClient(
+      partialOptions({
+        webSocketRetry: {
+          limit: 5,
+          delay: () => 0,
+          backoffLimit: 0,
+          limitConnections: 1,
+        },
+      })
+    )
     const limitSession = limitClient.createSession('ws://localhost:8080')
     limitSession.on('close', limitCloseSpy)
     await tick()

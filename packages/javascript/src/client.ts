@@ -26,7 +26,7 @@ export class GladiaClient {
   }
 
   liveV2(options?: GladiaClientOptions): LiveV2Client {
-    let opts = {
+    const baseOpts = {
       apiKey: getEnv('GLADIA_API_KEY'),
       apiUrl: getEnv('GLADIA_API_URL', 'https://api.gladia.io'),
       region: getEnv<Required<GladiaClientOptions>['region']>('GLADIA_REGION'),
@@ -36,14 +36,13 @@ export class GladiaClient {
       ...options,
     } satisfies GladiaClientOptions
 
-    opts = {
-      ...opts,
-
+    const opts = {
+      ...baseOpts,
       httpHeaders: mergeHeaders(
         {
           'X-GLADIA-ORIGIN': 'sdk/js',
-          ...(opts.apiKey && {
-            'X-GLADIA-KEY': opts.apiKey,
+          ...(baseOpts.apiKey && {
+            'X-GLADIA-KEY': baseOpts.apiKey,
           }),
         },
         this.options?.httpHeaders,
@@ -65,6 +64,7 @@ export class GladiaClient {
         ],
         backoffLimit: 2000,
         delay: (attemptCount) => 0.3 * 2 ** (attemptCount - 1) * 1000,
+        limitConnections: 0,
         ...this.options?.webSocketRetry,
         ...options?.webSocketRetry,
       },

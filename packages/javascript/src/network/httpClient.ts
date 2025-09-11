@@ -109,17 +109,8 @@ export type HttpClientOptions = {
   baseUrl: string
   headers?: Headers
   queryParams?: Record<string, string>
-  retry?: HttpRetryOptions
-  timeout?: number
-}
-
-function defaultRetry(): Required<HttpRetryOptions> {
-  return {
-    limit: 2,
-    statusCodes: [408, 413, 429, [500, 599]],
-    backoffLimit: 10_000,
-    delay: (attemptCount: number) => 0.3 * 2 ** (attemptCount - 1) * 1000,
-  }
+  retry: Required<HttpRetryOptions>
+  timeout: number
 }
 
 function matchesStatus(status: number, list: (number | [number, number])[]): boolean {
@@ -169,8 +160,8 @@ export class HttpClient {
     this.baseUrl = options.baseUrl
     this.defaultHeaders = options.headers
     this.defaultQueryParams = options.queryParams
-    this.retry = { ...defaultRetry(), ...(options?.retry ?? {}) }
-    this.timeoutMs = options?.timeout ?? 10_000
+    this.retry = options.retry
+    this.timeoutMs = options.timeout
 
     // Ensure limit, backoffLimit and timeout are non-negative integers
     this.retry.limit = Math.max(0, Math.floor(this.retry.limit))

@@ -6,8 +6,8 @@ export type WebSocketStatus = 'connecting' | 'open' | 'closing' | 'closed'
 
 export type WebSocketClientOptions = {
   baseUrl: string
-  webSocketRetry?: WebSocketRetryOptions
-  webSocketTimeout?: number
+  webSocketRetry: Required<WebSocketRetryOptions>
+  webSocketTimeout: number
 }
 
 export type WebSocketEventMap = {
@@ -16,19 +16,6 @@ export type WebSocketEventMap = {
   error: (error: Error) => void
   close: (code: number, reason: string) => void
   message: (data: string | ArrayBuffer) => void
-}
-
-function defaultRetry(): Required<WebSocketRetryOptions> {
-  return {
-    limit: 5,
-    closeCodes: [
-      [1002, 4399],
-      [4500, 9999],
-    ],
-    backoffLimit: 2000,
-    delay: (attemptCount: number) => 0.3 * 2 ** (attemptCount - 1) * 1000,
-    limitConnections: 0,
-  }
 }
 
 function matchesCloseCode(code: number, list: (number | [number, number])[]): boolean {
@@ -249,8 +236,8 @@ export class WebSocketClient {
 
   constructor(options: WebSocketClientOptions) {
     this.baseUrl = options.baseUrl
-    this.retry = { ...defaultRetry(), ...(options?.webSocketRetry ?? {}) }
-    this.timeout = Math.max(0, Math.floor(options?.webSocketTimeout ?? 10_000))
+    this.retry = options.webSocketRetry
+    this.timeout = Math.max(0, Math.floor(options.webSocketTimeout))
 
     // sanitize
     this.retry.limit = Math.max(0, Math.floor(this.retry.limit))
