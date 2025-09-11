@@ -90,5 +90,4 @@ export async function sendAudioFile(
     liveSession.sendAudio(audioData.subarray(i, i + chunkSize))
     await new Promise((resolve) => setTimeout(resolve, chunkDuration))
   }
-  liveSession.stop()
 }

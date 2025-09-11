@@ -8,6 +8,14 @@ A TypeScript/JavaScript SDK for the Gladia API.
 npm install @gladiaio/sdk
 ```
 
+If you are using Node.js < 22, you also need to install the `ws` package:
+
+```bash
+npm install ws
+```
+
+On Node >= 22, Bun and browser, the native WebSocket client will be used.
+
 ## Usage
 
 ### Node.js / Browser (ESM)
@@ -48,7 +56,7 @@ const gladiaClient = new GladiaClient({
 
 ```javascript
 // Create session
-const liveSession = gladiaClient.liveV2().newSession({
+const liveSession = gladiaClient.liveV2().startSession({
   language_config: {
     languages: ['en'],
   },
@@ -58,8 +66,18 @@ const liveSession = gladiaClient.liveV2().newSession({
 })
 
 // Add listeners
-liveSession.on('transcript', (transcript) => {
-  console.log(`${transcript.data.is_final ? 'F' : 'P'} | ${transcript.data.utterance.text.trim()}`)
+liveSession.on('message', (message) => {
+  if (message.type === 'transcript') {
+    console.log(`${message.data.is_final ? 'F' : 'P'} | ${message.data.utterance.text.trim()}`)
+  }
+})
+
+liveSession.once('started', () => {
+  console.log(`Session ${liveSession.sessionId} started`)
+})
+
+liveSession.once('ended', () => {
+  console.log(`Session ${liveSession.sessionId} ended`)
 })
 
 // Send audio
@@ -67,6 +85,8 @@ liveSession.sendAudio(/* <audio_chunk> */)
 // ...
 liveSession.sendAudio(/* <audio_chunk> */)
 
-// Stop the session when all audio have been sent
-liveSession.stop()
+// Stop the recording when all audio have been sent.
+// Remaining audio will be processed and after post-processing,
+// the session is ended.
+liveSession.stopRecording()
 ```

@@ -1,8 +1,8 @@
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient } from '../../network/webSocketClient.js'
 import type { LiveV2InitRequest } from './generated-types.js'
-import { LiveV2Session as BaseLiveV2Session } from './session.js'
-import type { LiveV2ClientOptions, LiveV2Session } from './types.js'
+import { LiveV2Session } from './session.js'
+import type { LiveV2ClientOptions } from './types.js'
 
 /**
  * Client used to interact with Gladia Live Speech-To-Text API.
@@ -27,8 +27,8 @@ export class LiveV2Client {
     })
   }
 
-  newSession(options: LiveV2InitRequest): LiveV2Session {
-    return new BaseLiveV2Session({
+  startSession(options: LiveV2InitRequest): LiveV2Session {
+    return new LiveV2Session({
       options,
       httpClient: this.httpClient,
       webSocketClient: this.webSocketClient,

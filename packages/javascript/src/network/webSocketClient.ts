@@ -1,21 +1,13 @@
-import { EventEmitter } from 'eventemitter3'
+import { sleep } from '../helpers.js'
 import type { WebSocketRetryOptions } from '../types.js'
-import { newWebSocket, type IsoWS } from './iso-ws.js'
+import { newWebSocket, WS_STATES, type IsoWS } from './iso-ws.js'
 
-export type WebSocketStatus = 'connecting' | 'open' | 'closing' | 'closed'
+export { WS_STATES } from './iso-ws.js'
 
 export type WebSocketClientOptions = {
   baseUrl: string
   webSocketRetry: Required<WebSocketRetryOptions>
   webSocketTimeout: number
-}
-
-export type WebSocketEventMap = {
-  connecting: () => void
-  open: () => void
-  error: (error: Error) => void
-  close: (code: number, reason: string) => void
-  message: (data: string | ArrayBuffer) => void
 }
 
 function matchesCloseCode(code: number, list: (number | [number, number])[]): boolean {
@@ -30,203 +22,15 @@ function matchesCloseCode(code: number, list: (number | [number, number])[]): bo
   return false
 }
 
-async function sleep(ms: number): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, ms))
-}
-
-export class WebSocketSession extends EventEmitter<WebSocketEventMap> {
-  private readonly retry: Required<WebSocketRetryOptions>
-  private readonly timeout: number
-  private readonly wsUrl: string | URL
-
-  private ws: IsoWS | null = null
-  private status: WebSocketStatus = 'closed'
-  private connectionAttempts = 0
-  private totalConnections = 0
-  private timeoutId: ReturnType<typeof setTimeout> | undefined
-  private isManualClose = false
-  private hasOpened = false
-
-  constructor({
-    retry,
-    timeout,
-    url,
-  }: {
-    retry: Required<WebSocketRetryOptions>
-    timeout: number
-    url: string | URL
-  }) {
-    super()
-    this.retry = retry
-    this.timeout = timeout
-    this.wsUrl = url
-    // kick off connection on next microtask so listeners can be attached
-    queueMicrotask(() => {
-      this.connect().catch(() => {
-        // errors are emitted via event handlers; no throw
-      })
-    })
+function removeWsListeners(ws?: IsoWS | null): void {
+  if (!ws) {
+    return
   }
 
-  get currentStatus(): WebSocketStatus {
-    return this.status
-  }
-
-  private setStatus(newStatus: WebSocketStatus): void {
-    if (this.status !== newStatus) {
-      this.status = newStatus
-      if (newStatus === 'connecting') {
-        this.emit('connecting')
-      } else if (newStatus === 'open') {
-        this.emit('open')
-      }
-    }
-  }
-
-  private clearTimeout(): void {
-    if (this.timeoutId) {
-      clearTimeout(this.timeoutId)
-      this.timeoutId = undefined
-    }
-  }
-
-  private async connect(): Promise<void> {
-    if (this.status === 'connecting' || this.status === 'open') {
-      return
-    }
-
-    this.isManualClose = false
-    this.hasOpened = false
-    this.setStatus('connecting')
-
-    if (this.retry.limitConnections > 0 && this.totalConnections >= this.retry.limitConnections) {
-      this.setStatus('closed')
-      this.emit('error', new Error('Maximum connection limit reached'))
-      return
-    }
-
-    this.connectionAttempts += 1
-    this.totalConnections += 1
-
-    try {
-      // url is already a fully qualified URL
-      this.ws = await newWebSocket(this.wsUrl)
-
-      this.clearTimeout()
-      if (this.timeout > 0) {
-        this.timeoutId = setTimeout(() => {
-          this.handleTimeout()
-        }, this.timeout)
-      }
-
-      this.ws.onopen = () => {
-        this.clearTimeout()
-        this.setStatus('open')
-        this.hasOpened = true
-        this.connectionAttempts = 0
-      }
-
-      this.ws.onerror = () => {
-        this.clearTimeout()
-        this.setStatus('closed')
-        this.emit('error', new Error('WebSocket connection error'))
-        // Mimic native: emit close after error for failed connection attempt
-        if (!this.hasOpened) {
-          this.emit('close', 1006, '')
-        }
-        if (!this.hasOpened && !this.isManualClose) {
-          const shouldRetry = this.retry.limit === 0 || this.connectionAttempts < this.retry.limit
-          if (shouldRetry) {
-            void this.scheduleReconnect()
-          }
-        }
-      }
-
-      this.ws.onclose = (event) => {
-        this.clearTimeout()
-        this.setStatus('closed')
-
-        if (this.isManualClose) {
-          this.emit('close', event.code, event.reason || '')
-          return
-        }
-
-        // Decide if we should reconnect based on retry limit semantics
-        const shouldReconnect = this.retry.limit === 0 || this.connectionAttempts < this.retry.limit
-        const isRetryableCode = matchesCloseCode(event.code, this.retry.closeCodes)
-
-        // Enforce reconnection limit on close first
-        if (
-          this.retry.limitConnections > 0 &&
-          this.totalConnections >= this.retry.limitConnections
-        ) {
-          this.emit('close', event.code, event.reason || '')
-          return
-        }
-
-        if (shouldReconnect && isRetryableCode) {
-          void this.scheduleReconnect()
-          return
-        }
-
-        this.emit('close', event.code, event.reason || '')
-      }
-
-      this.ws.onmessage = (event) => {
-        this.emit('message', event.data as string | ArrayBuffer)
-      }
-    } catch (error) {
-      this.clearTimeout()
-      this.setStatus('closed')
-      this.emit('error', error instanceof Error ? error : new Error(String(error)))
-    }
-  }
-
-  private handleTimeout(): void {
-    if (this.ws) {
-      this.ws.close(1000)
-    }
-    this.setStatus('closed')
-    this.emit('error', new Error('WebSocket connection timeout'))
-  }
-
-  private async scheduleReconnect(): Promise<void> {
-    const delayMs = Math.min(this.retry.delay(this.connectionAttempts + 1), this.retry.backoffLimit)
-    await sleep(delayMs)
-    if (!this.isManualClose && this.status === 'closed') {
-      await this.connect()
-    }
-  }
-
-  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
-    if (this.ws && this.status === 'open') {
-      this.ws.send(data)
-    } else {
-      throw new Error('WebSocket is not open')
-    }
-  }
-
-  close(code = 1000): void {
-    this.isManualClose = true
-    this.clearTimeout()
-    if (this.ws) {
-      this.setStatus('closing')
-      this.ws.close(code)
-    } else {
-      this.setStatus('closed')
-    }
-  }
-
-  destroy(): void {
-    this.isManualClose = true
-    this.clearTimeout()
-    if (this.ws) {
-      this.ws.close(1000)
-      this.ws = null
-    }
-    this.setStatus('closed')
-    this.removeAllListeners()
-  }
+  ws.onopen = null
+  ws.onerror = null
+  ws.onmessage = null
+  ws.onclose = null
 }
 
 export class WebSocketClient {
@@ -240,9 +44,12 @@ export class WebSocketClient {
     this.timeout = Math.max(0, Math.floor(options.webSocketTimeout))
 
     // sanitize
-    this.retry.limit = Math.max(0, Math.floor(this.retry.limit))
-    this.retry.backoffLimit = Math.max(0, Math.floor(this.retry.backoffLimit))
-    this.retry.limitConnections = Math.max(0, Math.floor(this.retry.limitConnections))
+    this.retry.maxAttemptsPerConnection = Math.max(
+      0,
+      Math.floor(this.retry.maxAttemptsPerConnection)
+    )
+    this.retry.maxDelay = Math.max(0, Math.floor(this.retry.maxDelay))
+    this.retry.maxConnections = Math.max(0, Math.floor(this.retry.maxConnections))
   }
 
   createSession(url: string): WebSocketSession {
@@ -253,3 +60,201 @@ export class WebSocketClient {
     })
   }
 }
+
+class WebSocketSession implements Omit<IsoWS, 'onopen'> {
+  onconnecting: ((event: { connection: number; attempt: number }) => void) | null = null
+  onopen: ((event: { connection: number; attempt: number }) => void) | null = null
+  onerror: IsoWS['onerror'] = null
+  onclose: IsoWS['onclose'] = null
+  onmessage: IsoWS['onmessage'] = null
+
+  private _readyState: IsoWS['readyState'] = WS_STATES.CONNECTING
+  private _url: IsoWS['url']
+  private readonly retry: Required<WebSocketRetryOptions>
+  private readonly timeout: number
+
+  private ws: IsoWS | null = null
+  private connectionCount = 0
+  private connectionAttempt = 0
+  private connectionTimeoutId: ReturnType<typeof setTimeout> | undefined
+
+  constructor({
+    retry,
+    timeout,
+    url,
+  }: {
+    retry: Required<WebSocketRetryOptions>
+    timeout: number
+    url: string | URL
+  }) {
+    this._url = url.toString()
+
+    this.retry = retry
+    this.timeout = timeout
+
+    this.connect().catch(() => {
+      // errors are emitted via event handlers; no throw
+    })
+  }
+
+  get readyState(): IsoWS['readyState'] {
+    return this._readyState
+  }
+
+  get url(): IsoWS['url'] {
+    return this._url
+  }
+
+  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
+    if (this.readyState === WS_STATES.OPEN) {
+      if (!this.ws) {
+        throw new Error('readyState is open but ws is not initialized')
+      }
+      this.ws.send(data)
+    } else {
+      throw new Error('WebSocket is not open')
+    }
+  }
+
+  close(code = 1000, reason = ''): void {
+    if (this.readyState === WS_STATES.CLOSING || this.readyState === WS_STATES.CLOSED) {
+      return
+    }
+
+    this.clearConnectionTimeout()
+    this._readyState = WS_STATES.CLOSING
+
+    if (this.ws?.readyState === WS_STATES.OPEN) {
+      this.ws.close(code)
+    } /* if (this.readyState === WS_STATES.CONNECTING) */ else {
+      this.onWsClose(code, reason)
+    }
+  }
+
+  private onWsClose(code = 1000, reason = ''): void {
+    this.clearConnectionTimeout()
+
+    if (this.readyState !== WS_STATES.CLOSED) {
+      this._readyState = WS_STATES.CLOSED
+      this.onclose?.({ code, reason })
+    }
+
+    this.onconnecting = null
+    this.onopen = null
+    this.onclose = null
+    this.onerror = null
+    this.onmessage = null
+
+    removeWsListeners(this.ws)
+    this.ws = null
+  }
+
+  private async connect(isRetry = false): Promise<void> {
+    this.clearConnectionTimeout()
+
+    if (!isRetry) {
+      this.connectionCount += 1
+      this.connectionAttempt = 0
+    }
+    this.connectionAttempt += 1
+    this._readyState = WS_STATES.CONNECTING
+    this.onconnecting?.({ connection: this.connectionCount, attempt: this.connectionAttempt })
+
+    if (this.timeout > 0) {
+      this.connectionTimeoutId = setTimeout(() => {
+        this.close(3008, 'WebSocket connection timeout')
+      }, this.timeout)
+    }
+
+    const onError = async (ws: IsoWS | null, err?: Error) => {
+      this.clearConnectionTimeout()
+      removeWsListeners(ws)
+
+      if (this.readyState !== WS_STATES.CONNECTING) {
+        return
+      }
+
+      const noRetry =
+        this.retry.maxAttemptsPerConnection > 0 &&
+        this.connectionAttempt >= this.retry.maxAttemptsPerConnection
+      if (noRetry) {
+        this.onerror?.(new Error('WebSocket connection error', { cause: err }))
+        this.close(1006, 'WebSocket connection error')
+        return
+      }
+
+      const delayMs = Math.min(this.retry.delay(this.connectionAttempt), this.retry.maxDelay)
+      await sleep(delayMs)
+      if (this.readyState === WS_STATES.CONNECTING) {
+        this.connect(true)
+      }
+    }
+
+    let ws: IsoWS
+    try {
+      ws = await newWebSocket(this.url)
+    } catch (err) {
+      onError(null, err instanceof Error ? err : new Error(String(err)))
+      return
+    }
+
+    if (this.readyState !== WS_STATES.CONNECTING) {
+      ws.close(1001)
+      return
+    }
+
+    ws.onerror = () => onError(ws)
+    ws.onopen = () => {
+      this.clearConnectionTimeout()
+      removeWsListeners(ws)
+
+      if (this.readyState !== WS_STATES.CONNECTING) {
+        // User closed the connection during the connection attempt
+        ws.close(1001)
+        return
+      }
+
+      ws.onmessage = (event) => {
+        this.onmessage?.(event)
+      }
+      ws.onclose = (event) => {
+        removeWsListeners(ws)
+
+        if (this.ws !== ws) {
+          // Should not be possible ?
+          return
+        }
+
+        this.ws = null
+
+        if (this.readyState === WS_STATES.CLOSING) {
+          this.onWsClose(event.code, event.reason || '')
+          return
+        }
+
+        if (
+          (this.retry.maxConnections > 0 && this.connectionCount >= this.retry.maxConnections) ||
+          !matchesCloseCode(event.code, this.retry.closeCodes)
+        ) {
+          this.close(event.code, event.reason || '')
+          return
+        }
+
+        this.connect()
+      }
+
+      this.ws = ws
+      this._readyState = WS_STATES.OPEN
+      this.onopen?.({ connection: this.connectionCount, attempt: this.connectionAttempt })
+    }
+  }
+
+  private clearConnectionTimeout(): void {
+    if (this.connectionTimeoutId) {
+      clearTimeout(this.connectionTimeoutId)
+      this.connectionTimeoutId = undefined
+    }
+  }
+}
+
+export type { WebSocketSession }

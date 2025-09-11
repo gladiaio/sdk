@@ -17,7 +17,7 @@ export type HttpRetryOptions = {
    *
    * Default is 2.
    */
-  limit?: number
+  maxAttempts?: number
 
   /**
    * List of status codes eligible for retry. You can specify a range by using a tuple.
@@ -27,11 +27,11 @@ export type HttpRetryOptions = {
   statusCodes?: (number | [start: number, end: number])[]
 
   /**
-   * The upper limit of the delay per retry in milliseconds.
+   * The maximum delay per retry in milliseconds.
    *
    * Default is 10000.
    */
-  backoffLimit?: number
+  maxDelay?: number
 } & BaseRetryOptions
 
 export type WebSocketRetryOptions = {
@@ -42,14 +42,14 @@ export type WebSocketRetryOptions = {
    *
    * Default is 5.
    */
-  limit?: number
+  maxAttemptsPerConnection?: number
 
   /**
-   * The upper limit of the delay per retry in milliseconds.
+   * The maximum delay per retry in milliseconds.
    *
    * Default is 2000.
    */
-  backoffLimit?: number
+  maxDelay?: number
 } & BaseRetryOptions & {
     /**
      * Maximum number of WS connections.
@@ -57,7 +57,7 @@ export type WebSocketRetryOptions = {
      *
      * Default is 0.
      */
-    limitConnections?: number
+    maxConnections?: number
 
     /**
      * List of close code eligible for reconnection. You can specify a range by using a tuple.
@@ -90,7 +90,7 @@ export type GladiaClientOptions = {
   /**
    * Region to use.
    *
-   * If not provided, the client will take the environment variable GLADIA_REGION.
+   * If not provided, the client will take the environment variable GLADIA_REGION and, if not provided either, it will default to 'eu-west'.
    */
   region?: 'eu-west' | 'us-west'
 
@@ -104,7 +104,7 @@ export type GladiaClientOptions = {
    *
    * Retries are not triggered following a timeout.
    *
-   * Default is {limit: 2, statusCodes: [408, 413, 429, [500, 599]], backoffLimit: 10000, delay: (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000}
+   * Default is {limit: 2, statusCodes: [408, 413, 429, [500, 599]], maxDelay: 10000, delay: (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000}
    */
   httpRetry?: HttpRetryOptions
 
@@ -123,7 +123,7 @@ export type GladiaClientOptions = {
    *
    * Retries are not triggered following a timeout.
    *
-   * Default is {limit: 5, closeCodes: [[1002, 4399], [4500, 9999]], backoffLimit: 2000, delay: (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000}
+   * Default is {limit: 5, closeCodes: [[1002, 4399], [4500, 9999]], maxDelay: 2000, delay: (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000}
    */
   webSocketRetry?: WebSocketRetryOptions
 

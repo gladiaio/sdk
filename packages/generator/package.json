@@ -9,12 +9,10 @@
   },
   "dependencies": {
     "commander": "^14.0.0",
-    "mustache": "^4.2.0",
     "openapi3-ts": "^4.5.0"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.2",
-    "@types/mustache": "^4.2.6",
     "@types/node": "^22.18.1",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",

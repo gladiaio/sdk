@@ -28,28 +28,84 @@ export class PythonGenerator extends BaseGenerator {
     }
   }
 
-  get sdkName(): string {
+  override get sdkName(): string {
     return 'python'
   }
 
-  protected getSdkFolder(): string {
-    return '../python'
-  }
-
-  getFileExtension(): string {
+  override getFileExtension(): string {
     return '.py'
   }
 
-  getSourceFolder(): string {
+  override getSourceFolder(): string {
     return 'python'
   }
 
-  generateSingleLineComment(text: string): string {
+  override generateSingleLineComment(text: string): string {
     return this.formatComment(text, '# ')
   }
 
-  generateMultiLineComment(text: string): string {
+  override generateMultiLineComment(text: string): string {
     return this.formatComment(text, '# ')
+  }
+
+  /**
+   * Override header generation to include Python-specific imports
+   */
+  override getGeneratedFileHeader(): string {
+    const baseHeader = super.getGeneratedFileHeader()
+    return baseHeader + '\nfrom typing import Any, Literal, TypedDict'
+  }
+
+  override generateTypeDefinition(schema: ReferencedSchemaObject): string {
+    if (schema.schema.type === 'object' && schema.schema.properties) {
+      return this.generateTypedDict(schema)
+    } else if (schema.schema.enum) {
+      return this.generateEnum(schema)
+    } else {
+      return `# ${schema.typeName} = ${this.getPythonType(schema)}`
+    }
+  }
+
+  override generateUnionType(
+    name: string,
+    schemas: ReferencedSchemaObject[],
+    sectionComment?: string
+  ): string {
+    let content = ''
+
+    if (sectionComment) {
+      content += this.generateSingleLineComment(sectionComment) + '\n'
+    }
+
+    // Format union types on multiple lines if too long
+    const unionTypes = schemas.map(({ typeName }) => typeName).join(' | ')
+
+    if (unionTypes.length + name.length + 3 > this.maxLineLength) {
+      // Multi-line format
+      const formattedTypes = schemas
+        .map(({ typeName }, index) => {
+          const prefix = index === 0 ? '' : '    | '
+          return `${prefix}${typeName}`
+        })
+        .join('\n')
+      content += `${name} = (\n    ${formattedTypes}\n)`
+    } else {
+      // Single line format
+      content += `${name} = ${unionTypes}`
+    }
+
+    return content
+  }
+
+  override resolveUnionTypes(items: SchemaOrReference[]): string[] {
+    const types: string[] = []
+    for (const item of items) {
+      const resolvedType = this.getPythonType(item)
+      if (resolvedType && !types.includes(resolvedType)) {
+        types.push(resolvedType)
+      }
+    }
+    return types
   }
 
   private formatComment(text: string, prefix: string): string {
@@ -87,62 +143,6 @@ export class PythonGenerator extends BaseGenerator {
       .join('\n')
   }
 
-  /**
-   * Get the template path for Python event emitter
-   */
-  getEventEmitterTemplatePath(): string {
-    return 'python/event-emitter.py.template'
-  }
-
-  /**
-   * Override header generation to include Python-specific imports
-   */
-  getGeneratedFileHeader(): string {
-    const baseHeader = super.getGeneratedFileHeader()
-    return baseHeader + '\nfrom typing import Any, Literal, TypedDict'
-  }
-
-  generateTypeDefinition(schema: ReferencedSchemaObject): string {
-    if (schema.schema.type === 'object' && schema.schema.properties) {
-      return this.generateTypedDict(schema)
-    } else if (schema.schema.enum) {
-      return this.generateEnum(schema)
-    } else {
-      return `# ${schema.typeName} = ${this.getPythonType(schema)}`
-    }
-  }
-
-  generateUnionType(
-    name: string,
-    schemas: ReferencedSchemaObject[],
-    sectionComment?: string
-  ): string {
-    let content = ''
-
-    if (sectionComment) {
-      content += this.generateSingleLineComment(sectionComment) + '\n'
-    }
-
-    // Format union types on multiple lines if too long
-    const unionTypes = schemas.map(({ typeName }) => typeName).join(' | ')
-
-    if (unionTypes.length + name.length + 3 > this.maxLineLength) {
-      // Multi-line format
-      const formattedTypes = schemas
-        .map(({ typeName }, index) => {
-          const prefix = index === 0 ? '' : '    | '
-          return `${prefix}${typeName}`
-        })
-        .join('\n')
-      content += `${name} = (\n    ${formattedTypes}\n)`
-    } else {
-      // Single line format
-      content += `${name} = ${unionTypes}`
-    }
-
-    return content
-  }
-
   private generateTypedDict({ typeName, schema, description }: ReferencedSchemaObject): string {
     let content = `class ${typeName}(TypedDict):\n`
 
@@ -172,17 +172,6 @@ export class PythonGenerator extends BaseGenerator {
     }
 
     return content
-  }
-
-  resolveUnionTypes(items: SchemaOrReference[]): string[] {
-    const types: string[] = []
-    for (const item of items) {
-      const resolvedType = this.getPythonType(item)
-      if (resolvedType && !types.includes(resolvedType)) {
-        types.push(resolvedType)
-      }
-    }
-    return types
   }
 
   private generateEnum({ typeName: name, schema }: ReferencedSchemaObject): string {

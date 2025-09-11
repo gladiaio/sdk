@@ -1,4 +1,4 @@
-import { mergeHeaders } from '../helpers.js'
+import { mergeHeaders, sleep } from '../helpers.js'
 import type { Headers, HttpRetryOptions } from '../types.js'
 import { initFetch } from './iso-fetch.js'
 
@@ -143,10 +143,6 @@ function isAbortError(error: unknown): boolean {
   return false
 }
 
-async function sleep(ms: number): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, ms))
-}
-
 export class HttpClient {
   private baseUrl: string
   private defaultHeaders?: Headers
@@ -163,9 +159,9 @@ export class HttpClient {
     this.retry = options.retry
     this.timeoutMs = options.timeout
 
-    // Ensure limit, backoffLimit and timeout are non-negative integers
-    this.retry.limit = Math.max(0, Math.floor(this.retry.limit))
-    this.retry.backoffLimit = Math.max(0, Math.floor(this.retry.backoffLimit))
+    // Ensure limit, maxDelay and timeout are non-negative integers
+    this.retry.maxAttempts = Math.max(0, Math.floor(this.retry.maxAttempts))
+    this.retry.maxDelay = Math.max(0, Math.floor(this.retry.maxDelay))
     this.timeoutMs = Math.max(0, Math.floor(this.timeoutMs))
 
     this.fetchPromise = initFetch()
@@ -220,7 +216,7 @@ export class HttpClient {
     const attemptErrors: Error[] = []
 
     let attempt = 0
-    const limit = this.retry.limit
+    const limit = this.retry.maxAttempts
 
     while (true) {
       attempt += 1
@@ -273,7 +269,7 @@ export class HttpClient {
           const shouldRetry = limit === 0 ? true : attempt < limit
           if (shouldRetry && matchesStatus(response.status, this.retry.statusCodes)) {
             attemptErrors.push(httpErr)
-            const delayMs = Math.min(this.retry.delay(attempt), this.retry.backoffLimit)
+            const delayMs = Math.min(this.retry.delay(attempt), this.retry.maxDelay)
             await sleep(delayMs)
             continue
           }
@@ -323,7 +319,7 @@ export class HttpClient {
           const shouldRetry = limit === 0 ? true : attempt < limit
           if (retryable && shouldRetry) {
             attemptErrors.push(asError)
-            const delayMs = Math.min(this.retry.delay(attempt), this.retry.backoffLimit)
+            const delayMs = Math.min(this.retry.delay(attempt), this.retry.maxDelay)
             await sleep(delayMs)
             continue
           }
@@ -350,7 +346,7 @@ export class HttpClient {
         const shouldRetry = limit === 0 ? true : attempt < limit
         if (shouldRetry) {
           attemptErrors.push(asError)
-          const delayMs = Math.min(this.retry.delay(attempt), this.retry.backoffLimit)
+          const delayMs = Math.min(this.retry.delay(attempt), this.retry.maxDelay)
           await sleep(delayMs)
           continue
         }

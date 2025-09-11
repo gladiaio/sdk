@@ -1,47 +1,40 @@
 import { EventEmitter } from 'eventemitter3'
+import { concatArrayBuffer, toUint8Array } from '../../helpers.js'
 import { HttpClient } from '../../network/httpClient.js'
-import { WebSocketClient, WebSocketSession } from '../../network/webSocketClient.js'
-import { LiveV2EventEmitter } from './generated-eventemitter.js'
+import { WebSocketClient, WebSocketSession, WS_STATES } from '../../network/webSocketClient.js'
 import type {
   LiveV2InitRequest,
   LiveV2InitResponse,
   LiveV2StartSessionMessage,
   LiveV2WebSocketMessage,
 } from './generated-types.js'
+import { LiveV2SessionStatus } from './types.js'
 
-function toUint8Array(
-  audio: ArrayBufferLike | Buffer<ArrayBufferLike> | ArrayLike<number>
-): Uint8Array {
-  if (audio instanceof SharedArrayBuffer) {
-    return new Uint8Array(audio)
-  }
-  return new Uint8Array(audio)
+type EventMap = {
+  started: [message: LiveV2InitResponse]
+  connecting: [message: { attempt: number }]
+  connected: [message: { attempt: number }]
+  ending: [message: { code: number; reason?: string }]
+  ended: [message: { code: number; reason?: string }]
+  message: [message: LiveV2WebSocketMessage]
+  error: [error: Error]
 }
 
-function concatArrayBuffer(buffer1?: Uint8Array | null, buffer2?: Uint8Array | null): Uint8Array {
-  const newBuffer = new Uint8Array((buffer1?.byteLength ?? 0) + (buffer2?.byteLength ?? 0))
-  if (buffer1) {
-    newBuffer.set(new Uint8Array(buffer1), 0)
-  }
-  if (buffer2) {
-    newBuffer.set(new Uint8Array(buffer2), buffer1?.byteLength ?? 0)
-  }
-  return newBuffer
-}
-
-export class LiveV2Session implements LiveV2EventEmitter {
+export class LiveV2Session {
   private sessionOptions: LiveV2InitRequest
   private httpClient: HttpClient
   private webSocketClient: WebSocketClient
 
+  private abortController: AbortController = new AbortController()
   private initSessionPromise: Promise<LiveV2InitResponse>
+  private initSession: LiveV2InitResponse | null = null
   private webSocketSession: WebSocketSession | null = null
 
   private eventEmitter: EventEmitter | null = new EventEmitter()
   private bytesSent = 0
   private audioBuffer: Uint8Array | null = null
 
-  private status: 'init' | 'created' | 'stopped' | 'destroyed' = 'init'
+  private _status: LiveV2SessionStatus = 'starting'
 
   constructor({
     options,
@@ -55,11 +48,19 @@ export class LiveV2Session implements LiveV2EventEmitter {
     this.sessionOptions = options
     this.httpClient = httpClient
     this.webSocketClient = webSocketClient
+    this.abortController = new AbortController()
 
-    this.initSessionPromise = this.createSession()
+    this.initSessionPromise = this.startSession()
     this.initSessionPromise.then((session) => {
-      if (this.status === 'init') {
-        this.status = 'created'
+      this.initSession = session
+
+      if (this.abortController.signal.aborted) {
+        return
+      }
+
+      if (this._status === 'starting') {
+        this._status = 'started'
+        this.emit('started', session)
       }
 
       if (this.sessionOptions.messages_config?.receive_lifecycle_events) {
@@ -69,65 +70,53 @@ export class LiveV2Session implements LiveV2EventEmitter {
           created_at: session.created_at,
         }
         this.emit('message', startSessionMessage)
-        this.emit('start_session', startSessionMessage)
       }
 
-      return this.resumeWebsocket()
+      return this.connectToWebSocket(session)
     })
   }
 
-  on(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb: (event: any) => void): this {
-    this.eventEmitter?.on(type, cb)
-    return this
-  }
-
-  once(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb: (event: any) => void): this {
-    this.eventEmitter?.once(type, cb)
-    return this
-  }
-
-  off(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', cb?: (event: any) => void): this {
-    this.eventEmitter?.off(type, cb)
-    return this
-  }
-
-  addListener(
-    type: LiveV2WebSocketMessage['type'] | 'message' | 'error',
-    cb: (event: any) => void
-  ): this {
-    this.eventEmitter?.addListener(type, cb)
-    return this
-  }
-
-  removeListener(
-    type: LiveV2WebSocketMessage['type'] | 'message' | 'error',
-    cb?: (event: any) => void
-  ): this {
-    this.eventEmitter?.removeListener(type, cb)
-    return this
-  }
-
-  removeAllListeners(): this {
-    this.eventEmitter?.removeAllListeners()
-    return this
-  }
-
-  emit(type: LiveV2WebSocketMessage['type'] | 'message' | 'error', ...params: any[]): this {
-    this.eventEmitter?.emit(type, ...params)
-    return this
-  }
-
+  /**
+   * Get the session id. The promise is resolved when the session is started.
+   * @returns the session id
+   */
   async getSessionId(): Promise<string> {
     const { id } = await this.initSessionPromise
     return id
   }
 
+  /**
+   * The session id or null if the session is not started yet.
+   */
+  get sessionId(): string | null {
+    return this.initSession?.id ?? null
+  }
+
+  /**
+   * The current status of the session.
+   * - `starting`: the session is not started yet
+   * - `started`: the session is started but not connected to the websocket
+   * - `connecting`: the session is connecting to the websocket. If the connection is lost and it's retryable, the session will reconnect and the status will be `connecting` again.
+   * - `connected`: the session is connected to the websocket.
+   * - `ending`: the session is ending because of a user action or an error. In this status, sendAudio and stop are no-op.
+   * - `ended`: the session is ended. In this status, sendAudio and stop are no-op and listeners are removed.
+   */
+  get status(): LiveV2SessionStatus {
+    return this._status
+  }
+
+  /**
+   * Send an audio chunk to the current live session.
+   * If not connected, the audio will be buffered and sent when the session is connected.
+   *
+   * @param audio the audio chunk to send
+   */
   sendAudio(audio: ArrayBufferLike | Buffer<ArrayBufferLike> | ArrayLike<number>): void {
-    if (this.status === 'destroyed') {
+    if (this._status === 'ended') {
       // throw new Error(`The session stopped, you can no longer send audio.`)
       return
     }
-    if (this.status === 'stopped') {
+    if (this._status === 'ending') {
       // throw new Error(`The session is stopping, you can no longer send audio.`)
       return
     }
@@ -138,69 +127,104 @@ export class LiveV2Session implements LiveV2EventEmitter {
     const audioArray = toUint8Array(audio)
     this.audioBuffer = concatArrayBuffer(this.audioBuffer, audioArray)
 
-    if (this.webSocketSession?.currentStatus === 'open') {
+    if (this.webSocketSession?.readyState === WS_STATES.OPEN) {
       this.webSocketSession?.send(audioArray)
     }
   }
 
-  stop(): void {
-    if (this.status === 'destroyed') {
-      // throw new Error(`The session stopped.`)
+  /**
+   * Stop the recording.
+   * The session will process the remaining audio and emit the `ended` event when the post-processing is done.
+   */
+  stopRecording(): void {
+    this.doStop(1000)
+  }
+
+  /**
+   * Force the end of the session without waiting for the post-processing to be done.
+   * `ending` and `ended` events are emitted, pending requests/connections are cancelled and listeners are removed.
+   */
+  endSession(): void {
+    this.doDestroy(1000, 'Session ended by user')
+  }
+
+  private doStop(code = 1006, reason?: string): void {
+    if (this._status === 'ended') {
+      // no-op
       return
     }
-    if (this.status === 'stopped') {
-      // throw new Error(`The session is already stopping.`)
+    if (this._status === 'ending') {
+      // no-op
       return
     }
 
-    this.status = 'stopped'
+    this._status = 'ending'
+    this.emit('ending', { code, reason })
 
-    // TODO force a timeout if ws connection is not ready to destroy the client
-    // TODO buffer the message
-    if (this.webSocketSession?.currentStatus === 'open') {
+    if (this.webSocketSession?.readyState === WS_STATES.OPEN) {
       this.webSocketSession?.send(JSON.stringify({ type: 'stop_recording' }))
     }
   }
 
-  destroy(): void {
-    if (this.status === 'destroyed') {
-      // throw new Error(`The session stopped.`)
+  private doDestroy(code = 1006, reason?: string) {
+    if (this._status === 'ended') {
       return
     }
 
-    if (this.status !== 'stopped') {
-      this.stop()
-    }
+    // Ending the session
+    this.doStop(code, reason)
 
-    this.status = 'destroyed'
+    // Session ended
+    this._status = 'ended'
+    this.emit('ended', { code, reason })
 
-    // TODO cancel pending connection
+    // Cancel pending connection
+    this.abortController.abort()
 
     this.audioBuffer = null
 
     this.removeAllListeners()
     this.eventEmitter = null
-
-    // Close the WebSocket connection
-    this.webSocketSession?.close(1000)
-    this.webSocketSession?.destroy()
-    this.webSocketSession = null
   }
 
-  private async resumeWebsocket(): Promise<void> {
-    const session = await this.initSessionPromise
+  private connectToWebSocket(session: LiveV2InitResponse): void {
+    if (this.abortController.signal.aborted) {
+      return
+    }
 
     // Create a WebSocket session and bridge its events
-    this.webSocketSession = this.webSocketClient.createSession(session.url)
-
-    this.webSocketSession.on('open', () => {
-      if (this.audioBuffer?.byteLength) {
-        this.webSocketSession?.send(this.audioBuffer)
-      }
+    const webSocketSession = this.webSocketClient.createSession(session.url)
+    this.abortController.signal.addEventListener('abort', () => {
+      this.webSocketSession = null
+      webSocketSession.onconnecting = null
+      webSocketSession.onopen = null
+      webSocketSession.onmessage = null
+      webSocketSession.onclose = null
+      webSocketSession.onerror = null
+      webSocketSession.close(1001, 'Aborted')
     })
 
-    this.webSocketSession.on('message', (data) => {
-      const message = this.parseMessage(data.toString())
+    this.webSocketSession = webSocketSession
+
+    this.webSocketSession.onconnecting = ({ connection }) => {
+      this._status = 'connecting'
+      this.emit('connecting', { attempt: connection })
+    }
+
+    this.webSocketSession.onopen = ({ connection }) => {
+      if (this.audioBuffer?.byteLength) {
+        webSocketSession.send(this.audioBuffer)
+      }
+      if (this.status === 'ending') {
+        webSocketSession.send(JSON.stringify({ type: 'stop_recording' }))
+        return
+      }
+      this._status = 'connected'
+      this.emit('connected', { attempt: connection })
+    }
+
+    this.webSocketSession.onmessage = (event) => {
+      const message = this.parseMessage(event.data.toString())
 
       // We forced the acknowledgment reception for resume so we must not emit them if user don't want them
       if (
@@ -208,7 +232,6 @@ export class LiveV2Session implements LiveV2EventEmitter {
         !('acknowledged' in message)
       ) {
         this.emit('message', message)
-        this.emit(message.type, message)
       }
 
       if (message.type === 'audio_chunk') {
@@ -219,23 +242,21 @@ export class LiveV2Session implements LiveV2EventEmitter {
           this.bytesSent = byteEnd
         }
       }
-    })
+    }
 
-    this.webSocketSession.on('close', (code, reason) => {
-      if (code === 1000) {
-        this.destroy()
-      }
-    })
+    this.webSocketSession.onclose = ({ code, reason }) => {
+      this.doDestroy(code, reason)
+    }
 
-    this.webSocketSession.on('error', (error) => {
-      console.error('WebSocket error:', error)
+    this.webSocketSession.onerror = (error) => {
       this.emit('error', error)
-    })
+    }
   }
 
-  private async createSession(): Promise<LiveV2InitResponse> {
+  private async startSession(): Promise<LiveV2InitResponse> {
     try {
       return await this.httpClient.post<LiveV2InitResponse>(`/v2/live`, {
+        signal: this.abortController.signal,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -249,8 +270,15 @@ export class LiveV2Session implements LiveV2EventEmitter {
         } satisfies LiveV2InitRequest),
       })
     } catch (error) {
-      this.emit('error', error)
-      this.destroy()
+      if (!this.abortController.signal.aborted) {
+        this.emit(
+          'error',
+          error instanceof Error
+            ? error
+            : new Error(`Error creating session: ${error}`, { cause: error })
+        )
+        this.doDestroy(1006, `Couldn't start a new session`)
+      }
       throw error
     }
   }
@@ -266,5 +294,98 @@ export class LiveV2Session implements LiveV2EventEmitter {
       throw new Error(`Invalid message received: ${data}`)
     }
     return message as LiveV2WebSocketMessage
+  }
+
+  // #### Listeners ####
+
+  on(type: 'started', cb: (...args: EventMap['started']) => void): this
+  on(type: 'connecting', cb: (...args: EventMap['connecting']) => void): this
+  on(type: 'connected', cb: (...args: EventMap['connected']) => void): this
+  on(type: 'ending', cb: (...args: EventMap['ending']) => void): this
+  on(type: 'ended', cb: (...args: EventMap['ended']) => void): this
+  on(type: 'message', cb: (...args: EventMap['message']) => void): this
+  on(type: 'error', cb: (...args: EventMap['error']) => void): this
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
+  on(type: keyof EventMap, cb: (event: any) => void): this {
+    this.eventEmitter?.on(type, cb)
+    return this
+  }
+
+  once(type: 'started', cb: (...args: EventMap['started']) => void): this
+  once(type: 'connecting', cb: (...args: EventMap['connecting']) => void): this
+  once(type: 'connected', cb: (...args: EventMap['connected']) => void): this
+  once(type: 'ending', cb: (...args: EventMap['ending']) => void): this
+  once(type: 'ended', cb: (...args: EventMap['ended']) => void): this
+  once(type: 'message', cb: (...args: EventMap['message']) => void): this
+  once(type: 'error', cb: (...args: EventMap['error']) => void): this
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
+  once(type: keyof EventMap, cb: (event: any) => void): this {
+    this.eventEmitter?.once(type, cb)
+    return this
+  }
+
+  off(type: 'started', cb?: (...args: EventMap['started']) => void): this
+  off(type: 'connecting', cb?: (...args: EventMap['connecting']) => void): this
+  off(type: 'connected', cb?: (...args: EventMap['connected']) => void): this
+  off(type: 'ending', cb?: (...args: EventMap['ending']) => void): this
+  off(type: 'ended', cb?: (...args: EventMap['ended']) => void): this
+  off(type: 'message', cb?: (...args: EventMap['message']) => void): this
+  off(type: 'error', cb?: (...args: EventMap['error']) => void): this
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
+  off(type: keyof EventMap, cb?: (event: any) => void): this {
+    this.eventEmitter?.off(type, cb)
+    return this
+  }
+
+  addListener(type: 'started', cb: (...args: EventMap['started']) => void): this
+  addListener(type: 'connecting', cb: (...args: EventMap['connecting']) => void): this
+  addListener(type: 'connected', cb: (...args: EventMap['connected']) => void): this
+  addListener(type: 'ending', cb: (...args: EventMap['ending']) => void): this
+  addListener(type: 'ended', cb: (...args: EventMap['ended']) => void): this
+  addListener(type: 'message', cb: (...args: EventMap['message']) => void): this
+  addListener(type: 'error', cb: (...args: EventMap['error']) => void): this
+  addListener(
+    type: keyof EventMap,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
+    cb: (event: any) => void
+  ): this {
+    this.eventEmitter?.addListener(type, cb)
+    return this
+  }
+
+  removeListener(type: 'started', cb?: (...args: EventMap['started']) => void): this
+  removeListener(type: 'connecting', cb?: (...args: EventMap['connecting']) => void): this
+  removeListener(type: 'connected', cb?: (...args: EventMap['connected']) => void): this
+  removeListener(type: 'ending', cb?: (...args: EventMap['ending']) => void): this
+  removeListener(type: 'ended', cb?: (...args: EventMap['ended']) => void): this
+  removeListener(type: 'message', cb?: (...args: EventMap['message']) => void): this
+  removeListener(type: 'error', cb?: (...args: EventMap['error']) => void): this
+  removeListener(
+    type: keyof EventMap,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
+    cb?: (event: any) => void
+  ): this {
+    this.eventEmitter?.removeListener(type, cb)
+    return this
+  }
+
+  removeAllListeners(): this {
+    this.eventEmitter?.removeAllListeners()
+    return this
+  }
+
+  private emit(type: 'started', ...args: EventMap['started']): void
+  private emit(type: 'connecting', ...args: EventMap['connecting']): void
+  private emit(type: 'connected', ...args: EventMap['connected']): void
+  private emit(type: 'ending', ...args: EventMap['ending']): void
+  private emit(type: 'ended', ...args: EventMap['ended']): void
+  private emit(type: 'message', ...args: EventMap['message']): void
+  private emit(type: 'error', ...args: EventMap['error']): void
+  private emit(
+    type: keyof EventMap,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
+    ...args: any[]
+  ): void {
+    this.eventEmitter?.emit(type, ...args)
   }
 }

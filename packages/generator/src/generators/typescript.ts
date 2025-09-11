@@ -3,33 +3,26 @@ import type { ReferencedSchemaObject, SchemaOrReference } from '../types.ts'
 import { BaseGenerator } from './base.ts'
 
 export class TypeScriptGenerator extends BaseGenerator {
-  get sdkName(): string {
+  override get sdkName(): string {
     return 'javascript'
   }
 
-  /**
-   * Get the template path for TypeScript event emitter
-   */
-  getEventEmitterTemplatePath(): string {
-    return 'typescript/event-emitter.ts.template'
-  }
-
-  getFileExtension(): string {
+  override getFileExtension(): string {
     return '.ts'
   }
 
-  getSourceFolder(): string {
+  override getSourceFolder(): string {
     return 'src'
   }
 
-  generateSingleLineComment(text: string): string {
+  override generateSingleLineComment(text: string): string {
     return text
       .split('\n')
       .map((line) => `// ${line}`)
       .join('\n')
   }
 
-  generateMultiLineComment(text: string): string {
+  override generateMultiLineComment(text: string): string {
     const lines = text.split('\n')
     if (lines.length === 1) {
       return `// ${lines[0]}`
@@ -37,7 +30,7 @@ export class TypeScriptGenerator extends BaseGenerator {
     return '/*\n' + lines.map((line) => ` * ${line}`).join('\n') + '\n */'
   }
 
-  generateTypeDefinition(schema: ReferencedSchemaObject): string {
+  override generateTypeDefinition(schema: ReferencedSchemaObject): string {
     if (schema.schema.type === 'object' && schema.schema.properties) {
       return this.generateInterface(schema)
     } else if (schema.schema.enum) {
@@ -47,7 +40,7 @@ export class TypeScriptGenerator extends BaseGenerator {
     }
   }
 
-  generateUnionType(
+  override generateUnionType(
     name: string,
     schemas: ReferencedSchemaObject[],
     sectionComment?: string
@@ -62,6 +55,19 @@ export class TypeScriptGenerator extends BaseGenerator {
     content += `export type ${name} = ${unionTypes};`
 
     return content
+  }
+
+  override resolveUnionTypes(items: SchemaOrReference[]): string[] {
+    const types: string[] = []
+
+    for (const item of items) {
+      const resolvedType = this.getTypeScriptType(item)
+      if (resolvedType && !types.includes(resolvedType)) {
+        types.push(resolvedType)
+      }
+    }
+
+    return types
   }
 
   private generateInterface({
@@ -89,19 +95,6 @@ export class TypeScriptGenerator extends BaseGenerator {
 
     content += '}'
     return content
-  }
-
-  resolveUnionTypes(items: SchemaOrReference[]): string[] {
-    const types: string[] = []
-
-    for (const item of items) {
-      const resolvedType = this.getTypeScriptType(item)
-      if (resolvedType && !types.includes(resolvedType)) {
-        types.push(resolvedType)
-      }
-    }
-
-    return types
   }
 
   private generateEnum({ typeName: name, schema }: ReferencedSchemaObject): string {

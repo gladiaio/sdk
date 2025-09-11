@@ -49,22 +49,22 @@ export class GladiaClient {
         options?.httpHeaders
       ),
       httpRetry: {
-        limit: 2,
+        maxAttempts: 2,
         statusCodes: [408, 413, 429, [500, 599]],
-        backoffLimit: 10000,
+        maxDelay: 10000,
         delay: (attemptCount) => 0.3 * 2 ** (attemptCount - 1) * 1000,
         ...this.options?.httpRetry,
         ...options?.httpRetry,
       },
       webSocketRetry: {
-        limit: 5,
+        maxAttemptsPerConnection: 5,
         closeCodes: [
           [1002, 4399],
           [4500, 9999],
         ],
-        backoffLimit: 2000,
+        maxDelay: 2000,
         delay: (attemptCount) => 0.3 * 2 ** (attemptCount - 1) * 1000,
-        limitConnections: 0,
+        maxConnections: 0,
         ...this.options?.webSocketRetry,
         ...options?.webSocketRetry,
       },

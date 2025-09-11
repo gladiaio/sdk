@@ -1,4 +1,4 @@
-import { GladiaClient, type LiveV2WebSocketMessage } from '@gladiaio/sdk'
+import { GladiaClient, type LiveV2TranscriptMessage } from '@gladiaio/sdk'
 import { parseAudioFile, sendAudioFile } from '@gladiaio/sdk-e2e-javascript-fixtures'
 import assert from 'node:assert'
 import { test } from 'node:test'
@@ -7,51 +7,51 @@ test('split infinity', async () => {
   const audioFile = 'short_split_infinity_16k.wav'
   const gladiaClient = new GladiaClient()
 
-  const messages = await new Promise<LiveV2WebSocketMessage[]>((resolve, reject) => {
+  const transcripts = await new Promise<LiveV2TranscriptMessage[]>((resolve, reject) => {
     const audioData = parseAudioFile(audioFile)
-    const messages: LiveV2WebSocketMessage[] = []
-    const liveSession = gladiaClient.liveV2().newSession({
+    const transcripts: LiveV2TranscriptMessage[] = []
+    const liveSession = gladiaClient.liveV2().startSession({
       ...audioData.audioConfig,
       language_config: {
         languages: ['en'],
       },
-      messages_config: {
-        receive_final_transcripts: true,
-        receive_lifecycle_events: true,
-
-        receive_partial_transcripts: false,
-        receive_acknowledgments: false,
-        receive_speech_events: false,
-        receive_pre_processing_events: false,
-        receive_realtime_processing_events: false,
-        receive_post_processing_events: false,
-        receive_errors: false,
-      },
     })
+    assert.equal(liveSession.status, 'starting')
+
     liveSession.on('message', (message) => {
       console.log(JSON.stringify(message))
-      messages.push(message)
-    })
-    liveSession.once('end_session', () => {
-      liveSession.destroy()
-      resolve(messages)
+      if (message.type === 'transcript') {
+        transcripts.push(message)
+      }
     })
     liveSession.once('error', (error) => {
-      liveSession.destroy()
       reject(error)
+    })
+    liveSession.once('ended', () => {
+      try {
+        assert.equal(liveSession.status, 'ended')
+      } catch (error) {
+        reject(error)
+        return
+      }
+
+      resolve(transcripts)
     })
 
     sendAudioFile(audioData, liveSession, 50)
+      .then(() => {
+        liveSession.stopRecording()
+        assert.equal(liveSession.status, 'ending')
+      })
+      .catch(reject)
   })
 
-  // TODO remove once we have integrated lifecycle events and we can remove the receive_lifecycle_events
-  const transcripts = messages.filter((message) => message.type === 'transcript')
-  for (const message of transcripts) {
-    assert.equal(message.type, 'transcript')
-    assert.equal(message.data.is_final, true)
+  for (const transcript of transcripts) {
+    assert.equal(transcript.type, 'transcript')
+    assert.equal(transcript.data.is_final, true)
   }
   assert.match(
-    transcripts.map((message) => message.data.utterance.text).join(' '),
+    transcripts.map((transcript) => transcript.data.utterance.text).join(' '),
     /^\ssplit infinity\p{P}*$/iu
   )
 })

@@ -39,4 +39,20 @@ export default [
     // Override or add rules here
     rules: {},
   },
+  {
+    files: [
+      'packages/javascript/src/**/*.ts',
+      'packages/javascript/src/**/*.tsx',
+      'packages/javascript/src/**/*.cts',
+      'packages/javascript/src/**/*.mts',
+      'packages/javascript/src/**/*.js',
+      'packages/javascript/src/**/*.jsx',
+      'packages/javascript/src/**/*.cjs',
+      'packages/javascript/src/**/*.mjs',
+    ],
+    // Override or add rules here
+    rules: {
+      'no-console': 'error',
+    },
+  },
 ]
