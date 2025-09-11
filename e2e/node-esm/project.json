@@ -1,0 +1,24 @@
+{
+  "name": "e2e-node-esm",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "e2e/node-esm/test",
+  "projectType": "library",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "options": {
+        "command": "npm run test",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "add": {},
+    "update": {},
+    "remove": {},
+    "format:check": {},
+    "format:write": {},
+    "lint": {},
+    "lint:fix": {}
+  },
+  "tags": ["type:lib", "scope:e2e"]
+}

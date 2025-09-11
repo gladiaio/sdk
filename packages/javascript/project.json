@@ -19,13 +19,6 @@
         "cwd": "packages/javascript"
       }
     },
-    "clean": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "npm run clean",
-        "cwd": "packages/javascript"
-      }
-    },
     "add": {},
     "update": {},
     "remove": {},

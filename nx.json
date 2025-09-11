@@ -48,7 +48,7 @@
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["{projectRoot}/**/*.{ts,tsx,js,jsx}"]
+        "lintFilePatterns": ["{projectRoot}/**/*.{cjs,mjs,ts,tsx,js,jsx}"]
       },
       "cache": true
     },
@@ -56,7 +56,7 @@
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["{projectRoot}/**/*.{ts,tsx,js,jsx}"],
+        "lintFilePatterns": ["{projectRoot}/**/*.{cjs,mjs,ts,tsx,js,jsx}"],
         "fix": true
       },
       "cache": true
@@ -64,19 +64,23 @@
     "format:check": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "prettier --check --ignore-path ../../.gitignore '**/*.{ts,tsx,js,jsx,json,css,scss,md}'",
+        "command": "prettier --check --ignore-path ../../.gitignore '**/*.{cjs,mjs,ts,tsx,js,jsx,json,css,scss,md}'",
         "cwd": "{projectRoot}"
       }
     },
     "format:write": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "prettier --write --ignore-path ../../.gitignore '**/*.{ts,tsx,js,jsx,json,css,scss,md}'",
+        "command": "prettier --write --ignore-path ../../.gitignore '**/*.{cjs,mjs,ts,tsx,js,jsx,json,css,scss,md}'",
         "cwd": "{projectRoot}"
       }
     },
     "test": {
-      "executor": "@nx/vite:test"
+      "executor": "@nx/vite:test",
+      "dependsOn": ["^build"]
+    },
+    "build": {
+      "dependsOn": ["^build"]
     }
   },
   "release": {

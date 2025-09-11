@@ -1,0 +1,21 @@
+{
+  "name": "@gladiaio/sdk-e2e-node-esm",
+  "description": "E2E SDK Node ESM",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test"
+  },
+  "dependencies": {
+    "@gladiaio/sdk": "workspace:*",
+    "@gladiaio/sdk-e2e-javascript-fixtures": "workspace:*"
+  },
+  "devDependencies": {
+    "@tsconfig/node22": "^22.0.2",
+    "@types/node": "^22.18.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

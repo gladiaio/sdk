@@ -1,4 +1,4 @@
-export type Headers = [string, string | string[]][] | Record<string, string | string[]>
+export type Headers = [string, string][] | Record<string, string>
 
 type BaseRetryOptions = {
   /**

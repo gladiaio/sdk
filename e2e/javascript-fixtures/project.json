@@ -1,8 +1,8 @@
 {
-  "name": "samples-js",
+  "name": "e2e-javascript-fixtures",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "samples/javascript/src",
-  "projectType": "application",
+  "sourceRoot": "e2e/javascript-fixtures/src",
+  "projectType": "library",
   "targets": {
     "add": {},
     "update": {},
@@ -12,5 +12,5 @@
     "lint": {},
     "lint:fix": {}
   },
-  "tags": ["type:app", "scope:sample"]
+  "tags": ["type:lib", "scope:e2e"]
 }

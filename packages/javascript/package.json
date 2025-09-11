@@ -25,12 +25,7 @@
   "jsdelivr": "dist/index.iife.js",
   "scripts": {
     "build": "tsdown",
-    "build:watch": "tsdown --watch",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
-  },
-  "dependencies": {
-    "eventemitter3": "^5.0.1"
+    "build:watch": "tsdown --watch"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.6",
@@ -39,6 +34,7 @@
     "tsdown": "^0.14.2"
   },
   "peerDependencies": {
+    "eventemitter3": ">=5",
     "ws": "5.2.4 || 6.2.3 || 7.5.10 || >=8.8",
     "undici": ">=5"
   },

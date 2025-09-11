@@ -1,0 +1,30 @@
+{
+  "name": "@gladiaio/sdk-e2e-javascript-fixtures",
+  "description": "E2E SDK JavaScript Fixtures",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "build:watch": "tsdown --watch"
+  },
+  "devDependencies": {
+    "@gladiaio/sdk": "workspace:*",
+    "@tsconfig/node20": "^20.1.6",
+    "@types/node": "^20.19.13",
+    "tsdown": "^0.14.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  }
+}

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpClient, HttpError, TimeoutError } from './httpClient.js'
 
 // Mock the iso-fetch module
@@ -240,9 +240,12 @@ describe('HttpClient', () => {
     mockFetch.mockImplementation(() => {
       calls += 1
       return Promise.resolve(
-        new Response('', {
+        new Response(JSON.stringify({ message: 'Super error message', request_id: 'G-12345678' }), {
           status: 500,
           statusText: 'Internal Server Error',
+          headers: {
+            'x-aipi-call-id': '123',
+          },
         })
       )
     })
@@ -254,7 +257,19 @@ describe('HttpClient', () => {
     })
 
     await expect(client.get(`${BASE}/fail`)).rejects.toMatchObject({
-      message: expect.stringContaining('HTTP 500 Internal Server Error'),
+      message: 'Super error message | G-12345678 | 500 | GET /fail',
+      method: 'GET',
+      url: `${BASE}/fail`,
+      id: '123',
+      requestId: 'G-12345678',
+      status: 500,
+      responseHeaders: {
+        'x-aipi-call-id': '123',
+      },
+      responseBody: {
+        message: 'Super error message',
+        request_id: 'G-12345678',
+      },
     })
 
     expect(calls).toBe(1) // Only initial attempt, no retries

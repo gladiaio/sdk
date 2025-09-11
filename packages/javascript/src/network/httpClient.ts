@@ -5,23 +5,93 @@ import { initFetch } from './iso-fetch.js'
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
 export class HttpError extends Error {
+  readonly method: HttpMethod
   readonly status: number
   readonly url: string
-  readonly response?: Response
+  readonly id?: string
+  readonly requestId?: string
+  readonly responseBody?: string | Record<string, any>
+  readonly responseHeaders?: Headers
 
   constructor(
-    message: string,
-    status: number,
-    url: string,
-    response?: Response,
+    {
+      message,
+      method,
+      id,
+      requestId,
+      responseBody,
+      url,
+      status,
+      headers,
+    }: {
+      message: string
+      method: HttpMethod
+      url: string
+      status: number
+      id?: string | undefined
+      requestId?: string | undefined
+      responseBody?: string | Record<string, any>
+      headers?: Headers
+    },
     options?: { cause?: unknown }
   ) {
     super(message, options)
     this.name = 'HttpError'
-    this.status = status
+    this.method = method
     this.url = url
-    this.response = response
+    this.status = status
+    this.id = id
+    this.requestId = requestId
+    this.responseBody = responseBody
+    this.responseHeaders = headers
   }
+}
+
+async function createHttpError(
+  method: HttpMethod,
+  url: string | URL,
+  response: Response,
+  options?: { cause?: unknown }
+) {
+  let message: string | undefined
+  let requestId: string | undefined
+  let id: string | undefined
+  let responseBody: string | Record<string, any> | undefined
+  let headers: Headers | undefined
+  try {
+    id = response.headers.get('x-aipi-call-id') ?? undefined
+    headers = Object.fromEntries(response.headers.entries())
+    responseBody = await response.text()
+    try {
+      responseBody = JSON.parse(responseBody) as Record<string, any>
+      requestId = responseBody?.['request_id']
+      message = responseBody?.['message']
+    } catch {
+      // noop
+    }
+  } catch {
+    // noop
+  }
+
+  const messageParts = [
+    message || response.statusText || 'An error occurred',
+    requestId || id,
+    response.status.toString(),
+    `${method} ${new URL(url).pathname}`,
+  ]
+  return new HttpError(
+    {
+      method,
+      message: messageParts.filter(Boolean).join(' | '),
+      url: url.toString(),
+      status: response.status,
+      id,
+      requestId,
+      responseBody,
+      headers,
+    },
+    options
+  )
 }
 
 export class TimeoutError extends Error {
@@ -203,12 +273,7 @@ export class HttpClient {
         if (userSignal) userSignal.removeEventListener('abort', onUserAbort)
 
         if (!response.ok) {
-          const httpErr = new HttpError(
-            `HTTP ${response.status} ${response.statusText} for ${method} ${url}`,
-            response.status,
-            url.toString(),
-            response
-          )
+          const httpErr = await createHttpError(method, url, response)
 
           // Retry only if status is retryable and attempts remain
           // When limit is 0, retry unlimited times

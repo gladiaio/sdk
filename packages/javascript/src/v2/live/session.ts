@@ -68,8 +68,8 @@ export class LiveV2Session implements LiveV2EventEmitter {
           session_id: session.id,
           created_at: session.created_at,
         }
-        this.emit('start_session', startSessionMessage)
         this.emit('message', startSessionMessage)
+        this.emit('start_session', startSessionMessage)
       }
 
       return this.resumeWebsocket()
@@ -201,8 +201,16 @@ export class LiveV2Session implements LiveV2EventEmitter {
 
     this.webSocketSession.on('message', (data) => {
       const message = this.parseMessage(data.toString())
-      this.emit(message.type, message)
-      this.emit('message', message)
+
+      // We forced the acknowledgment reception for resume so we must not emit them if user don't want them
+      if (
+        this.sessionOptions.messages_config?.receive_acknowledgments ||
+        !('acknowledged' in message)
+      ) {
+        this.emit('message', message)
+        this.emit(message.type, message)
+      }
+
       if (message.type === 'audio_chunk') {
         if (message.acknowledged && message.data) {
           const byteEnd = message.data.byte_range[1]
