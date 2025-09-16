@@ -92,6 +92,7 @@
     }
   },
   "release": {
+    "projects": ["packages/*", "!packages/generator"],
     "projectsRelationship": "independent",
     "changelog": {
       "projectChangelogs": {
