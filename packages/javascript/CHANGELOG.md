@@ -1,3 +1,15 @@
+## 0.4.0 (2025-09-16)
+
+### 🚀 Features
+
+- **sdk-js:** Rework events and status
+
+### 🩹 Fixes
+
+- **sdk-js:** Remove duplicated default
+- **sdk-js:** Add e2e tests to js sdk and fix a few things
+- **sdk-js:** Typecheck failing and refactor helpers
+
 ## 0.3.1 (2025-09-10)
 
 ### 🩹 Fixes
