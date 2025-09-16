@@ -1,8 +1,8 @@
 {
   "name": "sdk-python",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "projectType": "application",
-  "sourceRoot": "packages/python/python",
+  "projectType": "library",
+  "sourceRoot": "packages/python/src/gladiaio_sdk",
   "targets": {
     "install": {
       "executor": "@nxlv/python:install",
@@ -50,7 +50,7 @@
       "executor": "@nxlv/python:ruff-check",
       "outputs": [],
       "options": {
-        "lintFilePatterns": ["python", "tests"]
+        "lintFilePatterns": ["src", "tests"]
       },
       "cache": true
     },
@@ -58,7 +58,7 @@
       "executor": "@nxlv/python:ruff-check",
       "outputs": [],
       "options": {
-        "lintFilePatterns": ["python", "tests"],
+        "lintFilePatterns": ["src", "tests"],
         "fix": true
       }
     },
@@ -66,7 +66,7 @@
       "executor": "@nxlv/python:ruff-format",
       "outputs": [],
       "options": {
-        "filePatterns": ["python", "tests"],
+        "filePatterns": ["src", "tests"],
         "check": true
       },
       "cache": true
@@ -75,7 +75,7 @@
       "executor": "@nxlv/python:ruff-format",
       "outputs": [],
       "options": {
-        "filePatterns": ["python", "tests"]
+        "filePatterns": ["src", "tests"]
       }
     },
     "test": {
@@ -96,10 +96,10 @@
       "outputs": []
     }
   },
-  "tags": [],
+  "tags": ["scope:sdk"],
   "release": {
     "version": {
-      "generator": "@nxlv/python:release-version"
+      "versionActions": "@nxlv/python/src/release/version-actions"
     }
   }
 }

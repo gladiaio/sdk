@@ -1,3 +1,4 @@
+import { kebabCase } from 'case-anything'
 import { isReferencedSchemaObject } from '../helpers.ts'
 import type { ReferencedSchemaObject, SchemaOrReference } from '../types.ts'
 import { BaseGenerator } from './base.ts'
@@ -13,6 +14,10 @@ export class TypeScriptGenerator extends BaseGenerator {
 
   override getSourceFolder(): string {
     return 'src'
+  }
+
+  override formatFilename(filename: string): string {
+    return kebabCase(filename)
   }
 
   override generateSingleLineComment(text: string): string {

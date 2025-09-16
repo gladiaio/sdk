@@ -1,3 +1,4 @@
+import { snakeCase } from 'case-anything'
 import * as fs from 'fs'
 import * as path from 'path'
 import { isReferencedSchemaObject } from '../helpers.ts'
@@ -37,7 +38,11 @@ export class PythonGenerator extends BaseGenerator {
   }
 
   override getSourceFolder(): string {
-    return 'python'
+    return 'src/gladiaio_sdk'
+  }
+
+  override formatFilename(filename: string): string {
+    return snakeCase(filename)
   }
 
   override generateSingleLineComment(text: string): string {
@@ -178,47 +183,23 @@ export class PythonGenerator extends BaseGenerator {
     if (!schema.enum) {
       return `${name} = str`
     }
+    // Generate Literal type for string enums
+    const values = schema.enum.map((value) => `"${value}"`)
+    const literalContent = values.join(', ')
+    const maxLineLength = this.maxLineLength
 
-    // Check if all enum values are numeric
-    const allNumeric = schema.enum.every((value) => !isNaN(Number(value)))
-
-    if (allNumeric) {
-      // Generate numeric union type
-      const values = schema.enum.map((value) => String(value))
-      const unionTypes = values.join(' | ')
-      const maxLineLength = this.maxLineLength
-
-      if (unionTypes.length + name.length + 3 > maxLineLength) {
-        // Multi-line format
-        const formattedValues = values
-          .map((value, index) => {
-            const prefix = index === 0 ? '' : '    | '
-            return `${prefix}${value}`
-          })
-          .join('\n')
-        return `${name} = (\n    ${formattedValues}\n)`
-      } else {
-        return `${name} = ${unionTypes}`
-      }
+    if (literalContent.length + name.length + 12 > maxLineLength) {
+      // 12 for ' = Literal[]'
+      // Multi-line format
+      const formattedValues = values
+        .map((value, index) => {
+          const prefix = index === 0 ? '' : '    '
+          return `${prefix}${value}`
+        })
+        .join(',\n')
+      return `${name} = Literal[\n    ${formattedValues}\n]`
     } else {
-      // Generate Literal type for string enums
-      const values = schema.enum.map((value) => `"${value}"`)
-      const literalContent = values.join(', ')
-      const maxLineLength = this.maxLineLength
-
-      if (literalContent.length + name.length + 12 > maxLineLength) {
-        // 12 for ' = Literal[]'
-        // Multi-line format
-        const formattedValues = values
-          .map((value, index) => {
-            const prefix = index === 0 ? '' : '    '
-            return `${prefix}${value}`
-          })
-          .join(',\n')
-        return `${name} = Literal[\n    ${formattedValues}\n]`
-      } else {
-        return `${name} = Literal[${literalContent}]`
-      }
+      return `${name} = Literal[${literalContent}]`
     }
   }
 

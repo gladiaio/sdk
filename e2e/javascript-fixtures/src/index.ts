@@ -24,8 +24,7 @@ export function getDataFile(filename: string) {
 }
 
 export function parseAudioFile(filename: string): {
-  startDataChunk: number
-  buffer: Buffer
+  rawAudioData: Buffer
   audioConfig: LiveV2InitRequestAudioConfig
 } {
   const textDecoder = new TextDecoder()
@@ -66,28 +65,27 @@ export function parseAudioFile(filename: string): {
       channels,
       bit_depth,
     },
-    startDataChunk: nextSubChunk,
-    buffer,
+    rawAudioData: buffer.subarray(nextSubChunk + 8, buffer.readUInt32LE(nextSubChunk + 4)),
   }
 }
 
 export async function sendAudioFile(
   {
-    startDataChunk,
-    buffer,
+    rawAudioData,
     audioConfig: { bit_depth, sample_rate, channels },
   }: ReturnType<typeof parseAudioFile>,
   liveSession: LiveV2Session,
   chunkDuration = 50
 ) {
-  const audioData = buffer.subarray(startDataChunk + 8, buffer.readUInt32LE(startDataChunk + 4))
-
   const bytesPerSample = bit_depth / 8
   const bytesPerSecond = sample_rate * channels * bytesPerSample
   const chunkSize = Math.round((chunkDuration / 1000) * bytesPerSecond)
 
-  for (let i = 0; i < audioData.length; i += chunkSize) {
-    liveSession.sendAudio(audioData.subarray(i, i + chunkSize))
+  for (let i = 0; i < rawAudioData.length; i += chunkSize) {
+    if (liveSession.status === 'ending' || liveSession.status === 'ended') {
+      return
+    }
+    liveSession.sendAudio(rawAudioData.subarray(i, i + chunkSize))
     await new Promise((resolve) => setTimeout(resolve, chunkDuration))
   }
 }

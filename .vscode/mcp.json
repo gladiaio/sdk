@@ -1,7 +1,6 @@
 {
-  "servers": {
+  "mcpServers": {
     "nx-mcp": {
-      "type": "stdio",
       "command": "npx",
       "args": ["-y", "nx-mcp@latest", "."]
     }

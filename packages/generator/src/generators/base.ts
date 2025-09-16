@@ -18,6 +18,7 @@ export abstract class BaseGenerator {
   protected getSdkFolder(): string {
     return getSdkFolder(this.sdkName)
   }
+  protected abstract formatFilename(filename: string): string
 
   /**
    * Generate live streaming types from OpenAPI schema
@@ -76,7 +77,7 @@ export abstract class BaseGenerator {
       .join('\n\n')
 
     // Write to the appropriate file
-    const outputPath = `${this.getSdkFolder()}/${this.getSourceFolder()}/v2/live/generated-types${this.getFileExtension()}`
+    const outputPath = `${this.getSdkFolder()}/${this.getSourceFolder()}/v2/live/${this.formatFilename('generated-types')}${this.getFileExtension()}`
     await this.writeFile(outputPath, allContent)
 
     console.log(`Generated types for Live V2 SDK (${this.sdkName})`)

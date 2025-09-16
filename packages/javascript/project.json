@@ -26,6 +26,7 @@
     "format:write": {},
     "lint": {},
     "lint:fix": {},
+    "typecheck": {},
     "test": {}
   },
   "tags": ["type:lib", "scope:sdk"]

@@ -81,6 +81,14 @@
     },
     "build": {
       "dependsOn": ["^build"]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "{projectRoot}"
+      },
+      "dependsOn": ["^build"]
     }
   },
   "release": {

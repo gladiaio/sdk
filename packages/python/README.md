@@ -1,3 +1,3 @@
-# python
+# Gladia Python SDK
 
 Project description here.

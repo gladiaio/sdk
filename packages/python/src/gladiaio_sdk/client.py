@@ -1,6 +1,6 @@
 """Sample Hello World application."""
 
 
-def hello():
+def GladiaClient():
   """Return a friendly greeting."""
   return "Hello python"

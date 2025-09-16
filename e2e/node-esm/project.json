@@ -18,7 +18,9 @@
     "format:check": {},
     "format:write": {},
     "lint": {},
-    "lint:fix": {}
+    "lint:fix": {},
+
+    "typecheck": {}
   },
   "tags": ["type:lib", "scope:e2e"]
 }
