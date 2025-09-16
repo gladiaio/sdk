@@ -1,14 +1,13 @@
 import os
-
-# from asyncio import sleep as async_sleep
-# from time import sleep
+from asyncio import sleep as async_sleep
+from time import sleep
 from typing import TypedDict
 
 from gladiaio_sdk import (
   LiveV2BitDepth,
   LiveV2Encoding,
   LiveV2SampleRate,
-  # LiveV2Session,
+  LiveV2Session,
 )
 
 
@@ -83,23 +82,23 @@ def compute_chunk_size(audio_file: AudioFile, chunk_duration=0.05) -> int:
   return round(chunk_duration * bytes_per_second)
 
 
-# async def send_audio_file_async(
-#   audio_file: AudioFile, live_session: LiveV2Session, chunk_duration=0.05
-# ) -> None:
-#   chunk_size = compute_chunk_size(audio_file, chunk_duration)
-#   for i in range(0, len(audio_file["raw_audio_data"]), chunk_size):
-#     if live_session.status == "ending" or live_session.status == "ended":
-#       return
-#     live_session.send_audio(audio_file["raw_audio_data"][i : i + chunk_size])
-#     await async_sleep(chunk_duration)
+async def send_audio_file_async(
+  audio_file: AudioFile, live_session: LiveV2Session, chunk_duration=0.05
+) -> None:
+  chunk_size = compute_chunk_size(audio_file, chunk_duration)
+  for i in range(0, len(audio_file["raw_audio_data"]), chunk_size):
+    if live_session.status == "ending" or live_session.status == "ended":
+      return
+    live_session.send_audio(audio_file["raw_audio_data"][i : i + chunk_size])
+    await async_sleep(chunk_duration)
 
 
-# def send_audio_file(
-#   audio_file: AudioFile, live_session: LiveV2Session, chunk_duration=0.05
-# ) -> None:
-#   chunk_size = compute_chunk_size(audio_file, chunk_duration)
-#   for i in range(0, len(audio_file["raw_audio_data"]), chunk_size):
-#     if live_session.status == "ending" or live_session.status == "ended":
-#       return
-#     live_session.send_audio(audio_file["raw_audio_data"][i : i + chunk_size])
-#     sleep(chunk_duration)
+def send_audio_file(
+  audio_file: AudioFile, live_session: LiveV2Session, chunk_duration=0.05
+) -> None:
+  chunk_size = compute_chunk_size(audio_file, chunk_duration)
+  for i in range(0, len(audio_file["raw_audio_data"]), chunk_size):
+    if live_session.status == "ending" or live_session.status == "ended":
+      return
+    live_session.send_audio(audio_file["raw_audio_data"][i : i + chunk_size])
+    sleep(chunk_duration)
