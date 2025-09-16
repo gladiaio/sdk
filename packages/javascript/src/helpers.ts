@@ -21,10 +21,16 @@ export async function sleep(ms: number): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
+function isSharedArrayBuffer(
+  audio: ArrayBufferLike | Buffer<ArrayBufferLike> | ArrayLike<number>
+): audio is SharedArrayBuffer {
+  return typeof SharedArrayBuffer !== 'undefined' && audio instanceof SharedArrayBuffer
+}
+
 export function toUint8Array(
   audio: ArrayBufferLike | Buffer<ArrayBufferLike> | ArrayLike<number>
 ): Uint8Array {
-  if (audio instanceof SharedArrayBuffer) {
+  if (isSharedArrayBuffer(audio)) {
     return new Uint8Array(audio)
   }
   return new Uint8Array(audio)
