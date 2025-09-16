@@ -1,3 +1,9 @@
+## 0.4.1 (2025-09-16)
+
+### 🩹 Fixes
+
+- **sdk-js:** Fix SharedArrayBuffer test on browser
+
 ## 0.4.0 (2025-09-16)
 
 ### 🚀 Features
