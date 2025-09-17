@@ -3,15 +3,13 @@
     {
       "path": "..",
     },
+    {
+      "path": "../packages/python",
+    },
+    {
+      "path": "../e2e/python",
+    },
   ],
-	"mcp": {
-		"mcpServers": {
-			"nx-mcp": {
-				"command": "npx",
-				"args": ["-y", "nx-mcp@latest", "."]
-			}
-		}
-	},
   "settings": {
     "nxConsole.generateAiAgentRules": true,
     "typescript.tsdk": "node_modules/typescript/lib",

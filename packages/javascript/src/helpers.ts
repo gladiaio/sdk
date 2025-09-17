@@ -1,11 +1,22 @@
-import type { Headers } from './types.js'
+export function deepMergeObjects<T extends Record<string, unknown>>(
+  obj1: T,
+  obj2: Record<string, unknown> | undefined
+): T {
+  obj1 = { ...obj1 }
+  if (!obj2) return obj1
 
-export function mergeHeaders(...headers: (Headers | undefined)[]): Record<string, string> {
-  if (!headers.length) return {}
+  for (const [key, value] of Object.entries(obj2)) {
+    if (value == null) continue
 
-  return headers.reduce<Record<string, string>>((acc, cur) => {
-    return { ...acc, ...cur }
-  }, {})
+    if (obj1[key] && typeof obj1[key] === 'object' && typeof value === 'object') {
+      // @ts-expect-error T is generic, it cannot handle this case
+      obj1[key] = mergeObjects(obj1[key], value)
+    } else {
+      // @ts-expect-error T is generic, it cannot handle this case
+      obj1[key] = value
+    }
+  }
+  return obj1
 }
 
 export function getEnv<T extends string>(envVariableName: string, defaultValue: T): T

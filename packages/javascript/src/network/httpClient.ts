@@ -1,4 +1,4 @@
-import { mergeHeaders, sleep } from '../helpers.js'
+import { deepMergeObjects, sleep } from '../helpers.js'
 import type { Headers, HttpRetryOptions } from '../types.js'
 import { initFetch } from './iso-fetch.js'
 
@@ -10,7 +10,7 @@ export class HttpError extends Error {
   readonly url: string
   readonly id?: string
   readonly requestId?: string
-  readonly responseBody?: string | Record<string, any>
+  readonly responseBody?: string | Record<string, unknown>
   readonly responseHeaders?: Headers
 
   constructor(
@@ -30,7 +30,7 @@ export class HttpError extends Error {
       status: number
       id?: string | undefined
       requestId?: string | undefined
-      responseBody?: string | Record<string, any>
+      responseBody?: string | Record<string, unknown>
       headers?: Headers
     },
     options?: { cause?: unknown }
@@ -95,18 +95,18 @@ async function createHttpError(
 }
 
 export class TimeoutError extends Error {
-  readonly timeoutMs: number
-  constructor(message: string, timeoutMs: number, options?: { cause?: unknown }) {
+  readonly timeout: number
+  constructor(message: string, timeout: number, options?: { cause?: unknown }) {
     super(message, options)
     this.name = 'TimeoutError'
-    this.timeoutMs = timeoutMs
+    this.timeout = timeout
   }
 }
 
 type RequestOptions = Omit<RequestInit, 'method' | 'headers'> & { headers?: Headers }
 
 export type HttpClientOptions = {
-  baseUrl: string
+  baseUrl: string | URL
   headers?: Headers
   queryParams?: Record<string, string>
   retry: Required<HttpRetryOptions>
@@ -144,12 +144,12 @@ function isAbortError(error: unknown): boolean {
 }
 
 export class HttpClient {
-  private baseUrl: string
+  private baseUrl: string | URL
   private defaultHeaders?: Headers
   private defaultQueryParams?: Record<string, string>
 
   private retry: Required<HttpRetryOptions>
-  private timeoutMs: number
+  private timeout: number
   private fetchPromise: Promise<typeof fetch>
 
   constructor(options: HttpClientOptions) {
@@ -157,12 +157,12 @@ export class HttpClient {
     this.defaultHeaders = options.headers
     this.defaultQueryParams = options.queryParams
     this.retry = options.retry
-    this.timeoutMs = options.timeout
+    this.timeout = options.timeout
 
-    // Ensure limit, maxDelay and timeout are non-negative integers
+    // Ensure maxAttempts, maxDelay and timeout are non-negative integers
     this.retry.maxAttempts = Math.max(0, Math.floor(this.retry.maxAttempts))
     this.retry.maxDelay = Math.max(0, Math.floor(this.retry.maxDelay))
-    this.timeoutMs = Math.max(0, Math.floor(this.timeoutMs))
+    this.timeout = Math.max(0, Math.floor(this.timeout))
 
     this.fetchPromise = initFetch()
   }
@@ -238,20 +238,20 @@ export class HttpClient {
           userSignal.addEventListener('abort', onUserAbort, { once: true })
         }
 
-        if (this.timeoutMs > 0) {
+        if (this.timeout > 0) {
           timeoutId = setTimeout(() => {
             timedOut = true
             controller.abort(
-              new TimeoutError(`Request timed out after ${this.timeoutMs}ms`, this.timeoutMs)
+              new TimeoutError(`Request timed out after ${this.timeout}ms`, this.timeout)
             )
-          }, this.timeoutMs)
+          }, this.timeout)
         }
 
         const selectedFetch = await this.fetchPromise
         const response = await selectedFetch(url, {
           ...rest,
           method,
-          headers: mergeHeaders(this.defaultHeaders, headers),
+          headers: this.defaultHeaders ? deepMergeObjects(this.defaultHeaders, headers) : headers,
           signal: controller.signal,
         })
 
@@ -291,8 +291,8 @@ export class HttpClient {
           // No retry after timeout
           const elapsed = Date.now() - overallStart
           const timeoutError = new TimeoutError(
-            `Request timed out after ${this.timeoutMs}ms on attempt ${attempt} (duration=${elapsed}ms) for ${method} ${url}`,
-            this.timeoutMs,
+            `Request timed out after ${this.timeout}ms on attempt ${attempt} (duration=${elapsed}ms) for ${method} ${url}`,
+            this.timeout,
             { cause: err }
           )
           throw timeoutError

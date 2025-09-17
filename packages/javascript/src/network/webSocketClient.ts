@@ -5,9 +5,9 @@ import { newWebSocket, WS_STATES, type IsoWS } from './iso-ws.js'
 export { WS_STATES } from './iso-ws.js'
 
 export type WebSocketClientOptions = {
-  baseUrl: string
-  webSocketRetry: Required<WebSocketRetryOptions>
-  webSocketTimeout: number
+  baseUrl: string | URL
+  retry: Required<WebSocketRetryOptions>
+  timeout: number
 }
 
 function matchesCloseCode(code: number, list: (number | [number, number])[]): boolean {
@@ -34,22 +34,23 @@ function removeWsListeners(ws?: IsoWS | null): void {
 }
 
 export class WebSocketClient {
-  private readonly baseUrl: string
+  private readonly baseUrl: string | URL
   private readonly retry: Required<WebSocketRetryOptions>
   private readonly timeout: number
 
   constructor(options: WebSocketClientOptions) {
     this.baseUrl = options.baseUrl
-    this.retry = options.webSocketRetry
-    this.timeout = Math.max(0, Math.floor(options.webSocketTimeout))
+    this.retry = options.retry
+    this.timeout = options.timeout
 
-    // sanitize
+    // Ensure maxAttemptsPerConnection, maxDelay, maxConnections and timeout are non-negative integers
     this.retry.maxAttemptsPerConnection = Math.max(
       0,
       Math.floor(this.retry.maxAttemptsPerConnection)
     )
     this.retry.maxDelay = Math.max(0, Math.floor(this.retry.maxDelay))
     this.retry.maxConnections = Math.max(0, Math.floor(this.retry.maxConnections))
+    this.timeout = Math.max(0, Math.floor(this.timeout))
   }
 
   createSession(url: string): WebSocketSession {

@@ -32,21 +32,21 @@ interface EventHandlers {
 }
 
 function partialOptions(
-  options?: Partial<Omit<WebSocketClientOptions, 'webSocketRetry'>> & {
-    webSocketRetry?: Partial<WebSocketRetryOptions>
+  options?: Partial<Omit<WebSocketClientOptions, 'retry'>> & {
+    retry?: Partial<WebSocketRetryOptions>
   }
 ): WebSocketClientOptions {
   return {
     baseUrl: 'ws://localhost:8080',
-    webSocketTimeout: 1000,
+    timeout: 1000,
     ...options,
-    webSocketRetry: {
+    retry: {
       maxAttemptsPerConnection: 0,
       delay: () => 0,
       maxDelay: 0,
       maxConnections: 0,
       closeCodes: [],
-      ...options?.webSocketRetry,
+      ...options?.retry,
     },
   }
 }
@@ -172,7 +172,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: { maxAttemptsPerConnection: 2, delay: () => 10, maxDelay: 100 },
+        retry: { maxAttemptsPerConnection: 2, delay: () => 10, maxDelay: 100 },
       })
     )
     session = client.createSession('ws://localhost:8080')
@@ -196,7 +196,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
           maxDelay: 100,
@@ -232,7 +232,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
           maxDelay: 100,
@@ -257,7 +257,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 1,
           delay: () => 10,
           maxDelay: 100,
@@ -288,8 +288,8 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: { maxAttemptsPerConnection: 1, delay: () => 0, maxDelay: 0 },
-        webSocketTimeout: 50,
+        retry: { maxAttemptsPerConnection: 1, delay: () => 0, maxDelay: 0 },
+        timeout: 50,
       })
     )
     session = client.createSession('ws://localhost:8080')
@@ -307,8 +307,8 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should send data when open', async () => {
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: { maxAttemptsPerConnection: 1, delay: () => 0, maxDelay: 0 },
-        webSocketTimeout: 1000,
+        retry: { maxAttemptsPerConnection: 1, delay: () => 0, maxDelay: 0 },
+        timeout: 1000,
       })
     )
     session = client.createSession('ws://localhost:8080')
@@ -351,7 +351,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxConnections: 1,
         },
       })
@@ -374,7 +374,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
           maxDelay: 100,
@@ -423,7 +423,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 1,
           delay: () => 10,
           maxDelay: 100,
@@ -454,7 +454,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
           maxDelay: 100,
@@ -493,7 +493,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 0,
           delay: () => 10,
           maxDelay: 100,
@@ -523,7 +523,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 5,
           delay: () => 0,
           maxDelay: 0,
@@ -549,7 +549,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           closeCodes: [1002],
           maxConnections: 2,
         },
@@ -581,7 +581,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 5,
           maxConnections: 0,
         },
@@ -610,7 +610,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        webSocketRetry: { maxAttemptsPerConnection: 1, closeCodes: [] },
+        retry: { maxAttemptsPerConnection: 1, closeCodes: [] },
       })
     )
     session = client.createSession('ws://localhost:8080')
@@ -693,7 +693,7 @@ describe('WebSocketClient + WebSocketSession', () => {
     const connectionErrorSpy = vi.fn()
     const connectionClient = new WebSocketClient({
       baseUrl: 'http://localhost:8080',
-      webSocketRetry: {
+      retry: {
         maxAttemptsPerConnection: 1,
         delay: () => 0,
         maxDelay: 0,
@@ -703,7 +703,7 @@ describe('WebSocketClient + WebSocketSession', () => {
         ],
         maxConnections: 0,
       },
-      webSocketTimeout: 1000,
+      timeout: 1000,
     })
     const connectionSession = connectionClient.createSession('ws://localhost:8080')
     connectionSession.onerror = connectionErrorSpy
@@ -730,7 +730,7 @@ describe('WebSocketClient + WebSocketSession', () => {
     const limitCloseSpy = vi.fn()
     const limitClient = new WebSocketClient(
       partialOptions({
-        webSocketRetry: {
+        retry: {
           maxAttemptsPerConnection: 5,
           delay: () => 0,
           maxDelay: 0,

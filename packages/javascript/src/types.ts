@@ -1,4 +1,4 @@
-export type Headers = [string, string][] | Record<string, string>
+export type Headers = Record<string, string>
 
 type BaseRetryOptions = {
   /**
@@ -97,7 +97,7 @@ export type GladiaClientOptions = {
   /**
    * Custom headers to add to the HTTP requests.
    */
-  httpHeaders?: Headers
+  httpHeaders?: Headers | [string, string][]
 
   /**
    * Control the retry behavior for HTTP requests.
@@ -125,7 +125,7 @@ export type GladiaClientOptions = {
    *
    * Default is {limit: 5, closeCodes: [[1002, 4399], [4500, 9999]], maxDelay: 2000, delay: (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000}
    */
-  webSocketRetry?: WebSocketRetryOptions
+  wsRetry?: WebSocketRetryOptions
 
   /**
    * Timeout for WebSocket connections and re-connections after a close event in milliseconds.
@@ -134,5 +134,14 @@ export type GladiaClientOptions = {
    *
    * Default is 10000.
    */
-  webSocketTimeout?: number
+  wsTimeout?: number
 }
+
+export type InternalGladiaClientOptions = Pick<GladiaClientOptions, 'apiKey' | 'region'> &
+  Required<
+    Omit<GladiaClientOptions, 'apiKey' | 'region' | 'httpHeaders' | 'httpRetry' | 'wsRetry'>
+  > & {
+    httpHeaders: Headers
+    httpRetry: Required<HttpRetryOptions>
+    wsRetry: Required<WebSocketRetryOptions>
+  }

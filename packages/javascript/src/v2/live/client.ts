@@ -1,8 +1,8 @@
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient } from '../../network/webSocketClient.js'
+import type { InternalGladiaClientOptions } from '../../types.js'
 import type { LiveV2InitRequest } from './generated-types.js'
 import { LiveV2Session } from './session.js'
-import type { LiveV2ClientOptions } from './types.js'
 
 /**
  * Client used to interact with Gladia Live Speech-To-Text API.
@@ -11,19 +11,23 @@ export class LiveV2Client {
   private httpClient: HttpClient
   private webSocketClient: WebSocketClient
 
-  constructor(options: LiveV2ClientOptions) {
+  constructor(options: InternalGladiaClientOptions) {
+    const httpBaseUrl = new URL(options.apiUrl)
+    httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
     this.httpClient = new HttpClient({
-      baseUrl: options.apiUrl,
+      baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
       ...(options.region ? { queryParams: { region: options.region } } : {}),
       retry: options.httpRetry,
       timeout: options.httpTimeout,
     })
 
+    const wsBaseUrl = new URL(options.apiUrl)
+    wsBaseUrl.protocol = wsBaseUrl.protocol.replace(/^http/, 'ws')
     this.webSocketClient = new WebSocketClient({
-      baseUrl: options.apiUrl,
-      webSocketRetry: options.webSocketRetry,
-      webSocketTimeout: options.webSocketTimeout,
+      baseUrl: wsBaseUrl,
+      retry: options.wsRetry,
+      timeout: options.wsTimeout,
     })
   }
 
