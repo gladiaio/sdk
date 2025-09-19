@@ -6,7 +6,7 @@ import {
   type WebSocketClientOptions,
   WebSocketSession,
   WS_STATES,
-} from './webSocketClient.js'
+} from './wsClient.js'
 
 // Mock the iso-ws module
 vi.mock('./iso-ws.js', async (importOriginal) => {

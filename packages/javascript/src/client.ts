@@ -1,5 +1,6 @@
 import { deepMergeObjects, getEnv } from './helpers.js'
-import type { GladiaClientOptions, InternalGladiaClientOptions } from './types.js'
+import type { InternalGladiaClientOptions } from './internal_types.js'
+import type { GladiaClientOptions } from './types.js'
 import { LiveV2Client } from './v2/live/index.js'
 
 function assertValidOptions(options: InternalGladiaClientOptions) {
@@ -21,7 +22,12 @@ function assertValidOptions(options: InternalGladiaClientOptions) {
   }
 }
 
-const defaultDelay = (attemptCount: number) => 0.3 * 2 ** (attemptCount - 1) * 1000
+const defaultHttpDelay = (attemptCount: number) =>
+  Math.min(0.3 * 2 ** (attemptCount - 1) * 1_000, 10_000)
+
+const defaultWsDelay = (attemptCount: number) =>
+  Math.min(0.3 * 2 ** (attemptCount - 1) * 1_000, 2_000)
+
 const defaultOptions: InternalGladiaClientOptions = {
   apiKey: getEnv('GLADIA_API_KEY'),
   apiUrl: getEnv('GLADIA_API_URL', 'https://api.gladia.io'),
@@ -32,21 +38,19 @@ const defaultOptions: InternalGladiaClientOptions = {
   httpRetry: {
     maxAttempts: 2,
     statusCodes: [408, 413, 429, [500, 599]],
-    maxDelay: 10000,
-    delay: defaultDelay,
+    delay: defaultHttpDelay,
   },
-  httpTimeout: 10000,
+  httpTimeout: 10_000,
   wsRetry: {
     maxAttemptsPerConnection: 5,
     closeCodes: [
       [1002, 4399],
       [4500, 9999],
     ],
-    maxDelay: 2000,
-    delay: defaultDelay,
+    delay: defaultWsDelay,
     maxConnections: 0,
   },
-  wsTimeout: 10000,
+  wsTimeout: 10_000,
 }
 
 /**

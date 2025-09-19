@@ -1,6 +1,7 @@
 import { deepMergeObjects, sleep } from '../helpers.js'
-import type { Headers, HttpRetryOptions } from '../types.js'
+import type { HttpRetryOptions } from '../types.js'
 import { initFetch } from './iso-fetch.js'
+import type { Headers } from './types.js'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -161,7 +162,6 @@ export class HttpClient {
 
     // Ensure maxAttempts, maxDelay and timeout are non-negative integers
     this.retry.maxAttempts = Math.max(0, Math.floor(this.retry.maxAttempts))
-    this.retry.maxDelay = Math.max(0, Math.floor(this.retry.maxDelay))
     this.timeout = Math.max(0, Math.floor(this.timeout))
 
     this.fetchPromise = initFetch()
@@ -269,7 +269,7 @@ export class HttpClient {
           const shouldRetry = limit === 0 ? true : attempt < limit
           if (shouldRetry && matchesStatus(response.status, this.retry.statusCodes)) {
             attemptErrors.push(httpErr)
-            const delayMs = Math.min(this.retry.delay(attempt), this.retry.maxDelay)
+            const delayMs = this.retry.delay(attempt)
             await sleep(delayMs)
             continue
           }
@@ -319,8 +319,7 @@ export class HttpClient {
           const shouldRetry = limit === 0 ? true : attempt < limit
           if (retryable && shouldRetry) {
             attemptErrors.push(asError)
-            const delayMs = Math.min(this.retry.delay(attempt), this.retry.maxDelay)
-            await sleep(delayMs)
+            await sleep(this.retry.delay(attempt))
             continue
           }
 
@@ -346,8 +345,7 @@ export class HttpClient {
         const shouldRetry = limit === 0 ? true : attempt < limit
         if (shouldRetry) {
           attemptErrors.push(asError)
-          const delayMs = Math.min(this.retry.delay(attempt), this.retry.maxDelay)
-          await sleep(delayMs)
+          await sleep(this.retry.delay(attempt))
           continue
         }
 

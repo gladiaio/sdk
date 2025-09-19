@@ -1,6 +1,6 @@
+import { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
-import { WebSocketClient } from '../../network/webSocketClient.js'
-import type { InternalGladiaClientOptions } from '../../types.js'
+import { WebSocketClient } from '../../network/wsClient.js'
 import type { LiveV2InitRequest } from './generated-types.js'
 import { LiveV2Session } from './session.js'
 

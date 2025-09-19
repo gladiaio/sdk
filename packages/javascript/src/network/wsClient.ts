@@ -48,7 +48,6 @@ export class WebSocketClient {
       0,
       Math.floor(this.retry.maxAttemptsPerConnection)
     )
-    this.retry.maxDelay = Math.max(0, Math.floor(this.retry.maxDelay))
     this.retry.maxConnections = Math.max(0, Math.floor(this.retry.maxConnections))
     this.timeout = Math.max(0, Math.floor(this.timeout))
   }
@@ -184,8 +183,7 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
         return
       }
 
-      const delayMs = Math.min(this.retry.delay(this.connectionAttempt), this.retry.maxDelay)
-      await sleep(delayMs)
+      await sleep(this.retry.delay(this.connectionAttempt))
       if (this.readyState === WS_STATES.CONNECTING) {
         this.connect(true)
       }

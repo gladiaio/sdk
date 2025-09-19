@@ -1,15 +1,8 @@
-export type Headers = Record<string, string>
+import type { Headers } from './network/types.js'
 
-type BaseRetryOptions = {
-  /**
-   * The function used to determine the delay between retries.
-   * It takes one parameter, attemptCount, starting at 1.
-   *
-   * Default is (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000
-   */
-  delay?: (attemptCount: number) => number
-}
-
+/**
+ * Options for the HTTP retry policy.
+ */
 export type HttpRetryOptions = {
   /**
    * Maximum number of attempts for an HTTP request.
@@ -27,13 +20,17 @@ export type HttpRetryOptions = {
   statusCodes?: (number | [start: number, end: number])[]
 
   /**
-   * The maximum delay per retry in milliseconds.
+   * The function used to determine the delay between retries.
+   * It takes one parameter, attemptCount, starting at 1.
    *
-   * Default is 10000.
+   * Default is (attemptCount) => Math.min(0, 0.3 * (2 ** (attemptCount - 1)) * 1_000, 10_000)
    */
-  maxDelay?: number
-} & BaseRetryOptions
+  delay?: (attemptCount: number) => number
+}
 
+/**
+ * Options for the WebSocket retry policy.
+ */
 export type WebSocketRetryOptions = {
   /**
    * Maximum number of attempts for a WS connection.
@@ -45,27 +42,31 @@ export type WebSocketRetryOptions = {
   maxAttemptsPerConnection?: number
 
   /**
-   * The maximum delay per retry in milliseconds.
+   * The function used to determine the delay between retries.
+   * It takes one parameter, attemptCount, starting at 1.
    *
-   * Default is 2000.
+   * Default is (attemptCount) => Math.min(0, 0.3 * (2 ** (attemptCount - 1)) * 1_000, 2_000)
    */
-  maxDelay?: number
-} & BaseRetryOptions & {
-    /**
-     * Maximum number of WS connections.
-     * 0 for unlimited. 1 for no reconnection.
-     *
-     * Default is 0.
-     */
-    maxConnections?: number
+  delay?: (attemptCount: number) => number
 
-    /**
-     * List of close code eligible for reconnection. You can specify a range by using a tuple.
-     * Default is [[1002, 4399], [4500, 9999]].
-     */
-    closeCodes?: (number | [start: number, end: number])[]
-  }
+  /**
+   * Maximum number of WS connections.
+   * 0 for unlimited. 1 for no reconnection.
+   *
+   * Default is 0.
+   */
+  maxConnections?: number
 
+  /**
+   * List of close code eligible for reconnection. You can specify a range by using a tuple.
+   * Default is [[1002, 4399], [4500, 9999]].
+   */
+  closeCodes?: (number | [start: number, end: number])[]
+}
+
+/**
+ * Options for the Gladia Client.
+ */
 export type GladiaClientOptions = {
   /**
    * Your Gladia API key.
@@ -103,8 +104,6 @@ export type GladiaClientOptions = {
    * Control the retry behavior for HTTP requests.
    *
    * Retries are not triggered following a timeout.
-   *
-   * Default is {limit: 2, statusCodes: [408, 413, 429, [500, 599]], maxDelay: 10000, delay: (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000}
    */
   httpRetry?: HttpRetryOptions
 
@@ -113,7 +112,7 @@ export type GladiaClientOptions = {
    *
    * Retries are not triggered following a timeout.
    *
-   * Default is 10000.
+   * Default is 10_000.
    */
   httpTimeout?: number
 
@@ -122,8 +121,6 @@ export type GladiaClientOptions = {
    * Attempt count resets after a successful WebSocket connection.
    *
    * Retries are not triggered following a timeout.
-   *
-   * Default is {limit: 5, closeCodes: [[1002, 4399], [4500, 9999]], maxDelay: 2000, delay: (attemptCount) => 0.3 * (2 ** (attemptCount - 1)) * 1000}
    */
   wsRetry?: WebSocketRetryOptions
 
@@ -132,16 +129,7 @@ export type GladiaClientOptions = {
    *
    * Retries are not triggered following a timeout.
    *
-   * Default is 10000.
+   * Default is 10_000.
    */
   wsTimeout?: number
 }
-
-export type InternalGladiaClientOptions = Pick<GladiaClientOptions, 'apiKey' | 'region'> &
-  Required<
-    Omit<GladiaClientOptions, 'apiKey' | 'region' | 'httpHeaders' | 'httpRetry' | 'wsRetry'>
-  > & {
-    httpHeaders: Headers
-    httpRetry: Required<HttpRetryOptions>
-    wsRetry: Required<WebSocketRetryOptions>
-  }

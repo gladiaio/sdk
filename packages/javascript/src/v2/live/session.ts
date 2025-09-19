@@ -1,7 +1,7 @@
 import { EventEmitter } from 'eventemitter3'
 import { concatArrayBuffer, toUint8Array } from '../../helpers.js'
 import { HttpClient } from '../../network/httpClient.js'
-import { WebSocketClient, WebSocketSession, WS_STATES } from '../../network/webSocketClient.js'
+import { WebSocketClient, WebSocketSession, WS_STATES } from '../../network/wsClient.js'
 import type {
   LiveV2InitRequest,
   LiveV2InitResponse,
