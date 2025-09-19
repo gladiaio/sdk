@@ -1,3 +1,10 @@
+## 0.4.2 (2025-09-19)
+
+### 🩹 Fixes
+
+- **sdk-js:** Include maxDelay into delay directly
+- **sdk-js:** Improve client options and fix baseUrl for ws
+
 ## 0.4.1 (2025-09-16)
 
 ### 🩹 Fixes
