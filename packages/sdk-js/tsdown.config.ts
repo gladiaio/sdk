@@ -15,6 +15,7 @@ export default defineConfig([
   {
     ...baseConfig,
     format: ['esm', 'cjs'],
+    unbundle: true,
   },
   {
     ...baseConfig,
