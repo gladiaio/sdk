@@ -2,7 +2,7 @@
   "name": "e2e-python",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "sourceRoot": "e2e/python/tests",
+  "sourceRoot": "{projectRoot}/tests",
   "targets": {
     "install": {
       "executor": "@nxlv/python:install",

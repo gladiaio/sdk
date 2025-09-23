@@ -1,7 +1,7 @@
 {
-  "name": "e2e-node-cjs",
+  "name": "e2e-node-esm",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "e2e/node-cjs/test",
+  "sourceRoot": "{projectRoot}/test",
   "projectType": "library",
   "targets": {
     "test": {
@@ -18,7 +18,9 @@
     "format:check": {},
     "format:write": {},
     "lint": {},
-    "lint:fix": {}
+    "lint:fix": {},
+
+    "typecheck": {}
   },
   "tags": ["type:lib", "scope:e2e"]
 }

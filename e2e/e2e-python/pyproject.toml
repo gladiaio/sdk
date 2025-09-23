@@ -29,4 +29,4 @@ indent-width = 2
   unfixable = [ ]
 
 [tool.uv.sources]
-gladiaio-sdk = { path = "../../packages/python", editable = true }
+gladiaio-sdk = { path = "../../packages/sdk-python", editable = true }

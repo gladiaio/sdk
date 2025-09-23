@@ -2,7 +2,7 @@
   "name": "sdk-python",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "sourceRoot": "packages/python/src/gladiaio_sdk",
+  "sourceRoot": "{projectRoot}/src/gladiaio_sdk",
   "targets": {
     "install": {
       "executor": "@nxlv/python:install",

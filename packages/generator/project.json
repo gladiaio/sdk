@@ -1,14 +1,14 @@
 {
   "name": "generator",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/generator/src",
+  "sourceRoot": "{projectRoot}/src",
   "projectType": "application",
   "targets": {
     "generate": {
       "executor": "nx:run-commands",
       "options": {
         "command": "npm run generate",
-        "cwd": "packages/generator"
+        "cwd": "{projectRoot}"
       }
     },
     "add": {},

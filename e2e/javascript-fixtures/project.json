@@ -1,7 +1,7 @@
 {
   "name": "e2e-javascript-fixtures",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "e2e/javascript-fixtures/src",
+  "sourceRoot": "{projectRoot}/src",
   "projectType": "library",
   "targets": {
     "add": {},

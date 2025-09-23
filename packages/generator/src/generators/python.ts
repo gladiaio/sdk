@@ -30,7 +30,7 @@ export class PythonGenerator extends BaseGenerator {
   }
 
   override get sdkName(): string {
-    return 'python'
+    return 'sdk-python'
   }
 
   override getFileExtension(): string {

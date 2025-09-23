@@ -5,7 +5,7 @@ import { BaseGenerator } from './base.ts'
 
 export class TypeScriptGenerator extends BaseGenerator {
   override get sdkName(): string {
-    return 'javascript'
+    return 'sdk-js'
   }
 
   override getFileExtension(): string {

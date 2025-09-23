@@ -1,6 +1,6 @@
 import { Command } from 'commander'
-import { Generator } from './generator.ts'
 import * as process from 'process'
+import { Generator } from './generator.ts'
 
 interface CliOptions {
   url: string
@@ -12,12 +12,7 @@ program
   .name('gladia-generator')
   .description('Generate SDK code from OpenAPI schema')
   .version('1.0.0')
-  .option(
-    '-u, --url <url>',
-    'OpenAPI schema URL',
-    // 'https://api.gladia.io/openapi.json'
-    'http://localhost:3000/openapi.json'
-  )
+  .option('-u, --url <url>', 'OpenAPI schema URL', 'https://api.gladia.io/openapi.json')
   .action(async (options: CliOptions) => {
     try {
       const generator = new Generator({

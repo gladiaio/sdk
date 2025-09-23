@@ -28,17 +28,7 @@
         "vitest": "^3.2.4",
       },
     },
-    "e2e/javascript-fixtures": {
-      "name": "@gladiaio/sdk-e2e-javascript-fixtures",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@gladiaio/sdk": "workspace:*",
-        "@tsconfig/node20": "^20.1.6",
-        "@types/node": "^20.19.13",
-        "tsdown": "^0.14.2",
-      },
-    },
-    "e2e/node-cjs": {
+    "e2e/e2e-node-cjs": {
       "name": "@gladiaio/sdk-e2e-node-cjs",
       "version": "0.0.0",
       "dependencies": {
@@ -48,7 +38,7 @@
         "ws": "^8.18.3",
       },
     },
-    "e2e/node-esm": {
+    "e2e/e2e-node-esm": {
       "name": "@gladiaio/sdk-e2e-node-esm",
       "version": "0.0.0",
       "dependencies": {
@@ -58,6 +48,16 @@
       "devDependencies": {
         "@tsconfig/node22": "^22.0.2",
         "@types/node": "^22.18.1",
+      },
+    },
+    "e2e/javascript-fixtures": {
+      "name": "@gladiaio/sdk-e2e-javascript-fixtures",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@gladiaio/sdk": "workspace:*",
+        "@tsconfig/node20": "^20.1.6",
+        "@types/node": "^20.19.13",
+        "tsdown": "^0.14.2",
       },
     },
     "packages/generator": {
@@ -77,9 +77,9 @@
         "prettier": "^3.6.2",
       },
     },
-    "packages/javascript": {
+    "packages/sdk-js": {
       "name": "@gladiaio/sdk",
-      "version": "0.4.0",
+      "version": "0.4.2",
       "devDependencies": {
         "@tsconfig/node20": "^20.1.6",
         "@types/node": "^20.19.13",
@@ -374,13 +374,13 @@
 
     "@gladiaio/generator": ["@gladiaio/generator@workspace:packages/generator"],
 
-    "@gladiaio/sdk": ["@gladiaio/sdk@workspace:packages/javascript"],
+    "@gladiaio/sdk": ["@gladiaio/sdk@workspace:packages/sdk-js"],
 
     "@gladiaio/sdk-e2e-javascript-fixtures": ["@gladiaio/sdk-e2e-javascript-fixtures@workspace:e2e/javascript-fixtures"],
 
-    "@gladiaio/sdk-e2e-node-cjs": ["@gladiaio/sdk-e2e-node-cjs@workspace:e2e/node-cjs"],
+    "@gladiaio/sdk-e2e-node-cjs": ["@gladiaio/sdk-e2e-node-cjs@workspace:e2e/e2e-node-cjs"],
 
-    "@gladiaio/sdk-e2e-node-esm": ["@gladiaio/sdk-e2e-node-esm@workspace:e2e/node-esm"],
+    "@gladiaio/sdk-e2e-node-esm": ["@gladiaio/sdk-e2e-node-esm@workspace:e2e/e2e-node-esm"],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 
