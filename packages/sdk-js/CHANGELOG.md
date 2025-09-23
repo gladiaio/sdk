@@ -1,3 +1,9 @@
+## 0.4.3 (2025-09-23)
+
+### 🩹 Fixes
+
+- **sdk-js:** Go to source wasn't working
+
 ## 0.4.2 (2025-09-19)
 
 ### 🩹 Fixes
