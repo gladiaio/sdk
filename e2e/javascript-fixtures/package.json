@@ -11,7 +11,7 @@
   "devDependencies": {
     "@gladiaio/sdk": "workspace:*",
     "@tsconfig/node20": "^20.1.6",
-    "@types/node": "^20.19.13",
+    "@types/node": "^20.19.17",
     "tsdown": "^0.14.2"
   },
   "engines": {
