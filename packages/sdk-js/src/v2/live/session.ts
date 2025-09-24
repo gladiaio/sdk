@@ -298,80 +298,74 @@ export class LiveV2Session {
 
   // #### Listeners ####
 
-  on(type: 'started', cb: (...args: EventMap['started']) => void): this
-  on(type: 'connecting', cb: (...args: EventMap['connecting']) => void): this
-  on(type: 'connected', cb: (...args: EventMap['connected']) => void): this
-  on(type: 'ending', cb: (...args: EventMap['ending']) => void): this
-  on(type: 'ended', cb: (...args: EventMap['ended']) => void): this
-  on(type: 'message', cb: (...args: EventMap['message']) => void): this
-  on(type: 'error', cb: (...args: EventMap['error']) => void): this
+  on(type: 'started', cb: (...args: EventMap['started']) => void): void
+  on(type: 'connecting', cb: (...args: EventMap['connecting']) => void): void
+  on(type: 'connected', cb: (...args: EventMap['connected']) => void): void
+  on(type: 'ending', cb: (...args: EventMap['ending']) => void): void
+  on(type: 'ended', cb: (...args: EventMap['ended']) => void): void
+  on(type: 'message', cb: (...args: EventMap['message']) => void): void
+  on(type: 'error', cb: (...args: EventMap['error']) => void): void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
-  on(type: keyof EventMap, cb: (event: any) => void): this {
+  on(type: keyof EventMap, cb: (event: any) => void): void {
     this.eventEmitter?.on(type, cb)
-    return this
   }
 
-  once(type: 'started', cb: (...args: EventMap['started']) => void): this
-  once(type: 'connecting', cb: (...args: EventMap['connecting']) => void): this
-  once(type: 'connected', cb: (...args: EventMap['connected']) => void): this
-  once(type: 'ending', cb: (...args: EventMap['ending']) => void): this
-  once(type: 'ended', cb: (...args: EventMap['ended']) => void): this
-  once(type: 'message', cb: (...args: EventMap['message']) => void): this
-  once(type: 'error', cb: (...args: EventMap['error']) => void): this
+  once(type: 'started', cb: (...args: EventMap['started']) => void): void
+  once(type: 'connecting', cb: (...args: EventMap['connecting']) => void): void
+  once(type: 'connected', cb: (...args: EventMap['connected']) => void): void
+  once(type: 'ending', cb: (...args: EventMap['ending']) => void): void
+  once(type: 'ended', cb: (...args: EventMap['ended']) => void): void
+  once(type: 'message', cb: (...args: EventMap['message']) => void): void
+  once(type: 'error', cb: (...args: EventMap['error']) => void): void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
-  once(type: keyof EventMap, cb: (event: any) => void): this {
+  once(type: keyof EventMap, cb: (event: any) => void): void {
     this.eventEmitter?.once(type, cb)
-    return this
   }
 
-  off(type: 'started', cb?: (...args: EventMap['started']) => void): this
-  off(type: 'connecting', cb?: (...args: EventMap['connecting']) => void): this
-  off(type: 'connected', cb?: (...args: EventMap['connected']) => void): this
-  off(type: 'ending', cb?: (...args: EventMap['ending']) => void): this
-  off(type: 'ended', cb?: (...args: EventMap['ended']) => void): this
-  off(type: 'message', cb?: (...args: EventMap['message']) => void): this
-  off(type: 'error', cb?: (...args: EventMap['error']) => void): this
+  off(type: 'started', cb?: (...args: EventMap['started']) => void): void
+  off(type: 'connecting', cb?: (...args: EventMap['connecting']) => void): void
+  off(type: 'connected', cb?: (...args: EventMap['connected']) => void): void
+  off(type: 'ending', cb?: (...args: EventMap['ending']) => void): void
+  off(type: 'ended', cb?: (...args: EventMap['ended']) => void): void
+  off(type: 'message', cb?: (...args: EventMap['message']) => void): void
+  off(type: 'error', cb?: (...args: EventMap['error']) => void): void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
-  off(type: keyof EventMap, cb?: (event: any) => void): this {
+  off(type: keyof EventMap, cb?: (event: any) => void): void {
     this.eventEmitter?.off(type, cb)
-    return this
   }
 
-  addListener(type: 'started', cb: (...args: EventMap['started']) => void): this
-  addListener(type: 'connecting', cb: (...args: EventMap['connecting']) => void): this
-  addListener(type: 'connected', cb: (...args: EventMap['connected']) => void): this
-  addListener(type: 'ending', cb: (...args: EventMap['ending']) => void): this
-  addListener(type: 'ended', cb: (...args: EventMap['ended']) => void): this
-  addListener(type: 'message', cb: (...args: EventMap['message']) => void): this
-  addListener(type: 'error', cb: (...args: EventMap['error']) => void): this
+  addListener(type: 'started', cb: (...args: EventMap['started']) => void): void
+  addListener(type: 'connecting', cb: (...args: EventMap['connecting']) => void): void
+  addListener(type: 'connected', cb: (...args: EventMap['connected']) => void): void
+  addListener(type: 'ending', cb: (...args: EventMap['ending']) => void): void
+  addListener(type: 'ended', cb: (...args: EventMap['ended']) => void): void
+  addListener(type: 'message', cb: (...args: EventMap['message']) => void): void
+  addListener(type: 'error', cb: (...args: EventMap['error']) => void): void
   addListener(
     type: keyof EventMap,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
     cb: (event: any) => void
-  ): this {
+  ): void {
     this.eventEmitter?.addListener(type, cb)
-    return this
   }
 
-  removeListener(type: 'started', cb?: (...args: EventMap['started']) => void): this
-  removeListener(type: 'connecting', cb?: (...args: EventMap['connecting']) => void): this
-  removeListener(type: 'connected', cb?: (...args: EventMap['connected']) => void): this
-  removeListener(type: 'ending', cb?: (...args: EventMap['ending']) => void): this
-  removeListener(type: 'ended', cb?: (...args: EventMap['ended']) => void): this
-  removeListener(type: 'message', cb?: (...args: EventMap['message']) => void): this
-  removeListener(type: 'error', cb?: (...args: EventMap['error']) => void): this
+  removeListener(type: 'started', cb?: (...args: EventMap['started']) => void): void
+  removeListener(type: 'connecting', cb?: (...args: EventMap['connecting']) => void): void
+  removeListener(type: 'connected', cb?: (...args: EventMap['connected']) => void): void
+  removeListener(type: 'ending', cb?: (...args: EventMap['ending']) => void): void
+  removeListener(type: 'ended', cb?: (...args: EventMap['ended']) => void): void
+  removeListener(type: 'message', cb?: (...args: EventMap['message']) => void): void
+  removeListener(type: 'error', cb?: (...args: EventMap['error']) => void): void
   removeListener(
     type: keyof EventMap,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- overload, cannot avoid any
     cb?: (event: any) => void
-  ): this {
+  ): void {
     this.eventEmitter?.removeListener(type, cb)
-    return this
   }
 
-  removeAllListeners(): this {
+  removeAllListeners(): void {
     this.eventEmitter?.removeAllListeners()
-    return this
   }
 
   private emit(type: 'started', ...args: EventMap['started']): void
