@@ -4,10 +4,10 @@
       "path": "..",
     },
     {
-      "path": "../packages/python",
+      "path": "../packages/sdk-python",
     },
     {
-      "path": "../e2e/python",
+      "path": "../e2e/e2e-python",
     },
   ],
   "settings": {

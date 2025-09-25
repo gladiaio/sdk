@@ -1,7 +1,19 @@
 import { deepMergeObjects, getEnv } from './helpers.js'
 import type { InternalGladiaClientOptions } from './internal_types.js'
+import type { Headers } from './network/types.js'
 import type { GladiaClientOptions } from './types.js'
 import { LiveV2Client } from './v2/live/index.js'
+import { SDK_VERSION } from './version.js'
+
+function normalizeGladiaHeaders(headers: Headers | [string, string][]): Headers {
+  const entries = Array.isArray(headers) ? headers : Object.entries(headers)
+  return Object.fromEntries(
+    entries.map(([key, value]) => {
+      const lcKey = key.toLowerCase()
+      return [lcKey.startsWith('x-gladia-') ? lcKey : key, value]
+    })
+  )
+}
 
 function assertValidOptions(options: InternalGladiaClientOptions) {
   let url: URL
@@ -28,12 +40,14 @@ const defaultHttpDelay = (attemptCount: number) =>
 const defaultWsDelay = (attemptCount: number) =>
   Math.min(0.3 * 2 ** (attemptCount - 1) * 1_000, 2_000)
 
+const gladiaVersion = `SdkJavascript/${SDK_VERSION}`
+
 const defaultOptions: InternalGladiaClientOptions = {
   apiKey: getEnv('GLADIA_API_KEY'),
   apiUrl: getEnv('GLADIA_API_URL', 'https://api.gladia.io'),
   region: getEnv<Required<GladiaClientOptions>['region']>('GLADIA_REGION'),
   httpHeaders: {
-    'X-GLADIA-ORIGIN': 'sdk/js',
+    'x-gladia-version': gladiaVersion,
   },
   httpRetry: {
     maxAttempts: 2,
@@ -60,15 +74,26 @@ export class GladiaClient {
   private options: InternalGladiaClientOptions
 
   constructor(options?: GladiaClientOptions) {
+    if (options?.httpHeaders) {
+      options.httpHeaders = normalizeGladiaHeaders(options.httpHeaders)
+    }
     this.options = deepMergeObjects(defaultOptions, options)
   }
 
   liveV2(options?: GladiaClientOptions): LiveV2Client {
+    if (options?.httpHeaders) {
+      options.httpHeaders = normalizeGladiaHeaders(options.httpHeaders)
+    }
+
     const mergedOptions = deepMergeObjects(this.options, options)
     if (mergedOptions.apiKey) {
       mergedOptions.httpHeaders = deepMergeObjects(mergedOptions.httpHeaders, {
-        'X-GLADIA-KEY': mergedOptions.apiKey,
+        'x-gladia-key': mergedOptions.apiKey,
       })
+    }
+    if (mergedOptions.httpHeaders['x-gladia-version'] !== gladiaVersion) {
+      mergedOptions.httpHeaders['x-gladia-version'] =
+        `${mergedOptions.httpHeaders['x-gladia-version'].trim()} ${gladiaVersion}`.trim()
     }
     assertValidOptions(mergedOptions)
     return new LiveV2Client(mergedOptions)

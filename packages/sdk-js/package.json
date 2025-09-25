@@ -24,6 +24,7 @@
   "unpkg": "dist/index.iife.js",
   "jsdelivr": "dist/index.iife.js",
   "scripts": {
+    "prebuild": "node ./scripts/write-version.mjs",
     "build": "tsdown",
     "build:watch": "tsdown --watch"
   },

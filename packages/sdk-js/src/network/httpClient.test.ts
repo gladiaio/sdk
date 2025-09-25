@@ -41,7 +41,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 2, statusCodes: [[500, 599]], delay: () => 0, maxDelay: 0 },
+      retry: { maxAttempts: 2, statusCodes: [[500, 599]], delay: () => 0 },
       timeout: 2_000,
     })
 
@@ -64,7 +64,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 2, statusCodes: [[500, 599]], delay: () => 0, maxDelay: 0 },
+      retry: { maxAttempts: 2, statusCodes: [[500, 599]], delay: () => 0 },
       timeout: 2_000,
     })
 
@@ -110,7 +110,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 5, delay: () => 0, maxDelay: 10_000, statusCodes: [0, 999] },
+      retry: { maxAttempts: 5, delay: () => 0, statusCodes: [0, 999] },
       timeout: 50,
     })
 
@@ -140,7 +140,6 @@ describe('HttpClient', () => {
       retry: {
         maxAttempts: 5,
         delay: () => 0,
-        maxDelay: 10_000,
         statusCodes: [[0, 999]],
       },
       timeout: 1_000,
@@ -177,7 +176,6 @@ describe('HttpClient', () => {
         maxAttempts: 5,
         statusCodes: [408, 413, 429, [500, 599]],
         delay: () => 0,
-        maxDelay: 10_000,
       },
       timeout: 10_000,
     })
@@ -196,7 +194,6 @@ describe('HttpClient', () => {
         maxAttempts: 5,
         statusCodes: [[0, 999]],
         delay: () => 0,
-        maxDelay: 10_000,
       },
       timeout: 10_000,
     })
@@ -244,7 +241,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 1, statusCodes: [[500, 599]], delay: () => 0, maxDelay: 0 },
+      retry: { maxAttempts: 1, statusCodes: [[500, 599]], delay: () => 0 },
       timeout: 2_000,
     })
 
@@ -270,7 +267,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 1, statusCodes: [[500, 599]], delay: () => 0, maxDelay: 0 },
+      retry: { maxAttempts: 1, statusCodes: [[500, 599]], delay: () => 0 },
       timeout: 2_000,
     })
 
@@ -310,7 +307,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 2, statusCodes: [[500, 599]], delay: () => 0, maxDelay: 0 },
+      retry: { maxAttempts: 2, statusCodes: [[500, 599]], delay: () => 0 },
       timeout: 2_000,
     })
 
@@ -336,7 +333,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 0, statusCodes: [[500, 599]], delay: () => 0, maxDelay: 0 },
+      retry: { maxAttempts: 0, statusCodes: [[500, 599]], delay: () => 0 },
       timeout: 2_000,
     })
 
@@ -350,7 +347,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 5, statusCodes: [[0, 999]], delay: () => 0, maxDelay: 10_000 },
+      retry: { maxAttempts: 5, statusCodes: [[0, 999]], delay: () => 0 },
       timeout: 10_000,
       queryParams: {
         apiKey: 'test-key',
@@ -372,7 +369,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 5, statusCodes: [[0, 999]], delay: () => 0, maxDelay: 10_000 },
+      retry: { maxAttempts: 5, statusCodes: [[0, 999]], delay: () => 0 },
       timeout: 10_000,
       queryParams: {
         defaultParam: 'default-value',
@@ -393,7 +390,7 @@ describe('HttpClient', () => {
 
     const client = new HttpClient({
       baseUrl: BASE,
-      retry: { maxAttempts: 5, statusCodes: [], delay: () => 0, maxDelay: 10_000 },
+      retry: { maxAttempts: 5, statusCodes: [], delay: () => 0 },
       timeout: 10_000,
       queryParams: {
         param: 'default-value',

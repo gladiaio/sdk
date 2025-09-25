@@ -10,7 +10,7 @@ export function deepMergeObjects<T extends Record<string, unknown>>(
 
     if (obj1[key] && typeof obj1[key] === 'object' && typeof value === 'object') {
       // @ts-expect-error T is generic, it cannot handle this case
-      obj1[key] = mergeObjects(obj1[key], value)
+      obj1[key] = deepMergeObjects(obj1[key], value)
     } else {
       // @ts-expect-error T is generic, it cannot handle this case
       obj1[key] = value

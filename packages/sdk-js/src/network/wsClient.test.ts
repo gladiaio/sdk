@@ -43,7 +43,6 @@ function partialOptions(
     retry: {
       maxAttemptsPerConnection: 0,
       delay: () => 0,
-      maxDelay: 0,
       maxConnections: 0,
       closeCodes: [],
       ...options?.retry,
@@ -172,7 +171,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        retry: { maxAttemptsPerConnection: 2, delay: () => 10, maxDelay: 100 },
+        retry: { maxAttemptsPerConnection: 2, delay: () => 10 },
       })
     )
     session = client.createSession('ws://localhost:8080')
@@ -199,7 +198,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
-          maxDelay: 100,
           closeCodes: [1002, [1003, 1006]],
         },
       })
@@ -235,7 +233,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
-          maxDelay: 100,
           closeCodes: [1002, [1003, 1006]],
         },
       })
@@ -260,7 +257,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 1,
           delay: () => 10,
-          maxDelay: 100,
           closeCodes: [1002],
         },
       })
@@ -288,7 +284,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     client = new WebSocketClient(
       partialOptions({
-        retry: { maxAttemptsPerConnection: 1, delay: () => 0, maxDelay: 0 },
+        retry: { maxAttemptsPerConnection: 1, delay: () => 0 },
         timeout: 50,
       })
     )
@@ -307,7 +303,7 @@ describe('WebSocketClient + WebSocketSession', () => {
   it('should send data when open', async () => {
     client = new WebSocketClient(
       partialOptions({
-        retry: { maxAttemptsPerConnection: 1, delay: () => 0, maxDelay: 0 },
+        retry: { maxAttemptsPerConnection: 1, delay: () => 0 },
         timeout: 1000,
       })
     )
@@ -377,7 +373,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
-          maxDelay: 100,
           closeCodes: [1002],
         },
       })
@@ -426,7 +421,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 1,
           delay: () => 10,
-          maxDelay: 100,
           closeCodes: [1002],
         },
       })
@@ -457,7 +451,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 2,
           delay: () => 10,
-          maxDelay: 100,
           closeCodes: [1002],
         },
       })
@@ -496,7 +489,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 0,
           delay: () => 10,
-          maxDelay: 100,
           closeCodes: [1002],
         },
       })
@@ -526,7 +518,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 5,
           delay: () => 0,
-          maxDelay: 0,
           maxConnections: 1,
         },
       })
@@ -696,7 +687,6 @@ describe('WebSocketClient + WebSocketSession', () => {
       retry: {
         maxAttemptsPerConnection: 1,
         delay: () => 0,
-        maxDelay: 0,
         closeCodes: [
           [1002, 4399],
           [4500, 9999],
@@ -733,7 +723,6 @@ describe('WebSocketClient + WebSocketSession', () => {
         retry: {
           maxAttemptsPerConnection: 5,
           delay: () => 0,
-          maxDelay: 0,
           maxConnections: 1,
         },
       })
