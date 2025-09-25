@@ -1,3 +1,13 @@
+## 0.5.0 (2025-09-25)
+
+### 🚀 Features
+
+- **sdk-js:** Implement x-gladia-version
+
+### 🩹 Fixes
+
+- **sdk-js:** Remove chaining capability
+
 ## 0.4.3 (2025-09-23)
 
 ### 🩹 Fixes
