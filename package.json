@@ -36,7 +36,7 @@
   },
   "scripts": {
     "release": "node tools/scripts/release.mjs",
-    "prepublish": "nx run-many -t build",
-    "publish": "nx nx-release-publish"
+    "prepublish": "nx run-many --tui false -t build",
+    "publish": "nx release publish"
   }
 }
