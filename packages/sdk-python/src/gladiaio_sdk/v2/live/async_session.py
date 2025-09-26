@@ -16,8 +16,10 @@ from ...network.async_websocket_client import AsyncWebSocketClient
 from .generated_types import (
   LiveV2InitRequest,
   LiveV2InitResponse,
+  LiveV2MessagesConfig,
   LiveV2StartSessionMessage,
   LiveV2WebSocketMessage,
+  create_live_v2_web_socket_message_from_json,
 )
 
 EventCallback = Callable[..., Any]
@@ -78,11 +80,11 @@ class AsyncLiveV2Session:
   # Public API
   async def get_session_id(self) -> str:
     session = await self._init_session_task
-    return session["id"]
+    return session.id
 
   @property
   def session_id(self) -> str | None:
-    return self._init_session_response.get("id") if self._init_session_response else None
+    return self._init_session_response.id if self._init_session_response else None
 
   @property
   def status(self) -> LiveV2SessionStatus:
@@ -115,12 +117,13 @@ class AsyncLiveV2Session:
   async def _init_session(self) -> LiveV2InitResponse:
     try:
       # Force acknowledgments for resume logic
-      msg_cfg = dict(self._options.get("messages_config") or {})
-      msg_cfg["receive_acknowledgments"] = True
-      payload = {**self._options, "messages_config": msg_cfg}
-
-      resp = await self._http_client.post("/v2/live", json=payload)
-      return resp.json()
+      msg_cfg = self._options.messages_config
+      if not msg_cfg:
+        msg_cfg = LiveV2MessagesConfig()
+        self._options.messages_config = msg_cfg
+      msg_cfg.receive_acknowledgments = True
+      resp = await self._http_client.post("/v2/live", json=self._options.to_dict())
+      return LiveV2InitResponse.from_json(resp.content)
     except Exception as err:  # surface error & destroy
       _ = self._event_emitter.emit("error", err)
       await self._do_destroy(1006, "Couldn't start a new session")
@@ -135,15 +138,15 @@ class AsyncLiveV2Session:
         self._status = "started"
         _ = self._event_emitter.emit("started", session)
 
-      if (self._options.get("messages_config") or {}).get("receive_lifecycle_events"):
-        start_msg: LiveV2StartSessionMessage = {
-          "type": "start_session",
-          "session_id": session["id"],
-          "created_at": session["created_at"],
-        }
+      if self._options.messages_config and self._options.messages_config.receive_lifecycle_events:
+        start_msg: LiveV2StartSessionMessage = LiveV2StartSessionMessage(
+          type="start_session",
+          session_id=session.id,
+          created_at=session.created_at,
+        )
         _ = self._event_emitter.emit("message", start_msg)
 
-      self._connect_ws_task = asyncio.create_task(self._connect_ws(session["url"]))
+      self._connect_ws_task = asyncio.create_task(self._connect_ws(session.url))
     except Exception as err:  # surface error & destroy
       _ = self._event_emitter.emit("error", err)
       await self._do_destroy(1006, "Couldn't start a new session")
@@ -178,7 +181,7 @@ class AsyncLiveV2Session:
         async for raw in ws:
           try:
             text = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
-            message: LiveV2WebSocketMessage = json.loads(text)
+            message = create_live_v2_web_socket_message_from_json(text)
           except Exception as parse_err:
             _ = self._event_emitter.emit("error", parse_err)
             continue
@@ -186,18 +189,16 @@ class AsyncLiveV2Session:
           # Emit message as object with attribute access to match tests usage
           _ = self._event_emitter.emit("message", message)
 
-          if message.get("type") == "audio_chunk":
-            data = message.get("data") or {}
-            if message.get("acknowledged") and data:
-              byte_end = int((data.get("byte_range") or [0, 0])[1])
+          if message.type == "audio_chunk":
+            data = message.data
+            if message.acknowledged and data:
+              byte_end = int((data.byte_range)[1])
               self._audio_buffer = self._audio_buffer[byte_end - self._bytes_sent :]
               self._bytes_sent = byte_end
       except websockets.ConnectionClosed as closed:
-        print("Connection closed")
         await self._do_destroy(getattr(closed, "code", 1000) or 1000, getattr(closed, "reason", ""))
         return
       except Exception as err:
-        print(f"Connection closed with error {err}")
         _ = self._event_emitter.emit("error", err)
         await self._do_destroy(1006, "WebSocket error")
         return
@@ -206,27 +207,22 @@ class AsyncLiveV2Session:
     if self._status == "ended":
       return
 
-    print(f"Destroying session with code {code} and reason {reason}")
     # Transition to ending, then ended
     if self._status != "ending":
       self._status = "ending"
       _ = self._event_emitter.emit("ending", {"code": code, "reason": reason})
 
-    print("Setting ended")
     self._status = "ended"
     _ = self._event_emitter.emit("ended", {"code": code, "reason": reason})
 
-    print("Setting abort")
     self._abort.set()
 
     # Cancel tasks
-    print("Cancelling tasks")
     for task in (self._connect_ws_task, self._start_session_task, self._init_session_task):
       if task and not task.done():
         _ = task.cancel()
 
     # Close ws
-    print("Closing ws")
     ws = self._ws
     self._ws = None
     if ws:
@@ -234,11 +230,8 @@ class AsyncLiveV2Session:
         _ = asyncio.create_task(ws.close(code=1001, reason="Aborted"))
 
     # Clear buffers & listeners
-    print("Clearing buffers & listeners")
     self._audio_buffer = bytes([])
     self._event_emitter.remove_all_listeners()
-
-    print("Session destroyed")
 
   # Events
 

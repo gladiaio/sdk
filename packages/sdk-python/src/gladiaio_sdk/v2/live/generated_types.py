@@ -1,15 +1,32 @@
 # This file is auto-generated. Do not edit manually.
 # Generated from OpenAPI schema.
-from typing import Any, Literal, TypedDict
+from __future__ import annotations
 
-from typing_extensions import NotRequired
+import json
+from dataclasses import dataclass
+from typing import Any, Literal
+
+from dataclasses_json import DataClassJsonMixin
+
+
+def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
+  return {
+    k: _filter_none(v) if isinstance(v, dict) else v for k, v in _dict.items() if v is not None
+  }
+
+
+class BaseDataClass(DataClassJsonMixin):
+  def to_dict(self, encode_json: bool = True) -> dict[str, Any]:
+    dict = super().to_dict(encode_json=encode_json)
+    return _filter_none(dict)
+
 
 # Shared Types Types
 LiveV2Encoding = Literal["wav/pcm", "wav/alaw", "wav/ulaw"]
 
-LiveV2BitDepth = Literal["8", "16", "24", "32"]
+LiveV2BitDepth = Literal[8, 16, 24, 32]
 
-LiveV2SampleRate = Literal["8000", "16000", "32000", "44100", "48000"]
+LiveV2SampleRate = Literal[8000, 16000, 32000, 44100, 48000]
 
 LiveV2Model = Literal["solaria-1"]
 
@@ -117,45 +134,50 @@ LiveV2TranscriptionLanguageCode = Literal[
 ]
 
 
-class LiveV2LanguageConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2LanguageConfig(BaseDataClass):
   # If one language is set, it will be used for the transcription. Otherwise, language will be
   # auto-detected by the model.
-  languages: NotRequired[list[LiveV2TranscriptionLanguageCode]]
+  languages: list[LiveV2TranscriptionLanguageCode] | None = None
   # If true, language will be auto-detected on each utterance. Otherwise, language will be
   # auto-detected on first utterance and then used for the rest of the transcription. If one
   # language is set, this option will be ignored.
-  code_switching: NotRequired[bool]
+  code_switching: bool | None = None
 
 
-class LiveV2PreProcessingConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2PreProcessingConfig(BaseDataClass):
   # If true, apply pre-processing to the audio stream to enhance the quality.
-  audio_enhancer: NotRequired[bool]
+  audio_enhancer: bool | None = None
   # Sensitivity configuration for Speech Threshold. A value close to 1 will apply stricter
   # thresholds, making it less likely to detect background sounds as speech.
-  speech_threshold: NotRequired[float]
+  speech_threshold: float | None = None
 
 
-class LiveV2CustomVocabularyEntry(TypedDict):
+@dataclass(slots=True)
+class LiveV2CustomVocabularyEntry(BaseDataClass):
   # The text used to replace in the transcription.
   value: str
   # The global intensity of the feature.
-  intensity: NotRequired[float]
+  intensity: float | None = None
   # The pronunciations used in the transcription.
-  pronunciations: NotRequired[list[str]]
+  pronunciations: list[str] | None = None
   # Specify the language in which it will be pronounced when sound comparison occurs. Default to
   # transcription language.
-  language: NotRequired[LiveV2TranscriptionLanguageCode]
+  language: LiveV2TranscriptionLanguageCode | None = None
 
 
-class LiveV2CustomVocabularyConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2CustomVocabularyConfig(BaseDataClass):
   # Specific vocabulary list to feed the transcription model with. Each item can be a string or an
   # object with the following properties: value, intensity, pronunciations, language.
   vocabulary: list[LiveV2CustomVocabularyEntry | str]
   # Default intensity for the custom vocabulary
-  default_intensity: NotRequired[float]
+  default_intensity: float | None = None
 
 
-class LiveV2CustomSpellingConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2CustomSpellingConfig(BaseDataClass):
   # The list of spelling applied on the audio transcription
   spelling_dictionary: dict[str, list[str]]
 
@@ -267,122 +289,132 @@ LiveV2TranslationLanguageCode = Literal[
 LiveV2TranslationModel = Literal["base", "enhanced"]
 
 
-class LiveV2TranslationConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2TranslationConfig(BaseDataClass):
   # Target language in `iso639-1` format you want the transcription translated to
   target_languages: list[LiveV2TranslationLanguageCode]
   # Model you want the translation model to use to translate
-  model: NotRequired[LiveV2TranslationModel]
+  model: LiveV2TranslationModel | None = None
   # Align translated utterances with the original ones
-  match_original_utterances: NotRequired[bool]
+  match_original_utterances: bool | None = None
   # Whether to apply lipsync to the translated transcription.
-  lipsync: NotRequired[bool]
+  lipsync: bool | None = None
   # Enables or disables context-aware translation features that allow the model to adapt
   # translations based on provided context.
-  context_adaptation: NotRequired[bool]
+  context_adaptation: bool | None = None
   # Context information to improve translation accuracy
-  context: NotRequired[str]
+  context: str | None = None
   # Forces the translation to use informal language forms when available in the target language.
-  informal: NotRequired[bool]
+  informal: bool | None = None
 
 
-class LiveV2RealtimeProcessingConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2RealtimeProcessingConfig(BaseDataClass):
   # If true, enable custom vocabulary for the transcription.
-  custom_vocabulary: NotRequired[bool]
+  custom_vocabulary: bool | None = None
   # Custom vocabulary configuration, if `custom_vocabulary` is enabled
-  custom_vocabulary_config: NotRequired[LiveV2CustomVocabularyConfig]
+  custom_vocabulary_config: LiveV2CustomVocabularyConfig | None = None
   # If true, enable custom spelling for the transcription.
-  custom_spelling: NotRequired[bool]
+  custom_spelling: bool | None = None
   # Custom spelling configuration, if `custom_spelling` is enabled
-  custom_spelling_config: NotRequired[LiveV2CustomSpellingConfig]
+  custom_spelling_config: LiveV2CustomSpellingConfig | None = None
   # If true, enable translation for the transcription
-  translation: NotRequired[bool]
+  translation: bool | None = None
   # Translation configuration, if `translation` is enabled
-  translation_config: NotRequired[LiveV2TranslationConfig]
+  translation_config: LiveV2TranslationConfig | None = None
   # If true, enable named entity recognition for the transcription.
-  named_entity_recognition: NotRequired[bool]
+  named_entity_recognition: bool | None = None
   # If true, enable sentiment analysis for the transcription.
-  sentiment_analysis: NotRequired[bool]
+  sentiment_analysis: bool | None = None
 
 
 LiveV2SummaryType = Literal["general", "bullet_points", "concise"]
 
 
-class LiveV2SummarizationConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2SummarizationConfig(BaseDataClass):
   # The type of summarization to apply
-  type: NotRequired[LiveV2SummaryType]
+  type: LiveV2SummaryType | None = None
 
 
-class LiveV2PostProcessingConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2PostProcessingConfig(BaseDataClass):
   # If true, generates summarization for the whole transcription.
-  summarization: NotRequired[bool]
+  summarization: bool | None = None
   # Summarization configuration, if `summarization` is enabled
-  summarization_config: NotRequired[LiveV2SummarizationConfig]
+  summarization_config: LiveV2SummarizationConfig | None = None
   # If true, generates chapters for the whole transcription.
-  chapterization: NotRequired[bool]
+  chapterization: bool | None = None
 
 
-class LiveV2MessagesConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2MessagesConfig(BaseDataClass):
   # If true, partial transcript will be sent to websocket.
-  receive_partial_transcripts: NotRequired[bool]
+  receive_partial_transcripts: bool | None = None
   # If true, final transcript will be sent to websocket.
-  receive_final_transcripts: NotRequired[bool]
+  receive_final_transcripts: bool | None = None
   # If true, begin and end speech events will be sent to websocket.
-  receive_speech_events: NotRequired[bool]
+  receive_speech_events: bool | None = None
   # If true, pre-processing events will be sent to websocket.
-  receive_pre_processing_events: NotRequired[bool]
+  receive_pre_processing_events: bool | None = None
   # If true, realtime processing events will be sent to websocket.
-  receive_realtime_processing_events: NotRequired[bool]
+  receive_realtime_processing_events: bool | None = None
   # If true, post-processing events will be sent to websocket.
-  receive_post_processing_events: NotRequired[bool]
+  receive_post_processing_events: bool | None = None
   # If true, acknowledgments will be sent to websocket.
-  receive_acknowledgments: NotRequired[bool]
+  receive_acknowledgments: bool | None = None
   # If true, errors will be sent to websocket.
-  receive_errors: NotRequired[bool]
+  receive_errors: bool | None = None
   # If true, lifecycle events will be sent to websocket.
-  receive_lifecycle_events: NotRequired[bool]
+  receive_lifecycle_events: bool | None = None
 
 
-class LiveV2CallbackConfig(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackConfig(BaseDataClass):
   # URL on which we will do a `POST` request with configured messages
-  url: NotRequired[str]
+  url: str | None = None
   # If true, partial transcript will be sent to the defined callback.
-  receive_partial_transcripts: NotRequired[bool]
+  receive_partial_transcripts: bool | None = None
   # If true, final transcript will be sent to the defined callback.
-  receive_final_transcripts: NotRequired[bool]
+  receive_final_transcripts: bool | None = None
   # If true, begin and end speech events will be sent to the defined callback.
-  receive_speech_events: NotRequired[bool]
+  receive_speech_events: bool | None = None
   # If true, pre-processing events will be sent to the defined callback.
-  receive_pre_processing_events: NotRequired[bool]
+  receive_pre_processing_events: bool | None = None
   # If true, realtime processing events will be sent to the defined callback.
-  receive_realtime_processing_events: NotRequired[bool]
+  receive_realtime_processing_events: bool | None = None
   # If true, post-processing events will be sent to the defined callback.
-  receive_post_processing_events: NotRequired[bool]
+  receive_post_processing_events: bool | None = None
   # If true, acknowledgments will be sent to the defined callback.
-  receive_acknowledgments: NotRequired[bool]
+  receive_acknowledgments: bool | None = None
   # If true, errors will be sent to the defined callback.
-  receive_errors: NotRequired[bool]
+  receive_errors: bool | None = None
   # If true, lifecycle events will be sent to the defined callback.
-  receive_lifecycle_events: NotRequired[bool]
+  receive_lifecycle_events: bool | None = None
 
 
-class LiveV2Error(TypedDict):
+@dataclass(slots=True)
+class LiveV2Error(BaseDataClass):
   # The error message
   message: str
 
 
-class LiveV2AudioChunkAckData(TypedDict):
+@dataclass(slots=True)
+class LiveV2AudioChunkAckData(BaseDataClass):
   # Range in bytes length of the audio chunk (relative to the whole session)
   byte_range: list[int]
   # Range in seconds of the audio chunk (relative to the whole session)
   time_range: list[float]
 
 
-class LiveV2EndRecordingMessageData(TypedDict):
+@dataclass(slots=True)
+class LiveV2EndRecordingMessageData(BaseDataClass):
   # Total audio duration in seconds
   recording_duration: float
 
 
-class LiveV2Word(TypedDict):
+@dataclass(slots=True)
+class LiveV2Word(BaseDataClass):
   # Spoken word
   word: str
   # Start timestamps in seconds of the spoken word
@@ -393,7 +425,8 @@ class LiveV2Word(TypedDict):
   confidence: float
 
 
-class LiveV2Utterance(TypedDict):
+@dataclass(slots=True)
+class LiveV2Utterance(BaseDataClass):
   # Start timestamp in seconds of this utterance
   start: float
   # End timestamp in seconds of this utterance
@@ -402,17 +435,18 @@ class LiveV2Utterance(TypedDict):
   confidence: float
   # Audio channel of where this utterance has been transcribed from
   channel: int
-  # If `diarization` enabled, speaker identification number
-  speaker: NotRequired[int]
   # List of words of the utterance, split by timestamp
   words: list[LiveV2Word]
   # Transcription for this utterance
   text: str
   # Spoken language in this utterance
   language: LiveV2TranscriptionLanguageCode
+  # If `diarization` enabled, speaker identification number
+  speaker: int | None = None
 
 
-class LiveV2TranslationData(TypedDict):
+@dataclass(slots=True)
+class LiveV2TranslationData(BaseDataClass):
   # Id of the utterance used for this result
   utterance_id: str
   # The transcribed utterance
@@ -425,14 +459,16 @@ class LiveV2TranslationData(TypedDict):
   translated_utterance: LiveV2Utterance
 
 
-class LiveV2NamedEntityRecognitionResult(TypedDict):
+@dataclass(slots=True)
+class LiveV2NamedEntityRecognitionResult(BaseDataClass):
   entity_type: str
   text: str
   start: float
   end: float
 
 
-class LiveV2NamedEntityRecognitionData(TypedDict):
+@dataclass(slots=True)
+class LiveV2NamedEntityRecognitionData(BaseDataClass):
   # Id of the utterance used for this result
   utterance_id: str
   # The transcribed utterance
@@ -441,17 +477,16 @@ class LiveV2NamedEntityRecognitionData(TypedDict):
   results: list[LiveV2NamedEntityRecognitionResult]
 
 
-class LiveV2ChapterizationSentence(TypedDict):
+@dataclass(slots=True)
+class LiveV2ChapterizationSentence(BaseDataClass):
   sentence: str
   start: float
   end: float
   words: list[LiveV2Word]
 
 
-class LiveV2PostChapterizationResult(TypedDict):
-  abstractive_summary: NotRequired[str]
-  extractive_summary: NotRequired[str]
-  summary: NotRequired[str]
+@dataclass(slots=True)
+class LiveV2PostChapterizationResult(BaseDataClass):
   headline: str
   gist: str
   keywords: list[str]
@@ -459,14 +494,19 @@ class LiveV2PostChapterizationResult(TypedDict):
   end: float
   sentences: list[LiveV2ChapterizationSentence]
   text: str
+  abstractive_summary: str | None = None
+  extractive_summary: str | None = None
+  summary: str | None = None
 
 
-class LiveV2PostChapterizationMessageData(TypedDict):
+@dataclass(slots=True)
+class LiveV2PostChapterizationMessageData(BaseDataClass):
   # The chapters
   results: list[LiveV2PostChapterizationResult]
 
 
-class LiveV2TranscriptionMetadata(TypedDict):
+@dataclass(slots=True)
+class LiveV2TranscriptionMetadata(BaseDataClass):
   # Duration of the transcribed audio file
   audio_duration: float
   # Number of distinct channels in the transcribed audio file
@@ -477,7 +517,8 @@ class LiveV2TranscriptionMetadata(TypedDict):
   transcription_time: float
 
 
-class LiveV2AddonError(TypedDict):
+@dataclass(slots=True)
+class LiveV2AddonError(BaseDataClass):
   # Status code of the addon error
   status_code: int
   # Reason of the addon error
@@ -486,7 +527,8 @@ class LiveV2AddonError(TypedDict):
   message: str
 
 
-class LiveV2Sentences(TypedDict):
+@dataclass(slots=True)
+class LiveV2Sentences(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
   # The audio intelligence model returned an empty value
@@ -494,50 +536,54 @@ class LiveV2Sentences(TypedDict):
   # Time audio intelligence model took to complete the task
   exec_time: float
   # `null` if `success` is `true`. Contains the error details of the failed model
-  error: LiveV2AddonError
+  error: LiveV2AddonError | None = None
   # If `sentences` has been enabled, transcription as sentences.
-  results: list[str]
+  results: list[str] | None = None
 
 
 LiveV2SubtitlesFormat = Literal["srt", "vtt"]
 
 
-class LiveV2Subtitle(TypedDict):
+@dataclass(slots=True)
+class LiveV2Subtitle(BaseDataClass):
   # Format of the current subtitle
   format: LiveV2SubtitlesFormat
   # Transcription on the asked subtitle format
   subtitles: str
 
 
-class LiveV2Transcription(TypedDict):
+@dataclass(slots=True)
+class LiveV2Transcription(BaseDataClass):
   # All transcription on text format without any other information
   full_transcript: str
   # All the detected languages in the audio sorted from the most detected to the less detected
   languages: list[LiveV2TranscriptionLanguageCode]
-  # If `sentences` has been enabled, sentences results
-  sentences: NotRequired[list[LiveV2Sentences]]
-  # If `subtitles` has been enabled, subtitles results
-  subtitles: NotRequired[list[LiveV2Subtitle]]
   # Transcribed speech utterances present in the audio
   utterances: list[LiveV2Utterance]
+  # If `sentences` has been enabled, sentences results
+  sentences: list[LiveV2Sentences] | None = None
+  # If `subtitles` has been enabled, subtitles results
+  subtitles: list[LiveV2Subtitle] | None = None
 
 
-class LiveV2TranslationResult(TypedDict):
-  # Contains the error details of the failed addon
-  error: LiveV2AddonError
+@dataclass(slots=True)
+class LiveV2TranslationResult(BaseDataClass):
   # All transcription on text format without any other information
   full_transcript: str
   # All the detected languages in the audio sorted from the most detected to the less detected
   languages: list[LiveV2TranslationLanguageCode]
-  # If `sentences` has been enabled, sentences results for this translation
-  sentences: NotRequired[list[LiveV2Sentences]]
-  # If `subtitles` has been enabled, subtitles results for this translation
-  subtitles: NotRequired[list[LiveV2Subtitle]]
   # Transcribed speech utterances present in the audio
   utterances: list[LiveV2Utterance]
+  # Contains the error details of the failed addon
+  error: LiveV2AddonError | None = None
+  # If `sentences` has been enabled, sentences results for this translation
+  sentences: list[LiveV2Sentences] | None = None
+  # If `subtitles` has been enabled, subtitles results for this translation
+  subtitles: list[LiveV2Subtitle] | None = None
 
 
-class LiveV2Translation(TypedDict):
+@dataclass(slots=True)
+class LiveV2Translation(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
   # The audio intelligence model returned an empty value
@@ -545,12 +591,13 @@ class LiveV2Translation(TypedDict):
   # Time audio intelligence model took to complete the task
   exec_time: float
   # `null` if `success` is `true`. Contains the error details of the failed model
-  error: LiveV2AddonError
+  error: LiveV2AddonError | None = None
   # List of translated transcriptions, one for each `target_languages`
-  results: list[LiveV2TranslationResult]
+  results: list[LiveV2TranslationResult] | None = None
 
 
-class LiveV2Summarization(TypedDict):
+@dataclass(slots=True)
+class LiveV2Summarization(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
   # The audio intelligence model returned an empty value
@@ -558,76 +605,82 @@ class LiveV2Summarization(TypedDict):
   # Time audio intelligence model took to complete the task
   exec_time: float
   # `null` if `success` is `true`. Contains the error details of the failed model
-  error: LiveV2AddonError
+  error: LiveV2AddonError | None = None
   # If `summarization` has been enabled, summary of the transcription
-  results: str
+  results: str | None = None
 
 
-class LiveV2NamedEntityRecognition(TypedDict):
+@dataclass(slots=True)
+class LiveV2NamedEntityRecognition(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
   # The audio intelligence model returned an empty value
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: LiveV2AddonError
   # If `named_entity_recognition` has been enabled, the detected entities.
   entity: str
+  # `null` if `success` is `true`. Contains the error details of the failed model
+  error: LiveV2AddonError | None = None
 
 
-class LiveV2SentimentAnalysis(TypedDict):
+@dataclass(slots=True)
+class LiveV2SentimentAnalysis(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
   # The audio intelligence model returned an empty value
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: LiveV2AddonError
   # If `sentiment_analysis` has been enabled, Gladia will analyze the sentiments and emotions of
   # the audio
   results: str
+  # `null` if `success` is `true`. Contains the error details of the failed model
+  error: LiveV2AddonError | None = None
 
 
-class LiveV2Chapterization(TypedDict):
+@dataclass(slots=True)
+class LiveV2Chapterization(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
   # The audio intelligence model returned an empty value
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: LiveV2AddonError
   # If `chapterization` has been enabled, will generate chapters name for different parts of the
   # given audio.
   results: dict[str, Any]
+  # `null` if `success` is `true`. Contains the error details of the failed model
+  error: LiveV2AddonError | None = None
 
 
-class LiveV2TranscriptionResult(TypedDict):
+@dataclass(slots=True)
+class LiveV2TranscriptionResult(BaseDataClass):
   # Metadata for the given transcription & audio file
   metadata: LiveV2TranscriptionMetadata
   # Transcription of the audio speech
-  transcription: NotRequired[LiveV2Transcription]
+  transcription: LiveV2Transcription | None = None
   # If `translation` has been enabled, translation of the audio speech transcription
-  translation: NotRequired[LiveV2Translation]
+  translation: LiveV2Translation | None = None
   # If `summarization` has been enabled, summarization of the audio speech transcription
-  summarization: NotRequired[LiveV2Summarization]
+  summarization: LiveV2Summarization | None = None
   # If `named_entity_recognition` has been enabled, the detected entities
-  named_entity_recognition: NotRequired[LiveV2NamedEntityRecognition]
+  named_entity_recognition: LiveV2NamedEntityRecognition | None = None
   # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
-  sentiment_analysis: NotRequired[LiveV2SentimentAnalysis]
+  sentiment_analysis: LiveV2SentimentAnalysis | None = None
   # If `chapterization` has been enabled, will generate chapters name for different parts of the
   # given audio.
-  chapterization: NotRequired[LiveV2Chapterization]
+  chapterization: LiveV2Chapterization | None = None
 
 
-class LiveV2PostSummarizationMessageData(TypedDict):
+@dataclass(slots=True)
+class LiveV2PostSummarizationMessageData(BaseDataClass):
   # The summarization
   results: str
 
 
-class LiveV2SentimentAnalysisResult(TypedDict):
+@dataclass(slots=True)
+class LiveV2SentimentAnalysisResult(BaseDataClass):
   sentiment: str
   emotion: str
   text: str
@@ -636,7 +689,8 @@ class LiveV2SentimentAnalysisResult(TypedDict):
   channel: float
 
 
-class LiveV2SentimentAnalysisData(TypedDict):
+@dataclass(slots=True)
+class LiveV2SentimentAnalysisData(BaseDataClass):
   # Id of the utterance used for this result
   utterance_id: str
   # The transcribed utterance
@@ -645,14 +699,16 @@ class LiveV2SentimentAnalysisData(TypedDict):
   results: list[LiveV2SentimentAnalysisResult]
 
 
-class LiveV2StopRecordingAckData(TypedDict):
+@dataclass(slots=True)
+class LiveV2StopRecordingAckData(BaseDataClass):
   # Total audio duration in seconds
   recording_duration: float
   # Audio duration left to process in seconds
   recording_left_to_process: float
 
 
-class LiveV2TranscriptMessageData(TypedDict):
+@dataclass(slots=True)
+class LiveV2TranscriptMessageData(BaseDataClass):
   # Id of the utterance
   id: str
   # Flag to indicate if the transcript is final or not
@@ -661,60 +717,64 @@ class LiveV2TranscriptMessageData(TypedDict):
   utterance: LiveV2Utterance
 
 
-class LiveV2SpeechMessageData(TypedDict):
+@dataclass(slots=True)
+class LiveV2SpeechMessageData(BaseDataClass):
   # Timestamp in seconds of the speech event
   time: float
   # Channel of the speech event
   channel: float
 
 
-class LiveV2EventPayload(TypedDict):
+@dataclass(slots=True)
+class LiveV2EventPayload(BaseDataClass):
   # Id of the job
   id: str
 
 
 # Init Session Types
-class LiveV2InitRequest(TypedDict):
+@dataclass(slots=True)
+class LiveV2InitRequest(BaseDataClass):
   # The encoding format of the audio stream. Supported formats:
   # - PCM: 8, 16, 24, and 32 bits
   # - A-law: 8 bits
   # - μ-law: 8 bits
   #
   # Note: No need to add WAV headers to raw audio as the API supports both formats.
-  encoding: NotRequired[LiveV2Encoding]
+  encoding: LiveV2Encoding | None = None
   # The bit depth of the audio stream
-  bit_depth: NotRequired[LiveV2BitDepth]
+  bit_depth: LiveV2BitDepth | None = None
   # The sample rate of the audio stream
-  sample_rate: NotRequired[LiveV2SampleRate]
+  sample_rate: LiveV2SampleRate | None = None
   # The number of channels of the audio stream
-  channels: NotRequired[int]
+  channels: int | None = None
   # Custom metadata you can attach to this live transcription
-  custom_metadata: NotRequired[dict[str, Any]]
+  custom_metadata: dict[str, Any] | None = None
   # The model used to process the audio. "solaria-1" is used by default.
-  model: NotRequired[LiveV2Model]
+  model: LiveV2Model | None = None
   # The endpointing duration in seconds. Endpointing is the duration of silence which will cause
   # an utterance to be considered as finished
-  endpointing: NotRequired[float]
+  endpointing: float | None = None
   # The maximum duration in seconds without endpointing. If endpointing is not detected after this
   # duration, current utterance will be considered as finished
-  maximum_duration_without_endpointing: NotRequired[float]
+  maximum_duration_without_endpointing: float | None = None
   # Specify the language configuration
-  language_config: NotRequired[LiveV2LanguageConfig]
+  language_config: LiveV2LanguageConfig | None = None
   # Specify the pre-processing configuration
-  pre_processing: NotRequired[LiveV2PreProcessingConfig]
+  pre_processing: LiveV2PreProcessingConfig | None = None
   # Specify the realtime processing configuration
-  realtime_processing: NotRequired[LiveV2RealtimeProcessingConfig]
+  realtime_processing: LiveV2RealtimeProcessingConfig | None = None
   # Specify the post-processing configuration
-  post_processing: NotRequired[LiveV2PostProcessingConfig]
+  post_processing: LiveV2PostProcessingConfig | None = None
   # Specify the websocket messages configuration
-  messages_config: NotRequired[LiveV2MessagesConfig]
+  messages_config: LiveV2MessagesConfig | None = None
   # If true, messages will be sent to configured url.
-  callback: NotRequired[bool]
+  callback: bool | None = None
   # Specify the callback configuration
-  callback_config: NotRequired[LiveV2CallbackConfig]
+  callback_config: LiveV2CallbackConfig | None = None
 
 
-class LiveV2InitResponse(TypedDict):
+@dataclass(slots=True)
+class LiveV2InitResponse(BaseDataClass):
   # Id of the job
   id: str
   # Creation date
@@ -725,21 +785,23 @@ class LiveV2InitResponse(TypedDict):
 
 
 # WebSocket Messages Types
-class LiveV2AudioChunkAckMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2AudioChunkAckMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
   # Flag to indicate if the action was successfully acknowledged
   acknowledged: bool
-  # Error message if the action was not successfully acknowledged
-  error: LiveV2Error
   type: Literal["audio_chunk"]
+  # Error message if the action was not successfully acknowledged
+  error: LiveV2Error | None = None
   # The message data. "null" if the action was not successfully acknowledged
-  data: LiveV2AudioChunkAckData
+  data: LiveV2AudioChunkAckData | None = None
 
 
-class LiveV2EndRecordingMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2EndRecordingMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -749,7 +811,8 @@ class LiveV2EndRecordingMessage(TypedDict):
   data: LiveV2EndRecordingMessageData
 
 
-class LiveV2EndSessionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2EndSessionMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -757,43 +820,47 @@ class LiveV2EndSessionMessage(TypedDict):
   type: Literal["end_session"]
 
 
-class LiveV2TranslationMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2TranslationMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
-  # Error message if the addon failed
-  error: LiveV2Error
   type: Literal["translation"]
+  # Error message if the addon failed
+  error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
-  data: LiveV2TranslationData
+  data: LiveV2TranslationData | None = None
 
 
-class LiveV2NamedEntityRecognitionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2NamedEntityRecognitionMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
-  # Error message if the addon failed
-  error: LiveV2Error
   type: Literal["named_entity_recognition"]
+  # Error message if the addon failed
+  error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
-  data: LiveV2NamedEntityRecognitionData
+  data: LiveV2NamedEntityRecognitionData | None = None
 
 
-class LiveV2PostChapterizationMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2PostChapterizationMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
-  # Error message if the addon failed
-  error: LiveV2Error
   type: Literal["post_chapterization"]
+  # Error message if the addon failed
+  error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
-  data: LiveV2PostChapterizationMessageData
+  data: LiveV2PostChapterizationMessageData | None = None
 
 
-class LiveV2PostFinalTranscriptMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2PostFinalTranscriptMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -803,19 +870,21 @@ class LiveV2PostFinalTranscriptMessage(TypedDict):
   data: LiveV2TranscriptionResult
 
 
-class LiveV2PostSummarizationMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2PostSummarizationMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
-  # Error message if the addon failed
-  error: LiveV2Error
   type: Literal["post_summarization"]
+  # Error message if the addon failed
+  error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
-  data: LiveV2PostSummarizationMessageData
+  data: LiveV2PostSummarizationMessageData | None = None
 
 
-class LiveV2PostTranscriptMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2PostTranscriptMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -825,19 +894,21 @@ class LiveV2PostTranscriptMessage(TypedDict):
   data: LiveV2Transcription
 
 
-class LiveV2SentimentAnalysisMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2SentimentAnalysisMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
-  # Error message if the addon failed
-  error: LiveV2Error
   type: Literal["sentiment_analysis"]
+  # Error message if the addon failed
+  error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
-  data: LiveV2SentimentAnalysisData
+  data: LiveV2SentimentAnalysisData | None = None
 
 
-class LiveV2StartRecordingMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2StartRecordingMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -845,7 +916,8 @@ class LiveV2StartRecordingMessage(TypedDict):
   type: Literal["start_recording"]
 
 
-class LiveV2StartSessionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2StartSessionMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -853,21 +925,23 @@ class LiveV2StartSessionMessage(TypedDict):
   type: Literal["start_session"]
 
 
-class LiveV2StopRecordingAckMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2StopRecordingAckMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
   # Flag to indicate if the action was successfully acknowledged
   acknowledged: bool
-  # Error message if the action was not successfully acknowledged
-  error: LiveV2Error
   type: Literal["stop_recording"]
+  # Error message if the action was not successfully acknowledged
+  error: LiveV2Error | None = None
   # The message data. "null" if the action was not successfully acknowledged
-  data: LiveV2StopRecordingAckData
+  data: LiveV2StopRecordingAckData | None = None
 
 
-class LiveV2TranscriptMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2TranscriptMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -877,7 +951,8 @@ class LiveV2TranscriptMessage(TypedDict):
   data: LiveV2TranscriptMessageData
 
 
-class LiveV2SpeechStartMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2SpeechStartMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -887,7 +962,8 @@ class LiveV2SpeechStartMessage(TypedDict):
   data: LiveV2SpeechMessageData
 
 
-class LiveV2SpeechEndMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2SpeechEndMessage(BaseDataClass):
   # Id of the live session
   session_id: str
   # Date of creation of the message. The date is formatted as an ISO 8601 string
@@ -916,10 +992,53 @@ LiveV2WebSocketMessage = (
   | LiveV2SpeechStartMessage
   | LiveV2SpeechEndMessage
 )
+_WS_TYPE_TO_CLASS: dict[str, type[LiveV2WebSocketMessage]] = {
+  "audio_chunk": LiveV2AudioChunkAckMessage,
+  "end_recording": LiveV2EndRecordingMessage,
+  "end_session": LiveV2EndSessionMessage,
+  "translation": LiveV2TranslationMessage,
+  "named_entity_recognition": LiveV2NamedEntityRecognitionMessage,
+  "post_chapterization": LiveV2PostChapterizationMessage,
+  "post_final_transcript": LiveV2PostFinalTranscriptMessage,
+  "post_summarization": LiveV2PostSummarizationMessage,
+  "post_transcript": LiveV2PostTranscriptMessage,
+  "sentiment_analysis": LiveV2SentimentAnalysisMessage,
+  "start_recording": LiveV2StartRecordingMessage,
+  "start_session": LiveV2StartSessionMessage,
+  "stop_recording": LiveV2StopRecordingAckMessage,
+  "transcript": LiveV2TranscriptMessage,
+  "speech_start": LiveV2SpeechStartMessage,
+  "speech_end": LiveV2SpeechEndMessage,
+}
+
+
+def create_live_v2_web_socket_message_from_dict(payload: dict[str, Any]) -> LiveV2WebSocketMessage:
+  message_key = payload.get("type")
+
+  if not isinstance(message_key, str):
+    raise ValueError("Missing or invalid 'type' field in websocket message payload")
+
+  try:
+    cls = _WS_TYPE_TO_CLASS[message_key]
+  except KeyError as exc:
+    raise ValueError(f"Unsupported websocket message type: {message_key}") from exc
+
+  return cls.from_dict(payload)
+
+
+def create_live_v2_web_socket_message_from_json(
+  data: str | bytes | bytearray,
+) -> LiveV2WebSocketMessage:
+  parsed = json.loads(data)
+  if not isinstance(parsed, dict):
+    raise ValueError("websocket message JSON must represent an object")
+
+  return create_live_v2_web_socket_message_from_dict(parsed)
 
 
 # Callback Messages Types
-class LiveV2CallbackAudioChunkAckMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackAudioChunkAckMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.audio_chunk"]
@@ -927,7 +1046,8 @@ class LiveV2CallbackAudioChunkAckMessage(TypedDict):
   payload: LiveV2AudioChunkAckMessage
 
 
-class LiveV2CallbackEndRecordingMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackEndRecordingMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.end_recording"]
@@ -935,7 +1055,8 @@ class LiveV2CallbackEndRecordingMessage(TypedDict):
   payload: LiveV2EndRecordingMessage
 
 
-class LiveV2CallbackEndSessionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackEndSessionMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.end_session"]
@@ -943,7 +1064,8 @@ class LiveV2CallbackEndSessionMessage(TypedDict):
   payload: LiveV2EndSessionMessage
 
 
-class LiveV2CallbackTranslationMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackTranslationMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.translation"]
@@ -951,7 +1073,8 @@ class LiveV2CallbackTranslationMessage(TypedDict):
   payload: LiveV2TranslationMessage
 
 
-class LiveV2CallbackNamedEntityRecognitionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackNamedEntityRecognitionMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.named_entity_recognition"]
@@ -959,7 +1082,8 @@ class LiveV2CallbackNamedEntityRecognitionMessage(TypedDict):
   payload: LiveV2NamedEntityRecognitionMessage
 
 
-class LiveV2CallbackPostChapterizationMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackPostChapterizationMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.post_chapterization"]
@@ -967,7 +1091,8 @@ class LiveV2CallbackPostChapterizationMessage(TypedDict):
   payload: LiveV2PostChapterizationMessage
 
 
-class LiveV2CallbackPostFinalTranscriptMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackPostFinalTranscriptMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.post_final_transcript"]
@@ -975,7 +1100,8 @@ class LiveV2CallbackPostFinalTranscriptMessage(TypedDict):
   payload: LiveV2PostFinalTranscriptMessage
 
 
-class LiveV2CallbackPostSummarizationMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackPostSummarizationMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.post_summarization"]
@@ -983,7 +1109,8 @@ class LiveV2CallbackPostSummarizationMessage(TypedDict):
   payload: LiveV2PostSummarizationMessage
 
 
-class LiveV2CallbackPostTranscriptMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackPostTranscriptMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.post_transcript"]
@@ -991,7 +1118,8 @@ class LiveV2CallbackPostTranscriptMessage(TypedDict):
   payload: LiveV2PostTranscriptMessage
 
 
-class LiveV2CallbackSentimentAnalysisMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackSentimentAnalysisMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.sentiment_analysis"]
@@ -999,7 +1127,8 @@ class LiveV2CallbackSentimentAnalysisMessage(TypedDict):
   payload: LiveV2SentimentAnalysisMessage
 
 
-class LiveV2CallbackStartRecordingMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackStartRecordingMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.start_recording"]
@@ -1007,7 +1136,8 @@ class LiveV2CallbackStartRecordingMessage(TypedDict):
   payload: LiveV2StartRecordingMessage
 
 
-class LiveV2CallbackStartSessionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackStartSessionMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.start_session"]
@@ -1015,7 +1145,8 @@ class LiveV2CallbackStartSessionMessage(TypedDict):
   payload: LiveV2StartSessionMessage
 
 
-class LiveV2CallbackStopRecordingAckMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackStopRecordingAckMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.stop_recording"]
@@ -1023,7 +1154,8 @@ class LiveV2CallbackStopRecordingAckMessage(TypedDict):
   payload: LiveV2StopRecordingAckMessage
 
 
-class LiveV2CallbackTranscriptMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackTranscriptMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.transcript"]
@@ -1031,7 +1163,8 @@ class LiveV2CallbackTranscriptMessage(TypedDict):
   payload: LiveV2TranscriptMessage
 
 
-class LiveV2CallbackSpeechStartMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackSpeechStartMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.speech_start"]
@@ -1039,7 +1172,8 @@ class LiveV2CallbackSpeechStartMessage(TypedDict):
   payload: LiveV2SpeechStartMessage
 
 
-class LiveV2CallbackSpeechEndMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2CallbackSpeechEndMessage(BaseDataClass):
   # Id of the job
   id: str
   event: Literal["live.speech_end"]
@@ -1066,25 +1200,71 @@ LiveV2CallbackMessage = (
   | LiveV2CallbackSpeechStartMessage
   | LiveV2CallbackSpeechEndMessage
 )
+_CALLBACK_EVENT_TO_CLASS: dict[str, type[LiveV2CallbackMessage]] = {
+  "live.audio_chunk": LiveV2CallbackAudioChunkAckMessage,
+  "live.end_recording": LiveV2CallbackEndRecordingMessage,
+  "live.end_session": LiveV2CallbackEndSessionMessage,
+  "live.translation": LiveV2CallbackTranslationMessage,
+  "live.named_entity_recognition": LiveV2CallbackNamedEntityRecognitionMessage,
+  "live.post_chapterization": LiveV2CallbackPostChapterizationMessage,
+  "live.post_final_transcript": LiveV2CallbackPostFinalTranscriptMessage,
+  "live.post_summarization": LiveV2CallbackPostSummarizationMessage,
+  "live.post_transcript": LiveV2CallbackPostTranscriptMessage,
+  "live.sentiment_analysis": LiveV2CallbackSentimentAnalysisMessage,
+  "live.start_recording": LiveV2CallbackStartRecordingMessage,
+  "live.start_session": LiveV2CallbackStartSessionMessage,
+  "live.stop_recording": LiveV2CallbackStopRecordingAckMessage,
+  "live.transcript": LiveV2CallbackTranscriptMessage,
+  "live.speech_start": LiveV2CallbackSpeechStartMessage,
+  "live.speech_end": LiveV2CallbackSpeechEndMessage,
+}
+
+
+def create_live_v2_callback_message_from_dict(payload: dict[str, Any]) -> LiveV2CallbackMessage:
+  message_key = payload.get("event")
+
+  if not isinstance(message_key, str):
+    raise ValueError("Missing or invalid 'event' field in callback message payload")
+
+  try:
+    cls = _CALLBACK_EVENT_TO_CLASS[message_key]
+  except KeyError as exc:
+    raise ValueError(f"Unsupported callback message event: {message_key}") from exc
+
+  return cls.from_dict(payload)
+
+
+def create_live_v2_callback_message_from_json(
+  data: str | bytes | bytearray,
+) -> LiveV2CallbackMessage:
+  parsed = json.loads(data)
+  if not isinstance(parsed, dict):
+    raise ValueError("callback message JSON must represent an object")
+
+  return create_live_v2_callback_message_from_dict(parsed)
 
 
 # Webhook Messages Types
-class LiveV2WebhookStartSessionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2WebhookStartSessionMessage(BaseDataClass):
   event: Literal["live.start_session"]
   payload: LiveV2EventPayload
 
 
-class LiveV2WebhookStartRecordingMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2WebhookStartRecordingMessage(BaseDataClass):
   event: Literal["live.start_recording"]
   payload: LiveV2EventPayload
 
 
-class LiveV2WebhookEndRecordingMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2WebhookEndRecordingMessage(BaseDataClass):
   event: Literal["live.end_recording"]
   payload: LiveV2EventPayload
 
 
-class LiveV2WebhookEndSessionMessage(TypedDict):
+@dataclass(slots=True)
+class LiveV2WebhookEndSessionMessage(BaseDataClass):
   event: Literal["live.end_session"]
   payload: LiveV2EventPayload
 
@@ -1096,3 +1276,31 @@ LiveV2WebhookMessage = (
   | LiveV2WebhookEndRecordingMessage
   | LiveV2WebhookEndSessionMessage
 )
+_WEBHOOK_EVENT_TO_CLASS: dict[str, type[LiveV2WebhookMessage]] = {
+  "live.start_session": LiveV2WebhookStartSessionMessage,
+  "live.start_recording": LiveV2WebhookStartRecordingMessage,
+  "live.end_recording": LiveV2WebhookEndRecordingMessage,
+  "live.end_session": LiveV2WebhookEndSessionMessage,
+}
+
+
+def create_live_v2_webhook_message_from_dict(payload: dict[str, Any]) -> LiveV2WebhookMessage:
+  message_key = payload.get("event")
+
+  if not isinstance(message_key, str):
+    raise ValueError("Missing or invalid 'event' field in webhook message payload")
+
+  try:
+    cls = _WEBHOOK_EVENT_TO_CLASS[message_key]
+  except KeyError as exc:
+    raise ValueError(f"Unsupported webhook message event: {message_key}") from exc
+
+  return cls.from_dict(payload)
+
+
+def create_live_v2_webhook_message_from_json(data: str | bytes | bytearray) -> LiveV2WebhookMessage:
+  parsed = json.loads(data)
+  if not isinstance(parsed, dict):
+    raise ValueError("webhook message JSON must represent an object")
+
+  return create_live_v2_webhook_message_from_dict(parsed)

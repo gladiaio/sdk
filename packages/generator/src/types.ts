@@ -38,6 +38,7 @@ export type SchemaObjectRefLess = Omit<
   additionalProperties?: SchemaOrReference | boolean
   propertyNames?: SchemaOrReference
   prefixItems?: SchemaOrReference[]
+  nullable?: boolean
 }
 
 export type LiveV2Schemas = {

@@ -5,6 +5,46 @@ import { isReferencedSchemaObject } from '../helpers.ts'
 import type { ReferencedSchemaObject, SchemaOrReference } from '../types.ts'
 import { BaseGenerator } from './base.ts'
 
+const HEADER_BLOCK = `from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from typing import Any, Literal
+
+from dataclasses_json import DataClassJsonMixin
+
+
+def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
+  return {
+    k: _filter_none(v) if isinstance(v, dict) else v for k, v in _dict.items() if v is not None
+  }
+
+
+class BaseDataClass(DataClassJsonMixin):
+  def to_dict(self, encode_json: bool = True) -> dict[str, Any]:
+    dict = super().to_dict(encode_json=encode_json)
+    return _filter_none(dict)
+`
+
+type OrderedProperty = {
+  name: string
+  schema: SchemaOrReference
+  required: boolean
+}
+
+type UnionHelperConfig = {
+  sectionTitle: string
+  mapName: string
+  helperPrefix: string
+  discriminator: string
+  unionType: string
+}
+
+type ResolvedType = {
+  annotation: string
+  nullable: boolean
+}
+
 export class PythonGenerator extends BaseGenerator {
   private maxLineLength: number
 
@@ -14,17 +54,9 @@ export class PythonGenerator extends BaseGenerator {
     try {
       const pyprojectPath = path.join(this.getSdkFolder(), 'pyproject.toml')
       const content = fs.readFileSync(pyprojectPath, 'utf-8')
-
       const lineLengthMatch = content.match(/\[tool\.ruff\][\s\S]*?line-length\s*=\s*(\d+)/)
-
-      if (lineLengthMatch) {
-        this.maxLineLength = parseInt(lineLengthMatch[1], 10)
-      } else {
-        // Fallback to default PEP 8 recommendation
-        this.maxLineLength = 88
-      }
+      this.maxLineLength = lineLengthMatch ? parseInt(lineLengthMatch[1], 10) : 88
     } catch {
-      // Fallback to default if file reading fails
       this.maxLineLength = 88
     }
   }
@@ -53,25 +85,25 @@ export class PythonGenerator extends BaseGenerator {
     return this.formatComment(text, '# ')
   }
 
-  /**
-   * Override header generation to include Python-specific imports
-   */
   override getGeneratedFileHeader(): string {
     const baseHeader = super.getGeneratedFileHeader()
-    return (
-      baseHeader +
-      '\nfrom typing import Any, Literal, TypedDict\nfrom typing_extensions import NotRequired'
-    )
+    return `${baseHeader}\n${HEADER_BLOCK}`
   }
 
-  override generateTypeDefinition(schema: ReferencedSchemaObject): string {
-    if (schema.schema.type === 'object' && schema.schema.properties) {
-      return this.generateTypedDict(schema)
-    } else if (schema.schema.enum) {
-      return this.generateEnum(schema)
-    } else {
-      return `# ${schema.typeName} = ${this.getPythonType(schema)}`
+  override generateTypeDefinition({
+    typeName,
+    description,
+    schema,
+  }: ReferencedSchemaObject): string {
+    if (schema.type === 'object' && schema.properties) {
+      return this.generateDataclass(typeName, description, schema)
     }
+
+    if (schema.enum) {
+      return this.generateEnum(typeName, schema.enum)
+    }
+
+    return `# ${typeName} = ${this.getPythonType(schema)}`
   }
 
   override generateUnionType(
@@ -79,41 +111,44 @@ export class PythonGenerator extends BaseGenerator {
     schemas: ReferencedSchemaObject[],
     sectionComment?: string
   ): string {
-    let content = ''
+    const comment = sectionComment ? `${this.generateSingleLineComment(sectionComment)}\n` : ''
+    const unionMembers = schemas.map(({ typeName }) => typeName)
+    const inline = `${name} = ${unionMembers.join(' | ')}`
 
-    if (sectionComment) {
-      content += this.generateSingleLineComment(sectionComment) + '\n'
+    const helperConfig = this.getUnionHelperConfig(name)
+
+    if (inline.length <= this.maxLineLength) {
+      let result = `${comment}${inline}`
+      if (helperConfig) {
+        result += this.generateMessageHelpers(helperConfig, schemas)
+      }
+      return result
     }
 
-    // Format union types on multiple lines if too long
-    const unionTypes = schemas.map(({ typeName }) => typeName).join(' | ')
+    const multiline = unionMembers
+      .map((member, index) => `${index === 0 ? '' : '    | '}${member}`)
+      .join('\n')
 
-    if (unionTypes.length + name.length + 3 > this.maxLineLength) {
-      // Multi-line format
-      const formattedTypes = schemas
-        .map(({ typeName }, index) => {
-          const prefix = index === 0 ? '' : '    | '
-          return `${prefix}${typeName}`
-        })
-        .join('\n')
-      content += `${name} = (\n    ${formattedTypes}\n)`
-    } else {
-      // Single line format
-      content += `${name} = ${unionTypes}`
+    let result = `${comment}${name} = (\n    ${multiline}\n)`
+
+    if (helperConfig) {
+      result += this.generateMessageHelpers(helperConfig, schemas)
     }
 
-    return content
+    return result
   }
 
   override resolveUnionTypes(items: SchemaOrReference[]): string[] {
-    const types: string[] = []
+    const result: string[] = []
+
     for (const item of items) {
-      const resolvedType = this.getPythonType(item)
-      if (resolvedType && !types.includes(resolvedType)) {
-        types.push(resolvedType)
+      const type = this.getPythonType(item)
+      if (type && !result.includes(type)) {
+        result.push(type)
       }
     }
-    return types
+
+    return result
   }
 
   private formatComment(text: string, prefix: string): string {
@@ -126,7 +161,6 @@ export class PythonGenerator extends BaseGenerator {
           return `${prefix}${line}`
         }
 
-        // Break long lines at word boundaries
         const words = line.split(' ')
         const lines: string[] = []
         let currentLine = ''
@@ -151,55 +185,77 @@ export class PythonGenerator extends BaseGenerator {
       .join('\n')
   }
 
-  private generateTypedDict({ typeName, schema, description }: ReferencedSchemaObject): string {
-    let content = `class ${typeName}(TypedDict):\n`
+  private generateDataclass(
+    typeName: string,
+    description: string | undefined,
+    schema: SchemaOrReference & {
+      properties?: Record<string, SchemaOrReference>
+      required?: string[]
+    }
+  ): string {
+    const lines: string[] = []
+    const orderedProps = this.orderProperties(
+      schema.properties ?? {},
+      new Set(schema.required ?? [])
+    )
+
+    lines.push('@dataclass(slots=True)')
+    lines.push(`class ${typeName}(BaseDataClass):`)
 
     if (description) {
-      content += `    """${description}"""\n`
+      lines.push(`    """${description}"""`)
     }
 
-    if (schema.properties) {
-      for (const [propName, propSchemaOrRef] of Object.entries(schema.properties)) {
-        const isRequired = schema.required?.includes(propName) ?? false
-        const pythonType = this.getPythonType(propSchemaOrRef)
-        const fieldType = isRequired ? pythonType : `NotRequired[${pythonType}]`
+    if (orderedProps.length === 0) {
+      lines.push('    pass')
+      return lines.join('\n')
+    }
 
-        if (propSchemaOrRef.description) {
-          const formattedComment = this.formatComment(propSchemaOrRef.description, '    # ')
-          content += `${formattedComment}\n`
-        }
+    const required_lines: string[] = []
+    const optional_lines: string[] = []
+    for (const { name, schema: propertySchema, required } of orderedProps) {
+      const { annotation, nullable } = this.resolvePythonType(propertySchema)
+      const isOptional = nullable || !required
+      const _line = isOptional ? optional_lines : required_lines
 
-        content += `    ${propName}: ${fieldType}\n`
+      if ((propertySchema as any).description) {
+        _line.push(...this.formatComment((propertySchema as any).description, '    # ').split('\n'))
       }
-    } else {
-      content += '    pass\n'
+
+      if (isOptional) {
+        _line.push(`    ${name}: ${annotation} | None = None`)
+      } else {
+        _line.push(`    ${name}: ${annotation}`)
+      }
     }
 
-    return content
+    lines.push(...required_lines)
+    lines.push(...optional_lines)
+
+    return lines.join('\n')
   }
 
-  private generateEnum({ typeName: name, schema }: ReferencedSchemaObject): string {
-    if (!schema.enum) {
-      return `${name} = str`
-    }
-    // Generate Literal type for string enums
-    const values = schema.enum.map((value) => `"${value}"`)
-    const literalContent = values.join(', ')
-    const maxLineLength = this.maxLineLength
+  private orderProperties(
+    properties: Record<string, SchemaOrReference>,
+    required: Set<string>
+  ): OrderedProperty[] {
+    const result: OrderedProperty[] = []
 
-    if (literalContent.length + name.length + 12 > maxLineLength) {
-      // 12 for ' = Literal[]'
-      // Multi-line format
-      const formattedValues = values
-        .map((value, index) => {
-          const prefix = index === 0 ? '' : '    '
-          return `${prefix}${value}`
-        })
-        .join(',\n')
-      return `${name} = Literal[\n    ${formattedValues}\n]`
-    } else {
-      return `${name} = Literal[${literalContent}]`
-    }
+    Object.entries(properties)
+      .filter(([name]) => required.has(name))
+      .forEach(([name, schema]) => result.push({ name, schema, required: true }))
+
+    Object.entries(properties)
+      .filter(([name]) => !required.has(name))
+      .forEach(([name, schema]) => result.push({ name, schema, required: false }))
+
+    return result
+  }
+
+  private resolvePythonType(schemaOrRef: SchemaOrReference): ResolvedType {
+    const annotation = this.getPythonType(schemaOrRef)
+    const nullable = this.isNullable(schemaOrRef)
+    return { annotation, nullable }
   }
 
   private getPythonType(schemaOrRef: SchemaOrReference): string {
@@ -207,90 +263,222 @@ export class PythonGenerator extends BaseGenerator {
       return schemaOrRef.typeName
     }
 
-    const schema = schemaOrRef
-
-    // Handle union types (oneOf/anyOf/allOf)
-    if (schema.oneOf || schema.anyOf || schema.allOf?.length === 1) {
-      const items = schema.oneOf || schema.anyOf || schema.allOf || []
-      const resolvedTypes = this.resolveUnionTypes(items)
-      if (resolvedTypes.length > 0) {
-        const unionTypes = resolvedTypes.join(' | ')
-        // For inline types, keep single line but consider parentheses for very long unions
-        if (unionTypes.length > 60) {
-          return `(${unionTypes})`
-        }
-        return unionTypes
-      }
+    if (schemaOrRef.enum) {
+      return this.generateInlineEnum(schemaOrRef.enum)
     }
 
-    if (schema.enum) {
-      // Handle enum types inline
-      const enumValues = schema.enum
-      const allNumbers = enumValues.every((val) => typeof val === 'number')
+    if (schemaOrRef.oneOf || schemaOrRef.anyOf || schemaOrRef.allOf?.length === 1) {
+      const members = schemaOrRef.oneOf || schemaOrRef.anyOf || schemaOrRef.allOf || []
+      const unions = this.resolveUnionTypes(members)
 
-      if (allNumbers) {
-        // For numeric enums, create union of numbers
-        const unionTypes = enumValues.join(' | ')
-        if (unionTypes.length > 60) {
-          return `(${unionTypes})`
-        }
-        return unionTypes
-      } else {
-        // For string enums, use Literal type
-        const stringValues = enumValues.map((val) => `"${val}"`)
-        const literalContent = stringValues.join(', ')
-        return `Literal[${literalContent}]`
+      if (unions.length === 1) {
+        return unions[0]
       }
+
+      return unions.length > 0 ? unions.join(' | ') : 'Any'
     }
 
-    switch (schema.type) {
-      case 'string': {
+    if (Array.isArray(schemaOrRef.type)) {
+      const nonNull = schemaOrRef.type.filter((item) => item !== 'null')
+      if (nonNull.length === 1) {
+        return this.getPythonType({ ...schemaOrRef, type: nonNull[0] })
+      }
+      return 'Any'
+    }
+
+    switch (schemaOrRef.type) {
+      case 'string':
         return 'str'
-      }
-      case 'number': {
-        return 'float'
-      }
-      case 'integer': {
+      case 'integer':
         return 'int'
-      }
-      case 'boolean': {
+      case 'number':
+        return 'float'
+      case 'boolean':
         return 'bool'
-      }
-      case 'array': {
-        if (schema.items) {
-          return `list[${this.getPythonType(schema.items)}]`
-        }
-        return 'list[Any]'
-      }
+      case 'array':
+        return `list[${schemaOrRef.items ? this.getPythonType(schemaOrRef.items) : 'Any'}]`
       case 'object': {
-        if (schema.additionalProperties) {
-          if (typeof schema.additionalProperties === 'boolean') {
+        if (schemaOrRef.additionalProperties) {
+          if (typeof schemaOrRef.additionalProperties === 'boolean') {
             return 'dict[str, Any]'
-          } else if (Object.keys(schema.additionalProperties).length) {
-            const valueType = this.getPythonType(schema.additionalProperties)
-            return `dict[str, ${valueType}]`
           }
-        }
-
-        if (schema.properties) {
-          // Generate inline TypedDict for objects with properties
-          const propTypes: string[] = []
-
-          for (const [propName, propSchemaOrRef] of Object.entries(schema.properties)) {
-            const isRequired = schema.required?.includes(propName) ?? false
-            const propType = this.getPythonType(propSchemaOrRef)
-            const finalType = isRequired ? propType : `${propType} | None`
-            propTypes.push(`'${propName}': ${finalType}`)
-          }
-
-          return `TypedDict('InlineObject', {${propTypes.join(', ')}})`
+          const valueType = this.getPythonType(schemaOrRef.additionalProperties)
+          return `dict[str, ${valueType}]`
         }
         return 'dict[str, Any]'
       }
-      default: {
-        console.warn(`Schema not supported: ${JSON.stringify(schemaOrRef)}`)
+      default:
         return 'Any'
-      }
     }
+  }
+
+  private generateInlineEnum(values: Array<string | number>): string {
+    const literalItems = values.map((value) =>
+      typeof value === 'string' ? `"${value}"` : value.toString()
+    )
+    const inline = `Literal[${literalItems.join(', ')}]`
+
+    if (inline.length <= this.maxLineLength) {
+      return inline
+    }
+
+    const formatted = literalItems
+      .map((item, index) => `        ${item}${index === literalItems.length - 1 ? '' : ','}`)
+      .join('\n')
+
+    return `Literal[\n${formatted}\n    ]`
+  }
+
+  private generateEnum(typeName: string, values: Array<string | number>): string {
+    const literalItems = values.map((value) =>
+      typeof value === 'string' ? `"${value}"` : value.toString()
+    )
+    const inline = `Literal[${literalItems.join(', ')}]`
+
+    if (inline.length + typeName.length + 3 <= this.maxLineLength) {
+      return `${typeName} = ${inline}`
+    }
+
+    const formatted = literalItems
+      .map((item, index) => `    ${item}${index === literalItems.length - 1 ? '' : ','}`)
+      .join('\n')
+
+    return `${typeName} = Literal[\n${formatted}\n]`
+  }
+
+  private isNullable(schemaOrRef: SchemaOrReference): boolean {
+    if (isReferencedSchemaObject(schemaOrRef)) {
+      return this.isNullable(schemaOrRef.schema)
+    }
+
+    if (schemaOrRef.nullable) {
+      return true
+    }
+
+    if (Array.isArray(schemaOrRef.type)) {
+      return schemaOrRef.type.includes('null')
+    }
+
+    return false
+  }
+
+  private getUnionHelperConfig(name: string): UnionHelperConfig | undefined {
+    switch (name) {
+      case 'LiveV2WebSocketMessage':
+        return {
+          sectionTitle: 'websocket',
+          mapName: '_WS_TYPE_TO_CLASS',
+          helperPrefix: 'web_socket',
+          discriminator: 'type',
+          unionType: name,
+        }
+      case 'LiveV2CallbackMessage':
+        return {
+          sectionTitle: 'callback',
+          mapName: '_CALLBACK_EVENT_TO_CLASS',
+          helperPrefix: 'callback',
+          discriminator: 'event',
+          unionType: name,
+        }
+      case 'LiveV2WebhookMessage':
+        return {
+          sectionTitle: 'webhook',
+          mapName: '_WEBHOOK_EVENT_TO_CLASS',
+          helperPrefix: 'webhook',
+          discriminator: 'event',
+          unionType: name,
+        }
+      default:
+        return undefined
+    }
+  }
+
+  private generateMessageHelpers(
+    config: UnionHelperConfig,
+    schemas: ReferencedSchemaObject[]
+  ): string {
+    const entries = schemas
+      .map((schema) => this.makeMappingEntry(schema, config.discriminator))
+      .filter((value): value is string => Boolean(value))
+
+    if (entries.length === 0) {
+      return ''
+    }
+
+    const lines: string[] = []
+    lines.push('')
+    lines.push(`${config.mapName}: dict[str, type[${config.unionType}]] = {`)
+    lines.push(...entries)
+    lines.push('}')
+    lines.push('')
+    lines.push(
+      `def create_live_v2_${config.helperPrefix}_message_from_dict(payload: dict[str, Any]) -> ${config.unionType}:`
+    )
+    lines.push(`    message_key = payload.get("${config.discriminator}")`)
+    lines.push('')
+    lines.push('    if not isinstance(message_key, str):')
+    lines.push(
+      `        raise ValueError("Missing or invalid '${config.discriminator}' field in ${config.sectionTitle} message payload")`
+    )
+    lines.push('')
+    lines.push('    try:')
+    lines.push(`        cls = ${config.mapName}[message_key]`)
+    lines.push('    except KeyError as exc:')
+    lines.push(
+      `        raise ValueError(f"Unsupported ${config.sectionTitle} message ${config.discriminator}: {message_key}") from exc`
+    )
+    lines.push('')
+    lines.push('    return cls.from_dict(payload)')
+    lines.push('')
+    lines.push(
+      `def create_live_v2_${config.helperPrefix}_message_from_json(data: str | bytes | bytearray) -> ${config.unionType}:`
+    )
+    lines.push('    parsed = json.loads(data)')
+    lines.push('    if not isinstance(parsed, dict):')
+    lines.push(
+      `        raise ValueError("${config.sectionTitle} message JSON must represent an object")`
+    )
+    lines.push('')
+    lines.push(`    return create_live_v2_${config.helperPrefix}_message_from_dict(parsed)`)
+    lines.push('')
+
+    return lines.join('\n')
+  }
+
+  private makeMappingEntry(
+    schema: ReferencedSchemaObject,
+    discriminator: string
+  ): string | undefined {
+    const property = schema.schema.properties?.[discriminator]
+
+    if (!property) {
+      return undefined
+    }
+
+    const literalValue = this.extractSingleLiteral(property)
+
+    if (!literalValue) {
+      return undefined
+    }
+
+    return `    "${literalValue}": ${schema.typeName},`
+  }
+
+  private extractSingleLiteral(schemaOrRef: SchemaOrReference): string | undefined {
+    if (isReferencedSchemaObject(schemaOrRef)) {
+      return this.extractSingleLiteral(schemaOrRef.schema)
+    }
+
+    if (schemaOrRef.enum && schemaOrRef.enum.length === 1) {
+      const value = schemaOrRef.enum[0]
+      return typeof value === 'string' ? value : undefined
+    }
+
+    if ((schemaOrRef as { const?: unknown }).const) {
+      const value = (schemaOrRef as { const?: unknown }).const
+      return typeof value === 'string' ? value : undefined
+    }
+
+    return undefined
   }
 }

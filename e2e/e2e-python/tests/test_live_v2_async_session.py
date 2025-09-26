@@ -5,7 +5,14 @@ import re
 import string
 
 import pytest
-from gladiaio_sdk import GladiaClient, LiveV2TranscriptMessage, LiveV2WebSocketMessage
+from gladiaio_sdk import (
+  GladiaClient,
+  HttpError,
+  LiveV2InitRequest,
+  LiveV2LanguageConfig,
+  LiveV2TranscriptMessage,
+  LiveV2WebSocketMessage,
+)
 
 from tests.helpers import parse_audio_file, send_audio_file_async
 
@@ -20,12 +27,12 @@ async def test_live_v2_async_session():
     GladiaClient()
     .async_live_v2()
     .start_session(
-      {
+      LiveV2InitRequest(
         **audio_data["audio_config"],
-        "language_config": {
-          "languages": ["en"],
-        },
-      }
+        language_config=LiveV2LanguageConfig(
+          languages=["en"],
+        ),
+      )
     )
   )
   assert live_session.status == "starting"
@@ -36,12 +43,15 @@ async def test_live_v2_async_session():
   @live_session.on("message")
   def handle_message(message: LiveV2WebSocketMessage):  # pyright: ignore[reportUnusedFunction]
     print(message)
-    if message["type"] == "transcript":
+    if message.type == "transcript":
       transcripts.append(message)
 
   @live_session.once("error")
   def handle_error(error: Exception):  # pyright: ignore[reportUnusedFunction]
-    print(error)
+    if isinstance(error, HttpError):
+      print(f"HttpError: {error.response_body} | {error}")
+    else:
+      print(error)
 
   @live_session.once("ended")
   def handle_ended(ended):  # pyright: ignore[reportUnusedFunction]
@@ -55,11 +65,11 @@ async def test_live_v2_async_session():
   assert live_session.status == "ended"
 
   for transcript in transcripts:
-    assert transcript["type"] == "transcript"
-    assert transcript["data"]["is_final"]
+    assert transcript.type == "transcript"
+    assert transcript.data.is_final
 
   assert re.match(
     rf"^\ssplit infinity[{re.escape(string.punctuation)}]*$",
-    " ".join(transcript["data"]["utterance"]["text"] for transcript in transcripts),
+    " ".join(transcript.data.utterance.text for transcript in transcripts),
     re.IGNORECASE,
   )

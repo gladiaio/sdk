@@ -4,9 +4,10 @@ Import GladiaClient and start using Gladia API.
 """
 
 from .client import GladiaClient as GladiaClient
+from .network.async_http_client import HttpError, TimeoutError
 from .v2.live.async_session import AsyncLiveV2Session as AsyncLiveV2Session
 
-__all__: list[str] = ["GladiaClient", "AsyncLiveV2Session"]
+__all__: list[str] = ["GladiaClient", "AsyncLiveV2Session", "HttpError", "TimeoutError"]
 
 # Try standard import first (works when `v2/` and `v2/live/` are packages)
 try:
