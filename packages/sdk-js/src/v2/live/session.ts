@@ -27,7 +27,7 @@ export class LiveV2Session {
 
   private abortController: AbortController = new AbortController()
   private initSessionPromise: Promise<LiveV2InitResponse>
-  private initSession: LiveV2InitResponse | null = null
+  private initSessionResponse: LiveV2InitResponse | null = null
   private webSocketSession: WebSocketSession | null = null
 
   private eventEmitter: EventEmitter | null = new EventEmitter()
@@ -50,30 +50,8 @@ export class LiveV2Session {
     this.webSocketClient = webSocketClient
     this.abortController = new AbortController()
 
-    this.initSessionPromise = this.startSession()
-    this.initSessionPromise.then((session) => {
-      this.initSession = session
-
-      if (this.abortController.signal.aborted) {
-        return
-      }
-
-      if (this._status === 'starting') {
-        this._status = 'started'
-        this.emit('started', session)
-      }
-
-      if (this.sessionOptions.messages_config?.receive_lifecycle_events) {
-        const startSessionMessage: LiveV2StartSessionMessage = {
-          type: 'start_session',
-          session_id: session.id,
-          created_at: session.created_at,
-        }
-        this.emit('message', startSessionMessage)
-      }
-
-      return this.connectToWebSocket(session)
-    })
+    this.initSessionPromise = this.initSession()
+    this.startSession()
   }
 
   /**
@@ -89,7 +67,7 @@ export class LiveV2Session {
    * The session id or null if the session is not started yet.
    */
   get sessionId(): string | null {
-    return this.initSession?.id ?? null
+    return this.initSessionResponse?.id ?? null
   }
 
   /**
@@ -148,43 +126,59 @@ export class LiveV2Session {
     this.doDestroy(1000, 'Session ended by user')
   }
 
-  private doStop(code = 1006, reason?: string): void {
-    if (this._status === 'ended') {
-      // no-op
-      return
-    }
-    if (this._status === 'ending') {
-      // no-op
-      return
-    }
-
-    this._status = 'ending'
-    this.emit('ending', { code, reason })
-
-    if (this.webSocketSession?.readyState === WS_STATES.OPEN) {
-      this.webSocketSession?.send(JSON.stringify({ type: 'stop_recording' }))
+  private async initSession(): Promise<LiveV2InitResponse> {
+    try {
+      return await this.httpClient.post<LiveV2InitResponse>(`/v2/live`, {
+        signal: this.abortController.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...this.sessionOptions,
+          messages_config: {
+            ...this.sessionOptions.messages_config,
+            // Force ack reception for resume
+            receive_acknowledgments: true,
+          },
+        } satisfies LiveV2InitRequest),
+      })
+    } catch (error) {
+      if (!this.abortController.signal.aborted) {
+        this.emit(
+          'error',
+          error instanceof Error
+            ? error
+            : new Error(`Error creating session: ${error}`, { cause: error })
+        )
+        this.doDestroy(1006, `Couldn't start a new session`)
+      }
+      throw error
     }
   }
 
-  private doDestroy(code = 1006, reason?: string) {
-    if (this._status === 'ended') {
+  private async startSession(): Promise<void> {
+    const session = await this.initSessionPromise
+    this.initSessionResponse = session
+
+    if (this.abortController.signal.aborted) {
       return
     }
 
-    // Ending the session
-    this.doStop(code, reason)
+    if (this._status === 'starting') {
+      this._status = 'started'
+      this.emit('started', session)
+    }
 
-    // Session ended
-    this._status = 'ended'
-    this.emit('ended', { code, reason })
+    if (this.sessionOptions.messages_config?.receive_lifecycle_events) {
+      const startSessionMessage: LiveV2StartSessionMessage = {
+        type: 'start_session',
+        session_id: session.id,
+        created_at: session.created_at,
+      }
+      this.emit('message', startSessionMessage)
+    }
 
-    // Cancel pending connection
-    this.abortController.abort()
-
-    this.audioBuffer = null
-
-    this.removeAllListeners()
-    this.eventEmitter = null
+    this.connectToWebSocket(session)
   }
 
   private connectToWebSocket(session: LiveV2InitResponse): void {
@@ -253,36 +247,6 @@ export class LiveV2Session {
     }
   }
 
-  private async startSession(): Promise<LiveV2InitResponse> {
-    try {
-      return await this.httpClient.post<LiveV2InitResponse>(`/v2/live`, {
-        signal: this.abortController.signal,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...this.sessionOptions,
-          messages_config: {
-            ...this.sessionOptions.messages_config,
-            // Force ack reception for resume
-            receive_acknowledgments: true,
-          },
-        } satisfies LiveV2InitRequest),
-      })
-    } catch (error) {
-      if (!this.abortController.signal.aborted) {
-        this.emit(
-          'error',
-          error instanceof Error
-            ? error
-            : new Error(`Error creating session: ${error}`, { cause: error })
-        )
-        this.doDestroy(1006, `Couldn't start a new session`)
-      }
-      throw error
-    }
-  }
-
   private parseMessage(data: string): LiveV2WebSocketMessage {
     let message: unknown
     try {
@@ -294,6 +258,45 @@ export class LiveV2Session {
       throw new Error(`Invalid message received: ${data}`)
     }
     return message as LiveV2WebSocketMessage
+  }
+
+  private doStop(code = 1006, reason?: string): void {
+    if (this._status === 'ended') {
+      // no-op
+      return
+    }
+    if (this._status === 'ending') {
+      // no-op
+      return
+    }
+
+    this._status = 'ending'
+    this.emit('ending', { code, reason })
+
+    if (this.webSocketSession?.readyState === WS_STATES.OPEN) {
+      this.webSocketSession?.send(JSON.stringify({ type: 'stop_recording' }))
+    }
+  }
+
+  private doDestroy(code = 1006, reason?: string) {
+    if (this._status === 'ended') {
+      return
+    }
+
+    // Ending the session
+    this.doStop(code, reason)
+
+    // Session ended
+    this._status = 'ended'
+    this.emit('ended', { code, reason })
+
+    // Cancel pending connection
+    this.abortController.abort()
+
+    this.audioBuffer = null
+
+    this.removeAllListeners()
+    this.eventEmitter = null
   }
 
   // #### Listeners ####
@@ -364,8 +367,8 @@ export class LiveV2Session {
     this.eventEmitter?.removeListener(type, cb)
   }
 
-  removeAllListeners(): void {
-    this.eventEmitter?.removeAllListeners()
+  removeAllListeners(type?: keyof EventMap): void {
+    this.eventEmitter?.removeAllListeners(type)
   }
 
   private emit(type: 'started', ...args: EventMap['started']): void
