@@ -2,6 +2,8 @@
 # Generated from OpenAPI schema.
 from typing import Any, Literal, TypedDict
 
+from typing_extensions import NotRequired
+
 # Shared Types Types
 LiveV2Encoding = Literal["wav/pcm", "wav/alaw", "wav/ulaw"]
 
@@ -118,31 +120,31 @@ LiveV2TranscriptionLanguageCode = Literal[
 class LiveV2LanguageConfig(TypedDict):
   # If one language is set, it will be used for the transcription. Otherwise, language will be
   # auto-detected by the model.
-  languages: list[LiveV2TranscriptionLanguageCode] | None
+  languages: NotRequired[list[LiveV2TranscriptionLanguageCode]]
   # If true, language will be auto-detected on each utterance. Otherwise, language will be
   # auto-detected on first utterance and then used for the rest of the transcription. If one
   # language is set, this option will be ignored.
-  code_switching: bool | None
+  code_switching: NotRequired[bool]
 
 
 class LiveV2PreProcessingConfig(TypedDict):
   # If true, apply pre-processing to the audio stream to enhance the quality.
-  audio_enhancer: bool | None
+  audio_enhancer: NotRequired[bool]
   # Sensitivity configuration for Speech Threshold. A value close to 1 will apply stricter
   # thresholds, making it less likely to detect background sounds as speech.
-  speech_threshold: float | None
+  speech_threshold: NotRequired[float]
 
 
 class LiveV2CustomVocabularyEntry(TypedDict):
   # The text used to replace in the transcription.
   value: str
   # The global intensity of the feature.
-  intensity: float | None
+  intensity: NotRequired[float]
   # The pronunciations used in the transcription.
-  pronunciations: list[str] | None
+  pronunciations: NotRequired[list[str]]
   # Specify the language in which it will be pronounced when sound comparison occurs. Default to
   # transcription language.
-  language: LiveV2TranscriptionLanguageCode | None
+  language: NotRequired[LiveV2TranscriptionLanguageCode]
 
 
 class LiveV2CustomVocabularyConfig(TypedDict):
@@ -150,7 +152,7 @@ class LiveV2CustomVocabularyConfig(TypedDict):
   # object with the following properties: value, intensity, pronunciations, language.
   vocabulary: list[LiveV2CustomVocabularyEntry | str]
   # Default intensity for the custom vocabulary
-  default_intensity: float | None
+  default_intensity: NotRequired[float]
 
 
 class LiveV2CustomSpellingConfig(TypedDict):
@@ -269,37 +271,37 @@ class LiveV2TranslationConfig(TypedDict):
   # Target language in `iso639-1` format you want the transcription translated to
   target_languages: list[LiveV2TranslationLanguageCode]
   # Model you want the translation model to use to translate
-  model: LiveV2TranslationModel | None
+  model: NotRequired[LiveV2TranslationModel]
   # Align translated utterances with the original ones
-  match_original_utterances: bool | None
+  match_original_utterances: NotRequired[bool]
   # Whether to apply lipsync to the translated transcription.
-  lipsync: bool | None
+  lipsync: NotRequired[bool]
   # Enables or disables context-aware translation features that allow the model to adapt
   # translations based on provided context.
-  context_adaptation: bool | None
+  context_adaptation: NotRequired[bool]
   # Context information to improve translation accuracy
-  context: str | None
+  context: NotRequired[str]
   # Forces the translation to use informal language forms when available in the target language.
-  informal: bool | None
+  informal: NotRequired[bool]
 
 
 class LiveV2RealtimeProcessingConfig(TypedDict):
   # If true, enable custom vocabulary for the transcription.
-  custom_vocabulary: bool | None
+  custom_vocabulary: NotRequired[bool]
   # Custom vocabulary configuration, if `custom_vocabulary` is enabled
-  custom_vocabulary_config: LiveV2CustomVocabularyConfig | None
+  custom_vocabulary_config: NotRequired[LiveV2CustomVocabularyConfig]
   # If true, enable custom spelling for the transcription.
-  custom_spelling: bool | None
+  custom_spelling: NotRequired[bool]
   # Custom spelling configuration, if `custom_spelling` is enabled
-  custom_spelling_config: LiveV2CustomSpellingConfig | None
+  custom_spelling_config: NotRequired[LiveV2CustomSpellingConfig]
   # If true, enable translation for the transcription
-  translation: bool | None
+  translation: NotRequired[bool]
   # Translation configuration, if `translation` is enabled
-  translation_config: LiveV2TranslationConfig | None
+  translation_config: NotRequired[LiveV2TranslationConfig]
   # If true, enable named entity recognition for the transcription.
-  named_entity_recognition: bool | None
+  named_entity_recognition: NotRequired[bool]
   # If true, enable sentiment analysis for the transcription.
-  sentiment_analysis: bool | None
+  sentiment_analysis: NotRequired[bool]
 
 
 LiveV2SummaryType = Literal["general", "bullet_points", "concise"]
@@ -307,60 +309,60 @@ LiveV2SummaryType = Literal["general", "bullet_points", "concise"]
 
 class LiveV2SummarizationConfig(TypedDict):
   # The type of summarization to apply
-  type: LiveV2SummaryType | None
+  type: NotRequired[LiveV2SummaryType]
 
 
 class LiveV2PostProcessingConfig(TypedDict):
   # If true, generates summarization for the whole transcription.
-  summarization: bool | None
+  summarization: NotRequired[bool]
   # Summarization configuration, if `summarization` is enabled
-  summarization_config: LiveV2SummarizationConfig | None
+  summarization_config: NotRequired[LiveV2SummarizationConfig]
   # If true, generates chapters for the whole transcription.
-  chapterization: bool | None
+  chapterization: NotRequired[bool]
 
 
 class LiveV2MessagesConfig(TypedDict):
   # If true, partial transcript will be sent to websocket.
-  receive_partial_transcripts: bool | None
+  receive_partial_transcripts: NotRequired[bool]
   # If true, final transcript will be sent to websocket.
-  receive_final_transcripts: bool | None
+  receive_final_transcripts: NotRequired[bool]
   # If true, begin and end speech events will be sent to websocket.
-  receive_speech_events: bool | None
+  receive_speech_events: NotRequired[bool]
   # If true, pre-processing events will be sent to websocket.
-  receive_pre_processing_events: bool | None
+  receive_pre_processing_events: NotRequired[bool]
   # If true, realtime processing events will be sent to websocket.
-  receive_realtime_processing_events: bool | None
+  receive_realtime_processing_events: NotRequired[bool]
   # If true, post-processing events will be sent to websocket.
-  receive_post_processing_events: bool | None
+  receive_post_processing_events: NotRequired[bool]
   # If true, acknowledgments will be sent to websocket.
-  receive_acknowledgments: bool | None
+  receive_acknowledgments: NotRequired[bool]
   # If true, errors will be sent to websocket.
-  receive_errors: bool | None
+  receive_errors: NotRequired[bool]
   # If true, lifecycle events will be sent to websocket.
-  receive_lifecycle_events: bool | None
+  receive_lifecycle_events: NotRequired[bool]
 
 
 class LiveV2CallbackConfig(TypedDict):
   # URL on which we will do a `POST` request with configured messages
-  url: str | None
+  url: NotRequired[str]
   # If true, partial transcript will be sent to the defined callback.
-  receive_partial_transcripts: bool | None
+  receive_partial_transcripts: NotRequired[bool]
   # If true, final transcript will be sent to the defined callback.
-  receive_final_transcripts: bool | None
+  receive_final_transcripts: NotRequired[bool]
   # If true, begin and end speech events will be sent to the defined callback.
-  receive_speech_events: bool | None
+  receive_speech_events: NotRequired[bool]
   # If true, pre-processing events will be sent to the defined callback.
-  receive_pre_processing_events: bool | None
+  receive_pre_processing_events: NotRequired[bool]
   # If true, realtime processing events will be sent to the defined callback.
-  receive_realtime_processing_events: bool | None
+  receive_realtime_processing_events: NotRequired[bool]
   # If true, post-processing events will be sent to the defined callback.
-  receive_post_processing_events: bool | None
+  receive_post_processing_events: NotRequired[bool]
   # If true, acknowledgments will be sent to the defined callback.
-  receive_acknowledgments: bool | None
+  receive_acknowledgments: NotRequired[bool]
   # If true, errors will be sent to the defined callback.
-  receive_errors: bool | None
+  receive_errors: NotRequired[bool]
   # If true, lifecycle events will be sent to the defined callback.
-  receive_lifecycle_events: bool | None
+  receive_lifecycle_events: NotRequired[bool]
 
 
 class LiveV2Error(TypedDict):
@@ -401,7 +403,7 @@ class LiveV2Utterance(TypedDict):
   # Audio channel of where this utterance has been transcribed from
   channel: int
   # If `diarization` enabled, speaker identification number
-  speaker: int | None
+  speaker: NotRequired[int]
   # List of words of the utterance, split by timestamp
   words: list[LiveV2Word]
   # Transcription for this utterance
@@ -447,9 +449,9 @@ class LiveV2ChapterizationSentence(TypedDict):
 
 
 class LiveV2PostChapterizationResult(TypedDict):
-  abstractive_summary: str | None
-  extractive_summary: str | None
-  summary: str | None
+  abstractive_summary: NotRequired[str]
+  extractive_summary: NotRequired[str]
+  summary: NotRequired[str]
   headline: str
   gist: str
   keywords: list[str]
@@ -513,9 +515,9 @@ class LiveV2Transcription(TypedDict):
   # All the detected languages in the audio sorted from the most detected to the less detected
   languages: list[LiveV2TranscriptionLanguageCode]
   # If `sentences` has been enabled, sentences results
-  sentences: list[LiveV2Sentences] | None
+  sentences: NotRequired[list[LiveV2Sentences]]
   # If `subtitles` has been enabled, subtitles results
-  subtitles: list[LiveV2Subtitle] | None
+  subtitles: NotRequired[list[LiveV2Subtitle]]
   # Transcribed speech utterances present in the audio
   utterances: list[LiveV2Utterance]
 
@@ -528,9 +530,9 @@ class LiveV2TranslationResult(TypedDict):
   # All the detected languages in the audio sorted from the most detected to the less detected
   languages: list[LiveV2TranslationLanguageCode]
   # If `sentences` has been enabled, sentences results for this translation
-  sentences: list[LiveV2Sentences] | None
+  sentences: NotRequired[list[LiveV2Sentences]]
   # If `subtitles` has been enabled, subtitles results for this translation
-  subtitles: list[LiveV2Subtitle] | None
+  subtitles: NotRequired[list[LiveV2Subtitle]]
   # Transcribed speech utterances present in the audio
   utterances: list[LiveV2Utterance]
 
@@ -606,18 +608,18 @@ class LiveV2TranscriptionResult(TypedDict):
   # Metadata for the given transcription & audio file
   metadata: LiveV2TranscriptionMetadata
   # Transcription of the audio speech
-  transcription: LiveV2Transcription | None
+  transcription: NotRequired[LiveV2Transcription]
   # If `translation` has been enabled, translation of the audio speech transcription
-  translation: LiveV2Translation | None
+  translation: NotRequired[LiveV2Translation]
   # If `summarization` has been enabled, summarization of the audio speech transcription
-  summarization: LiveV2Summarization | None
+  summarization: NotRequired[LiveV2Summarization]
   # If `named_entity_recognition` has been enabled, the detected entities
-  named_entity_recognition: LiveV2NamedEntityRecognition | None
+  named_entity_recognition: NotRequired[LiveV2NamedEntityRecognition]
   # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
-  sentiment_analysis: LiveV2SentimentAnalysis | None
+  sentiment_analysis: NotRequired[LiveV2SentimentAnalysis]
   # If `chapterization` has been enabled, will generate chapters name for different parts of the
   # given audio.
-  chapterization: LiveV2Chapterization | None
+  chapterization: NotRequired[LiveV2Chapterization]
 
 
 class LiveV2PostSummarizationMessageData(TypedDict):
@@ -679,37 +681,37 @@ class LiveV2InitRequest(TypedDict):
   # - μ-law: 8 bits
   #
   # Note: No need to add WAV headers to raw audio as the API supports both formats.
-  encoding: LiveV2Encoding | None
+  encoding: NotRequired[LiveV2Encoding]
   # The bit depth of the audio stream
-  bit_depth: LiveV2BitDepth | None
+  bit_depth: NotRequired[LiveV2BitDepth]
   # The sample rate of the audio stream
-  sample_rate: LiveV2SampleRate | None
+  sample_rate: NotRequired[LiveV2SampleRate]
   # The number of channels of the audio stream
-  channels: int | None
+  channels: NotRequired[int]
   # Custom metadata you can attach to this live transcription
-  custom_metadata: dict[str, Any] | None
+  custom_metadata: NotRequired[dict[str, Any]]
   # The model used to process the audio. "solaria-1" is used by default.
-  model: LiveV2Model | None
+  model: NotRequired[LiveV2Model]
   # The endpointing duration in seconds. Endpointing is the duration of silence which will cause
   # an utterance to be considered as finished
-  endpointing: float | None
+  endpointing: NotRequired[float]
   # The maximum duration in seconds without endpointing. If endpointing is not detected after this
   # duration, current utterance will be considered as finished
-  maximum_duration_without_endpointing: float | None
+  maximum_duration_without_endpointing: NotRequired[float]
   # Specify the language configuration
-  language_config: LiveV2LanguageConfig | None
+  language_config: NotRequired[LiveV2LanguageConfig]
   # Specify the pre-processing configuration
-  pre_processing: LiveV2PreProcessingConfig | None
+  pre_processing: NotRequired[LiveV2PreProcessingConfig]
   # Specify the realtime processing configuration
-  realtime_processing: LiveV2RealtimeProcessingConfig | None
+  realtime_processing: NotRequired[LiveV2RealtimeProcessingConfig]
   # Specify the post-processing configuration
-  post_processing: LiveV2PostProcessingConfig | None
+  post_processing: NotRequired[LiveV2PostProcessingConfig]
   # Specify the websocket messages configuration
-  messages_config: LiveV2MessagesConfig | None
+  messages_config: NotRequired[LiveV2MessagesConfig]
   # If true, messages will be sent to configured url.
-  callback: bool | None
+  callback: NotRequired[bool]
   # Specify the callback configuration
-  callback_config: LiveV2CallbackConfig | None
+  callback_config: NotRequired[LiveV2CallbackConfig]
 
 
 class LiveV2InitResponse(TypedDict):

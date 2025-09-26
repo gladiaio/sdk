@@ -58,7 +58,10 @@ export class PythonGenerator extends BaseGenerator {
    */
   override getGeneratedFileHeader(): string {
     const baseHeader = super.getGeneratedFileHeader()
-    return baseHeader + '\nfrom typing import Any, Literal, TypedDict'
+    return (
+      baseHeader +
+      '\nfrom typing import Any, Literal, TypedDict\nfrom typing_extensions import NotRequired'
+    )
   }
 
   override generateTypeDefinition(schema: ReferencedSchemaObject): string {
@@ -159,11 +162,7 @@ export class PythonGenerator extends BaseGenerator {
       for (const [propName, propSchemaOrRef] of Object.entries(schema.properties)) {
         const isRequired = schema.required?.includes(propName) ?? false
         const pythonType = this.getPythonType(propSchemaOrRef)
-
-        // Use automatic type resolution from base class
-        // pythonType = this.getResolvedType(name, propName, pythonType)
-
-        const fieldType = isRequired ? pythonType : `${pythonType} | None`
+        const fieldType = isRequired ? pythonType : `NotRequired[${pythonType}]`
 
         if (propSchemaOrRef.description) {
           const formattedComment = this.formatComment(propSchemaOrRef.description, '    # ')
