@@ -10,7 +10,7 @@ export type LiveV2BitDepth = 8 | 16 | 24 | 32
 
 export type LiveV2SampleRate = 8000 | 16000 | 32000 | 44100 | 48000
 
-export type LiveV2Model = 'solaria-1'
+export type LiveV2Model = 'solaria-1' | 'solaria-2'
 
 export type LiveV2TranscriptionLanguageCode =
   | 'af'
@@ -481,9 +481,9 @@ export interface LiveV2Sentences {
   /** Time audio intelligence model took to complete the task */
   exec_time: number
   /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: LiveV2AddonError
+  error: LiveV2AddonError | null
   /** If `sentences` has been enabled, transcription as sentences. */
-  results: Array<string>
+  results: Array<string> | null
 }
 
 export type LiveV2SubtitlesFormat = 'srt' | 'vtt'
@@ -510,7 +510,7 @@ export interface LiveV2Transcription {
 
 export interface LiveV2TranslationResult {
   /** Contains the error details of the failed addon */
-  error: LiveV2AddonError
+  error: LiveV2AddonError | null
   /** All transcription on text format without any other information */
   full_transcript: string
   /** All the detected languages in the audio sorted from the most detected to the less detected */
@@ -531,9 +531,9 @@ export interface LiveV2Translation {
   /** Time audio intelligence model took to complete the task */
   exec_time: number
   /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: LiveV2AddonError
+  error: LiveV2AddonError | null
   /** List of translated transcriptions, one for each `target_languages` */
-  results: Array<LiveV2TranslationResult>
+  results: Array<LiveV2TranslationResult> | null
 }
 
 export interface LiveV2Summarization {
@@ -544,9 +544,9 @@ export interface LiveV2Summarization {
   /** Time audio intelligence model took to complete the task */
   exec_time: number
   /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: LiveV2AddonError
+  error: LiveV2AddonError | null
   /** If `summarization` has been enabled, summary of the transcription */
-  results: string
+  results: string | null
 }
 
 export interface LiveV2NamedEntityRecognition {
@@ -557,7 +557,7 @@ export interface LiveV2NamedEntityRecognition {
   /** Time audio intelligence model took to complete the task */
   exec_time: number
   /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: LiveV2AddonError
+  error: LiveV2AddonError | null
   /** If `named_entity_recognition` has been enabled, the detected entities. */
   entity: string
 }
@@ -570,7 +570,7 @@ export interface LiveV2SentimentAnalysis {
   /** Time audio intelligence model took to complete the task */
   exec_time: number
   /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: LiveV2AddonError
+  error: LiveV2AddonError | null
   /** If `sentiment_analysis` has been enabled, Gladia will analyze the sentiments and emotions of the audio */
   results: string
 }
@@ -583,7 +583,7 @@ export interface LiveV2Chapterization {
   /** Time audio intelligence model took to complete the task */
   exec_time: number
   /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: LiveV2AddonError
+  error: LiveV2AddonError | null
   /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
   results: Record<string, any>
 }
@@ -713,10 +713,10 @@ export interface LiveV2AudioChunkAckMessage {
   /** Flag to indicate if the action was successfully acknowledged */
   acknowledged: boolean
   /** Error message if the action was not successfully acknowledged */
-  error: LiveV2Error
+  error: LiveV2Error | null
   type: 'audio_chunk'
   /** The message data. "null" if the action was not successfully acknowledged */
-  data: LiveV2AudioChunkAckData
+  data: LiveV2AudioChunkAckData | null
 }
 
 export interface LiveV2EndRecordingMessage {
@@ -743,10 +743,10 @@ export interface LiveV2TranslationMessage {
   /** Date of creation of the message. The date is formatted as an ISO 8601 string */
   created_at: string
   /** Error message if the addon failed */
-  error: LiveV2Error
+  error: LiveV2Error | null
   type: 'translation'
   /** The message data. "null" if the addon failed */
-  data: LiveV2TranslationData
+  data: LiveV2TranslationData | null
 }
 
 export interface LiveV2NamedEntityRecognitionMessage {
@@ -755,10 +755,10 @@ export interface LiveV2NamedEntityRecognitionMessage {
   /** Date of creation of the message. The date is formatted as an ISO 8601 string */
   created_at: string
   /** Error message if the addon failed */
-  error: LiveV2Error
+  error: LiveV2Error | null
   type: 'named_entity_recognition'
   /** The message data. "null" if the addon failed */
-  data: LiveV2NamedEntityRecognitionData
+  data: LiveV2NamedEntityRecognitionData | null
 }
 
 export interface LiveV2PostChapterizationMessage {
@@ -767,10 +767,10 @@ export interface LiveV2PostChapterizationMessage {
   /** Date of creation of the message. The date is formatted as an ISO 8601 string */
   created_at: string
   /** Error message if the addon failed */
-  error: LiveV2Error
+  error: LiveV2Error | null
   type: 'post_chapterization'
   /** The message data. "null" if the addon failed */
-  data: LiveV2PostChapterizationMessageData
+  data: LiveV2PostChapterizationMessageData | null
 }
 
 export interface LiveV2PostFinalTranscriptMessage {
@@ -789,10 +789,10 @@ export interface LiveV2PostSummarizationMessage {
   /** Date of creation of the message. The date is formatted as an ISO 8601 string */
   created_at: string
   /** Error message if the addon failed */
-  error: LiveV2Error
+  error: LiveV2Error | null
   type: 'post_summarization'
   /** The message data. "null" if the addon failed */
-  data: LiveV2PostSummarizationMessageData
+  data: LiveV2PostSummarizationMessageData | null
 }
 
 export interface LiveV2PostTranscriptMessage {
@@ -811,10 +811,10 @@ export interface LiveV2SentimentAnalysisMessage {
   /** Date of creation of the message. The date is formatted as an ISO 8601 string */
   created_at: string
   /** Error message if the addon failed */
-  error: LiveV2Error
+  error: LiveV2Error | null
   type: 'sentiment_analysis'
   /** The message data. "null" if the addon failed */
-  data: LiveV2SentimentAnalysisData
+  data: LiveV2SentimentAnalysisData | null
 }
 
 export interface LiveV2StartRecordingMessage {
@@ -841,10 +841,10 @@ export interface LiveV2StopRecordingAckMessage {
   /** Flag to indicate if the action was successfully acknowledged */
   acknowledged: boolean
   /** Error message if the action was not successfully acknowledged */
-  error: LiveV2Error
+  error: LiveV2Error | null
   type: 'stop_recording'
   /** The message data. "null" if the action was not successfully acknowledged */
-  data: LiveV2StopRecordingAckData
+  data: LiveV2StopRecordingAckData | null
 }
 
 export interface LiveV2TranscriptMessage {

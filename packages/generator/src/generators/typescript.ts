@@ -90,11 +90,14 @@ export class TypeScriptGenerator extends BaseGenerator {
       for (const [propName, propSchemaOrRef] of Object.entries(schema.properties)) {
         const isRequired = schema.required?.includes(propName) ?? false
         const optional = isRequired ? '' : '?'
+        const isNullable = isReferencedSchemaObject(propSchemaOrRef)
+          ? propSchemaOrRef.schema.nullable
+          : propSchemaOrRef.nullable
         const type = this.getTypeScriptType(propSchemaOrRef)
         if (propSchemaOrRef.description) {
           content += `  /** ${propSchemaOrRef.description} */\n`
         }
-        content += `  ${propName}${optional}: ${type};\n`
+        content += `  ${propName}${optional}: ${type}${isNullable ? ' | null' : ''};\n`
       }
     }
 
