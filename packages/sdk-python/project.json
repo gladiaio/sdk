@@ -35,6 +35,7 @@
       "executor": "@nxlv/python:remove",
       "options": {}
     },
+    "version": {},
     "build": {
       "executor": "@nxlv/python:build",
       "outputs": ["{projectRoot}/dist"],
