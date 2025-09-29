@@ -79,8 +79,15 @@
       "executor": "@nx/vite:test",
       "dependsOn": ["^build"]
     },
+    "version": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run scripts/write-version.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
     "build": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "version"]
     },
     "typecheck": {
       "executor": "nx:run-commands",
