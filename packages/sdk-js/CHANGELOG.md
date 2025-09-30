@@ -1,3 +1,10 @@
+## 0.5.1 (2025-09-30)
+
+### 🩹 Fixes
+
+- **sdk-js:** Dispatch ack messages if no config provided
+- **sdk-js:** Handle nullable properties
+
 ## 0.5.0 (2025-09-25)
 
 ### 🚀 Features
