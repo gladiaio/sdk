@@ -8,6 +8,7 @@ import pytest
 from gladiaio_sdk import (
   GladiaClient,
   HttpError,
+  LiveV2EndedMessage,
   LiveV2InitRequest,
   LiveV2LanguageConfig,
   LiveV2TranscriptMessage,
@@ -25,7 +26,7 @@ async def test_live_v2_async_session():
 
   live_session = (
     GladiaClient()
-    .async_live_v2()
+    .live_v2_async()
     .start_session(
       LiveV2InitRequest(
         **audio_data["audio_config"],
@@ -54,7 +55,8 @@ async def test_live_v2_async_session():
       print(error)
 
   @live_session.once("ended")
-  def handle_ended(ended):  # pyright: ignore[reportUnusedFunction]
+  def handle_ended(ended: LiveV2EndedMessage):  # pyright: ignore[reportUnusedFunction]
+    print(f"Session ended: {ended}")
     ended_event.set()
 
   await send_audio_file_async(audio_data, live_session)

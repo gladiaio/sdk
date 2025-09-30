@@ -1,11 +1,12 @@
 """Python tests mirroring JS HttpClient tests (synchronous wrappers)."""
 
 import asyncio
+from typing import TypedDict
 
 import httpx
 import pytest
 
-from gladiaio_sdk.client_options import HttpRetryOptions, InternalHttpRetryOptions
+from gladiaio_sdk.client_options import HttpRetryOptions
 from gladiaio_sdk.network.async_http_client import (
   AsyncHttpClient,
   HttpError,
@@ -31,13 +32,13 @@ def new_http_client(
   query_params: dict[str, str] | None = None,
 ) -> AsyncHttpClient:
   if retry is None:
-    retry = {}
+    retry = HttpRetryOptions()
   return AsyncHttpClient(
     base_url=base_url,
-    retry=InternalHttpRetryOptions(
-      max_attempts=retry.get("max_attempts", 0),
-      status_codes=retry.get("status_codes", []),
-      delay=retry.get("delay", lambda _: 0),
+    retry=HttpRetryOptions(
+      max_attempts=retry.max_attempts,
+      status_codes=retry.status_codes,
+      delay=retry.delay,
     ),
     timeout=timeout,
     query_params=query_params or {},
@@ -49,7 +50,7 @@ def test_retries_and_success(monkeypatch):
   calls = {"n": 0}
 
   client = new_http_client(
-    retry={"max_attempts": 2, "status_codes": [(500, 599)]},
+    retry=HttpRetryOptions(max_attempts=2, status_codes=[(500, 599)]),
   )
 
   async def fake_request(method, url, **kwargs):
@@ -67,7 +68,7 @@ def test_retries_and_success(monkeypatch):
 
 def test_no_retry_on_timeout(monkeypatch):
   client = new_http_client(
-    retry={"max_attempts": 5, "status_codes": [0, 999]},
+    retry=HttpRetryOptions(max_attempts=5, status_codes=[0, 999]),
     timeout=0.05,
   )
 
@@ -82,7 +83,7 @@ def test_no_retry_on_timeout(monkeypatch):
 
 def test_http_error_non_retryable(monkeypatch):
   client = new_http_client(
-    retry={"max_attempts": 5, "status_codes": [408, 413, 429, (500, 599)]},
+    retry=HttpRetryOptions(max_attempts=5, status_codes=[408, 413, 429, (500, 599)]),
   )
 
   async def fake_request(method, url, **kwargs):
@@ -118,7 +119,7 @@ def test_methods_and_url(monkeypatch):
 def test_retry_limits(monkeypatch):
   # limit 1: only initial attempt
   calls = {"n": 0}
-  client = new_http_client(retry={"max_attempts": 1, "status_codes": [(500, 599)]})
+  client = new_http_client(retry=HttpRetryOptions(max_attempts=1, status_codes=[(500, 599)]))
 
   async def r1(method, url, **kwargs):
     calls["n"] += 1
@@ -130,7 +131,7 @@ def test_retry_limits(monkeypatch):
 
   # limit 2: one retry
   calls = {"n": 0}
-  client2 = new_http_client(retry={"max_attempts": 2, "status_codes": [(500, 599)]})
+  client2 = new_http_client(retry=HttpRetryOptions(max_attempts=2, status_codes=[(500, 599)]))
 
   async def r2(method, url, **kwargs):
     calls["n"] += 1
@@ -144,7 +145,7 @@ def test_retry_limits(monkeypatch):
 
   # limit 0: unlimited retries until success on 5th
   calls = {"n": 0}
-  client3 = new_http_client(retry={"max_attempts": 0, "status_codes": [(500, 599)]})
+  client3 = new_http_client(retry=HttpRetryOptions(max_attempts=0, status_codes=[(500, 599)]))
 
   async def r3(method, url, **kwargs):
     calls["n"] += 1
@@ -158,7 +159,10 @@ def test_retry_limits(monkeypatch):
 
 
 def test_query_params(monkeypatch):
-  called = {"url": None}
+  class Called(TypedDict):
+    url: str | None
+
+  called: Called = {"url": None}
   client = new_http_client(
     query_params={"apiKey": "test-key", "version": "1.0"},
   )
@@ -169,4 +173,6 @@ def test_query_params(monkeypatch):
 
   monkeypatch.setattr(client._client, "request", fake_request)
   run(client.get("/query-test"))
-  assert called["url"].endswith("/query-test?apiKey=test-key&version=1.0")
+  assert called["url"] is not None and called["url"].endswith(
+    "/query-test?apiKey=test-key&version=1.0"
+  )

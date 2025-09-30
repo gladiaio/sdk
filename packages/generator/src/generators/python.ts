@@ -199,7 +199,7 @@ export class PythonGenerator extends BaseGenerator {
       new Set(schema.required ?? [])
     )
 
-    lines.push('@dataclass(slots=True)')
+    lines.push('@dataclass(frozen=True, slots=True)')
     lines.push(`class ${typeName}(BaseDataClass):`)
 
     if (description) {

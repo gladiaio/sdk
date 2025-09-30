@@ -2,23 +2,31 @@
 
 from __future__ import annotations
 
-import os
+import dataclasses
 from typing import cast, overload
-
-from typing_extensions import Unpack
 
 from gladiaio_sdk.client_options import (
   GladiaClientOptions,
   HttpRetryOptions,
-  InternalGladiaClientOptions,
   Region,
   WebSocketRetryOptions,
 )
-from gladiaio_sdk.helpers import deep_merge_dicts
-from gladiaio_sdk.v2.live.async_client import AsyncLiveV2Client
+from gladiaio_sdk.v2.live.async_client import LiveV2AsyncClient
+from gladiaio_sdk.version import SDK_VERSION
 
 
-def _assert_valid_options(options: InternalGladiaClientOptions) -> None:
+def normalize_gladia_headers(headers: dict[str, str]) -> dict[str, str]:
+  new_headers: dict[str, str] = {}
+  for key, value in headers.items():
+    lc_key = key.lower()
+    if lc_key.startswith("x-gladia-"):
+      new_headers[lc_key] = value
+    else:
+      new_headers[key] = value
+  return new_headers
+
+
+def _assert_valid_options(options: GladiaClientOptions) -> None:
   try:
     from urllib.parse import urlparse
 
@@ -35,35 +43,7 @@ def _assert_valid_options(options: InternalGladiaClientOptions) -> None:
     )
 
 
-def default_http_delay(attempt: int) -> float:
-  return min(0.3 * (2 ** (attempt - 1)), 10)
-
-
-def default_ws_delay(attempt: int) -> float:
-  return min(0.3 * (2 ** (attempt - 1)), 2)
-
-
-default_options: GladiaClientOptions = {
-  "api_key": os.environ.get("GLADIA_API_KEY"),
-  "api_url": os.environ.get("GLADIA_API_URL", "https://api.gladia.io"),
-  "region": cast(Region | None, os.environ.get("GLADIA_REGION")),
-  "http_headers": {
-    "X-GLADIA-ORIGIN": "sdk/py",
-  },
-  "http_retry": {
-    "max_attempts": 2,
-    "status_codes": [408, 413, (500, 599), 429],
-    "delay": default_http_delay,
-  },
-  "http_timeout": 10,
-  "ws_retry": {
-    "max_attempts_per_connection": 5,
-    "close_codes": [(1002, 4399), (4500, 9999)],
-    "delay": default_ws_delay,
-    "max_connections": 0,
-  },
-  "ws_timeout": 10,
-}
+gladia_version = f"SdkPython/{SDK_VERSION}"
 
 
 class GladiaClient:
@@ -73,50 +53,62 @@ class GladiaClient:
   def __init__(
     self,
     *,
-    api_key: str | None = ...,
-    api_url: str | None = ...,
-    region: Region | None = ...,
-    http_headers: dict[str, str] | None = ...,
-    http_retry: HttpRetryOptions | None = ...,
-    http_timeout: float | None = ...,
-    ws_retry: WebSocketRetryOptions | None = ...,
-    ws_timeout: float | None = ...,
+    api_key: str | None = None,
+    api_url: str | None = None,
+    region: Region | None = None,
+    http_headers: dict[str, str] | None = None,
+    http_retry: HttpRetryOptions | None = None,
+    http_timeout: float | None = None,
+    ws_retry: WebSocketRetryOptions | None = None,
+    ws_timeout: float | None = None,
   ) -> None: ...
-  def __init__(self, **opts: Unpack[GladiaClientOptions]) -> None:
-    self.options = deep_merge_dicts(
-      default_options,
-      opts,
-    )
+  @overload
+  def __init__(
+    self,
+    opts: GladiaClientOptions,
+  ) -> None: ...
+  def __init__(self, *args, **kwargs) -> None:
+    self.options = args[0] if len(args) > 0 and args[0] else GladiaClientOptions(**kwargs)
 
   @overload
-  def async_live_v2(
+  def live_v2_async(
     self,
     *,
-    api_key: str | None = ...,
-    api_url: str | None = ...,
-    region: Region | None = ...,
-    http_headers: dict[str, str] | None = ...,
-    http_retry: HttpRetryOptions | None = ...,
-    http_timeout: float | None = ...,
-    ws_retry: WebSocketRetryOptions | None = ...,
-    ws_timeout: float | None = ...,
-  ) -> AsyncLiveV2Client: ...
-  def async_live_v2(self, **opts: Unpack[GladiaClientOptions]) -> AsyncLiveV2Client:
-    merged_options = InternalGladiaClientOptions(
-      **deep_merge_dicts(
-        self.options,
-        opts,
-      ),
-    )
+    api_key: str | None = None,
+    api_url: str | None = None,
+    region: Region | None = None,
+    http_headers: dict[str, str] | None = None,
+    http_retry: HttpRetryOptions | None = None,
+    http_timeout: float | None = None,
+    ws_retry: WebSocketRetryOptions | None = None,
+    ws_timeout: float | None = None,
+  ) -> LiveV2AsyncClient: ...
+  @overload
+  def live_v2_async(
+    self,
+    opts: GladiaClientOptions,
+  ) -> LiveV2AsyncClient: ...
+  def live_v2_async(self, *args, **kwargs) -> LiveV2AsyncClient:
+    merged_options: GladiaClientOptions = self.options
+    if len(args) > 0 and args[0]:
+      merged_options = cast(GladiaClientOptions, args[0])
+    else:
+      merged_options = dataclasses.replace(self.options, **kwargs)
+
+    http_headers = normalize_gladia_headers(merged_options.http_headers)
+
     if merged_options.api_key:
-      merged_options.http_headers = deep_merge_dicts(
-        merged_options.http_headers,
-        {
-          "X-GLADIA-KEY": merged_options.api_key,
-        },
+      http_headers["x-gladia-key"] = merged_options.api_key
+    if "x-gladia-version" in http_headers:
+      http_headers["x-gladia-version"] = (
+        f"{merged_options.http_headers['x-gladia-version'].strip()} {gladia_version}"
       )
+    else:
+      http_headers["x-gladia-version"] = gladia_version
+
+    merged_options = dataclasses.replace(merged_options, http_headers=http_headers)
 
     # Validate
     _assert_valid_options(merged_options)
 
-    return AsyncLiveV2Client(merged_options)
+    return LiveV2AsyncClient(merged_options)

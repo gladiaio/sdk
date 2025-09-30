@@ -7,7 +7,7 @@ from typing import Any, final
 
 import httpx
 
-from gladiaio_sdk.client_options import InternalHttpRetryOptions
+from gladiaio_sdk.client_options import HttpRetryOptions
 
 
 @final
@@ -69,17 +69,14 @@ class AsyncHttpClient:
     base_url: str,
     headers: dict[str, str],
     query_params: dict[str, str],
-    retry: InternalHttpRetryOptions,
+    retry: HttpRetryOptions,
     timeout: float,
   ) -> None:
     self._base_url = base_url
     self._default_headers = headers
     self._default_query = query_params
     self._retry = retry
-
-    # Ensure max_attempts and timeout are non-negative numbers
-    self._retry.max_attempts = max(0, self._retry.max_attempts)
-    self._timeout = max(0, timeout)
+    self._timeout = timeout
 
     self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
 

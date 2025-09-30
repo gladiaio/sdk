@@ -1,11 +1,11 @@
 """WebSocketClient + WebSocketSession tests (Python port of JS suite, core cases)."""
 
 import asyncio
-from typing import Any
+from typing import Any, TypedDict
 
 import pytest
 
-from gladiaio_sdk.client_options import InternalWebSocketRetryOptions, WebSocketRetryOptions
+from gladiaio_sdk.client_options import WebSocketRetryOptions
 from gladiaio_sdk.network.async_websocket_client import (
   WS_STATES,
   AsyncWebSocketClient,
@@ -20,8 +20,14 @@ class FakeWS:
   def __init__(self, messages: list[Any] | None = None) -> None:
     self._messages = list(messages or [])
     self._closed = False
+    self._closed_event = asyncio.Event()
     self.sent: list[Any] = []
     self.close_calls: list[tuple[int, str]] = []
+    self.close_code: int | None = None
+    self.close_reason: str | None = None
+    # Match the integer semantics used by the real websockets library
+    # (1 == OPEN, 3 == CLOSED). This keeps the production code paths intact.
+    self.state: int = 1
 
   def __aiter__(self):
     return self
@@ -39,23 +45,45 @@ class FakeWS:
     self.sent.append(data)
 
   async def close(self, code: int = 1000, reason: str = "") -> None:
+    if self._closed:
+      return
     self._closed = True
     self.close_calls.append((code, reason))
+    self.close_code = code
+    self.close_reason = reason
+    self.state = 3
+    self._closed_event.set()
+
+  async def recv(self) -> Any:
+    while not self._messages and not self._closed:
+      await asyncio.sleep(0)
+    if self._messages:
+      return self._messages.pop(0)
+    raise asyncio.CancelledError
+
+  async def wait_closed(self) -> None:
+    await self._closed_event.wait()
+
+
+class PartialOptions(TypedDict):
+  base_url: str
+  retry: WebSocketRetryOptions
+  timeout: float
 
 
 def partial_options(
-  retry: WebSocketRetryOptions = None,
+  retry: WebSocketRetryOptions | None = None,
   timeout: float = 1,
-):
+) -> PartialOptions:
   if retry is None:
-    retry = {}
+    retry = WebSocketRetryOptions()
   return {
     "base_url": "ws://localhost:8080",
-    "retry": InternalWebSocketRetryOptions(
-      max_attempts_per_connection=(retry.get("max_attempts_per_connection", 0)),
-      delay=(retry.get("delay", lambda _a: 0)),
-      max_connections=(retry.get("max_connections", 0)),
-      close_codes=(retry.get("close_codes", [])),
+    "retry": WebSocketRetryOptions(
+      max_attempts_per_connection=retry.max_attempts_per_connection,
+      delay=retry.delay,
+      max_connections=retry.max_connections,
+      close_codes=retry.close_codes,
     ),
     "timeout": timeout,
   }
@@ -67,9 +95,9 @@ def test_connect_and_message(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import websockets as _ws
+  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
 
-  monkeypatch.setattr(_ws, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
 
   async def main():
     client = AsyncWebSocketClient(**partial_options())
@@ -82,7 +110,7 @@ def test_connect_and_message(monkeypatch):
     await asyncio.sleep(0.02)
     await asyncio.sleep(0.02)
 
-    assert session.readyState == WS_STATES.OPEN
+    assert session.ready_state == WS_STATES.OPEN
     assert events["open"] == [{"connection": 1, "attempt": 1}]
     assert events["msg"] == [{"data": "hello"}]
 
@@ -95,15 +123,17 @@ def test_send_when_open(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import websockets as _ws
+  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
 
-  monkeypatch.setattr(_ws, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
 
   async def main():
-    client = AsyncWebSocketClient(**partial_options(retry={"max_attempts_per_connection": 1}))
+    client = AsyncWebSocketClient(
+      **partial_options(retry=WebSocketRetryOptions(max_attempts_per_connection=1))
+    )
     session = client.create_session("ws://localhost:8080")
     await asyncio.sleep(0.02)
-    assert session.readyState == WS_STATES.OPEN
+    assert session.ready_state == WS_STATES.OPEN
     session.send("payload")
     await asyncio.sleep(0)
     assert fake.sent == ["payload"]
@@ -117,14 +147,14 @@ def test_send_when_not_open(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import websockets as _ws
+  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
 
-  monkeypatch.setattr(_ws, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
 
   async def main():
     client = AsyncWebSocketClient(**partial_options())
     session = client.create_session("ws://localhost:8080")
-    assert session.readyState == WS_STATES.CONNECTING
+    assert session.ready_state == WS_STATES.CONNECTING
     with pytest.raises(RuntimeError):
       session.send("data")
 
@@ -137,9 +167,9 @@ def test_close_manually(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import websockets as _ws
+  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
 
-  monkeypatch.setattr(_ws, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
 
   async def main():
     client = AsyncWebSocketClient(**partial_options())
@@ -150,7 +180,7 @@ def test_close_manually(monkeypatch):
     session.close(1000)
     await asyncio.sleep(0.05)
     assert (fake.close_calls[-1][0],) == (1000,)
-    assert session.readyState in (WS_STATES.CLOSING, WS_STATES.CLOSED)
+    assert session.ready_state in (WS_STATES.CLOSING, WS_STATES.CLOSED)
 
   run(main())
 
@@ -162,9 +192,9 @@ def test_timeout(monkeypatch):
     await asyncio.sleep(0.2)
     return fake
 
-  import websockets as _ws
+  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
 
-  monkeypatch.setattr(_ws, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
 
   async def main():
     client = AsyncWebSocketClient(**partial_options(timeout=0.05))
@@ -176,6 +206,6 @@ def test_timeout(monkeypatch):
       "code": 3008,
       "reason": "WebSocket connection timeout",
     }
-    assert session.readyState == WS_STATES.CLOSED
+    assert session.ready_state == WS_STATES.CLOSED
 
   run(main())

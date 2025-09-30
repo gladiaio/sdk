@@ -4,7 +4,7 @@ from time import sleep
 from typing import TypedDict
 
 from gladiaio_sdk import (
-  AsyncLiveV2Session,
+  LiveV2AsyncSession,
   LiveV2BitDepth,
   LiveV2Encoding,
   LiveV2SampleRate,
@@ -83,7 +83,7 @@ def compute_chunk_size(audio_file: AudioFile, chunk_duration=0.05) -> int:
 
 
 async def send_audio_file_async(
-  audio_file: AudioFile, live_session: AsyncLiveV2Session, chunk_duration=0.05
+  audio_file: AudioFile, live_session: LiveV2AsyncSession, chunk_duration=0.05
 ) -> None:
   chunk_size = compute_chunk_size(audio_file, chunk_duration)
   for i in range(0, len(audio_file["raw_audio_data"]), chunk_size):
@@ -94,7 +94,7 @@ async def send_audio_file_async(
 
 
 def send_audio_file(
-  audio_file: AudioFile, live_session: AsyncLiveV2Session, chunk_duration=0.05
+  audio_file: AudioFile, live_session: LiveV2AsyncSession, chunk_duration=0.05
 ) -> None:
   chunk_size = compute_chunk_size(audio_file, chunk_duration)
   for i in range(0, len(audio_file["raw_audio_data"]), chunk_size):

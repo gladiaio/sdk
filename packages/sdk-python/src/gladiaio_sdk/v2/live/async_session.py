@@ -4,15 +4,26 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import dataclasses
 import json
 from collections.abc import Callable
-from typing import Any, Literal, TypedDict, final, overload
+from typing import Any, Literal, final, overload
 
-import websockets
 from pyee.asyncio import AsyncIOEventEmitter
 
+from gladiaio_sdk.v2.live.types import (
+  LiveV2ConnectedMessage,
+  LiveV2ConnectingMessage,
+  LiveV2EndedMessage,
+  LiveV2EndingMessage,
+)
+
 from ...network.async_http_client import AsyncHttpClient
-from ...network.async_websocket_client import AsyncWebSocketClient
+from ...network.async_websocket_client import (
+  WS_STATES,
+  AsyncWebSocketClient,
+  AsyncWebSocketSession,
+)
 from .generated_types import (
   LiveV2InitRequest,
   LiveV2InitResponse,
@@ -25,28 +36,19 @@ from .generated_types import (
 EventCallback = Callable[..., Any]
 
 
-class ConnectionMessage(TypedDict):
-  attempt: int
-
-
-class EndingMessage(TypedDict):
-  code: int
-  reason: str | None
-
-
 LiveV2SessionStatus = Literal["starting", "started", "connecting", "connected", "ending", "ended"]
 
 
 @final
-class AsyncLiveV2Session:
-  """Async Live V2 session.
+class LiveV2AsyncSession:
+  """Live V2 Async session.
 
   Events:
   - started(LiveV2InitResponse)
-  - connecting({"attempt": int})
-  - connected({"attempt": int})
-  - ending({"code": int, "reason": str | None})
-  - ended({"code": int, "reason": str | None})
+  - connecting(LiveV2ConnectingMessage)
+  - connected(LiveV2ConnectedMessage)
+  - ending(LiveV2EndingMessage)
+  - ended(LiveV2EndedMessage)
   - message(LiveV2WebSocketMessage)
   - error(Exception)
   """
@@ -67,7 +69,7 @@ class AsyncLiveV2Session:
     self._status: LiveV2SessionStatus = "starting"
     self._init_session_response: LiveV2InitResponse | None = None
 
-    self._ws: websockets.ClientConnection | None = None
+    self._ws: AsyncWebSocketSession | None = None
     self._connect_ws_task: asyncio.Task[None] | None = None
 
     self._audio_buffer: bytes = bytes([])
@@ -95,38 +97,39 @@ class AsyncLiveV2Session:
     if self._status in ("ending", "ended"):
       return
     self._audio_buffer += audio
-    if self._ws and self._ws.state == websockets.State.OPEN:
-      _ = asyncio.create_task(self._ws.send(self._audio_buffer))
+    if self._ws and self._ws.ready_state == WS_STATES.OPEN:
+      self._ws.send(audio)
 
   def stop_recording(self) -> None:
     if self._status in ("ending", "ended"):
       return
     self._status = "ending"
 
-    async def _stop_recording() -> None:
-      _ = self._event_emitter.emit("ending", {"code": 1000, "reason": None})
-      if self._ws:
-        await self._ws.send(json.dumps({"type": "stop_recording"}))
-
-    _ = asyncio.create_task(_stop_recording())
+    _ = self._event_emitter.emit("ending", LiveV2EndingMessage(code=1000))
+    if self._ws and self._ws.ready_state == WS_STATES.OPEN:
+      self._ws.send(json.dumps({"type": "stop_recording"}))
 
   def end_session(self) -> None:
-    _ = asyncio.create_task(self._do_destroy(1000, "Session ended by user"))
+    self._do_destroy(1000, "Session ended by user")
 
   # Internals
   async def _init_session(self) -> LiveV2InitResponse:
     try:
       # Force acknowledgments for resume logic
       msg_cfg = self._options.messages_config
-      if not msg_cfg:
-        msg_cfg = LiveV2MessagesConfig()
-        self._options.messages_config = msg_cfg
-      msg_cfg.receive_acknowledgments = True
-      resp = await self._http_client.post("/v2/live", json=self._options.to_dict())
+      if msg_cfg:
+        msg_cfg = dataclasses.replace(msg_cfg, receive_acknowledgments=True)
+      else:
+        msg_cfg = LiveV2MessagesConfig(
+          receive_acknowledgments=True,
+        )
+      options = dataclasses.replace(self._options, messages_config=msg_cfg)
+
+      resp = await self._http_client.post("/v2/live", json=options.to_dict())
       return LiveV2InitResponse.from_json(resp.content)
-    except Exception as err:  # surface error & destroy
+    except Exception as err:
       _ = self._event_emitter.emit("error", err)
-      await self._do_destroy(1006, "Couldn't start a new session")
+      self._do_destroy(1006, "Couldn't start a new session")
       raise err
 
   async def _start_session(self) -> None:
@@ -147,73 +150,97 @@ class AsyncLiveV2Session:
         _ = self._event_emitter.emit("message", start_msg)
 
       self._connect_ws_task = asyncio.create_task(self._connect_ws(session.url))
-    except Exception as err:  # surface error & destroy
+    except Exception as err:
       _ = self._event_emitter.emit("error", err)
-      await self._do_destroy(1006, "Couldn't start a new session")
+      self._do_destroy(1006, "Couldn't start a new session")
 
   async def _connect_ws(self, ws_url: str) -> None:
-    attempt = 0
-    while True:
-      attempt += 1
+    if self._abort.is_set():
+      return
+
+    ws = self._ws_client.create_session(ws_url)
+    self._ws = ws
+
+    def _on_connecting(info: dict[str, Any]) -> None:
       if self._abort.is_set():
         return
+
       self._status = "connecting"
-      _ = self._event_emitter.emit("connecting", {"attempt": attempt})
-      try:
-        # Timeout in seconds; websockets uses open_timeout for initial handshake
-        timeout_s = 10.0
-        ws = await websockets.connect(ws_url, open_timeout=timeout_s)
-      except Exception as err:
-        _ = self._event_emitter.emit("error", err)
-        # Simple one-shot connect for now; break
-        await self._do_destroy(1006, "WebSocket connection error")
+      attempt = int(info.get("attempt", 1))
+      _ = self._event_emitter.emit("connecting", LiveV2ConnectingMessage(attempt=attempt))
+
+    def _on_open(info: dict[str, Any]) -> None:
+      if self._abort.is_set():
         return
 
-      self._ws = ws
-      self._status = "connected"
-      _ = self._event_emitter.emit("connected", {"attempt": attempt})
-
-      # Flush any buffered audio
       if self._audio_buffer and len(self._audio_buffer):
-        await ws.send(self._audio_buffer)
+        ws.send(self._audio_buffer)
 
+      if self._status == "ending":
+        ws.send(json.dumps({"type": "stop_recording"}))
+        return
+
+      self._status = "connected"
+      attempt = int(info.get("attempt", 1))
+      _ = self._event_emitter.emit("connected", LiveV2ConnectedMessage(attempt=attempt))
+
+    def _on_message(evt: dict[str, Any]) -> None:
+      if self._abort.is_set():
+        return
+
+      raw = evt.get("data")
       try:
-        async for raw in ws:
-          try:
-            text = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
-            message = create_live_v2_web_socket_message_from_json(text)
-          except Exception as parse_err:
-            _ = self._event_emitter.emit("error", parse_err)
-            continue
-
-          # Emit message as object with attribute access to match tests usage
-          _ = self._event_emitter.emit("message", message)
-
-          if message.type == "audio_chunk":
-            data = message.data
-            if message.acknowledged and data:
-              byte_end = int((data.byte_range)[1])
-              self._audio_buffer = self._audio_buffer[byte_end - self._bytes_sent :]
-              self._bytes_sent = byte_end
-      except websockets.ConnectionClosed as closed:
-        await self._do_destroy(getattr(closed, "code", 1000) or 1000, getattr(closed, "reason", ""))
-        return
-      except Exception as err:
-        _ = self._event_emitter.emit("error", err)
-        await self._do_destroy(1006, "WebSocket error")
+        text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
+        message = create_live_v2_web_socket_message_from_json(text)
+      except Exception as parse_err:
+        _ = self._event_emitter.emit("error", parse_err)
         return
 
-  async def _do_destroy(self, code: int = 1006, reason: str | None = None) -> None:
+      if (
+        not self._options.messages_config
+        or self._options.messages_config.receive_acknowledgments
+        or not hasattr(message, "acknowledged")
+      ):
+        _ = self._event_emitter.emit("message", message)
+
+      if getattr(message, "type", None) == "audio_chunk":
+        data = getattr(message, "data", None)
+        if getattr(message, "acknowledged", False) and data:
+          byte_end = int((data.byte_range)[1])
+          self._audio_buffer = self._audio_buffer[byte_end - self._bytes_sent :]
+          self._bytes_sent = byte_end
+
+    def _on_error(err: Exception) -> None:
+      if self._abort.is_set():
+        return
+
+      _ = self._event_emitter.emit("error", err)
+
+    def _on_close(evt: dict[str, Any]) -> None:
+      if self._abort.is_set():
+        return
+
+      code = int(evt.get("code", 1000) or 1000)
+      reason = evt.get("reason")
+      self._do_destroy(code, reason)
+
+    ws.onconnecting = _on_connecting
+    ws.onopen = _on_open
+    ws.onmessage = _on_message
+    ws.onerror = _on_error
+    ws.onclose = _on_close
+
+  def _do_destroy(self, code: int = 1006, reason: str | None = None) -> None:
     if self._status == "ended":
       return
 
     # Transition to ending, then ended
     if self._status != "ending":
       self._status = "ending"
-      _ = self._event_emitter.emit("ending", {"code": code, "reason": reason})
+      _ = self._event_emitter.emit("ending", LiveV2EndingMessage(code=code, reason=reason))
 
     self._status = "ended"
-    _ = self._event_emitter.emit("ended", {"code": code, "reason": reason})
+    _ = self._event_emitter.emit("ended", LiveV2EndedMessage(code=code, reason=reason))
 
     self._abort.set()
 
@@ -227,7 +254,7 @@ class AsyncLiveV2Session:
     self._ws = None
     if ws:
       with contextlib.suppress(Exception):
-        _ = asyncio.create_task(ws.close(code=1001, reason="Aborted"))
+        ws.close(code=1001, reason="Aborted")
 
     # Clear buffers & listeners
     self._audio_buffer = bytes([])
@@ -244,39 +271,39 @@ class AsyncLiveV2Session:
     pass
 
   @overload
-  def on(self, event: Literal["connecting"], cb: Callable[[ConnectionMessage], None]) -> None:
+  def on(self, event: Literal["connecting"], cb: Callable[[LiveV2ConnectingMessage], None]) -> None:
     pass
 
   @overload
   def on(
     self, event: Literal["connecting"]
-  ) -> Callable[[Callable[[ConnectionMessage], None]], None]:
+  ) -> Callable[[Callable[[LiveV2ConnectingMessage], None]], None]:
     pass
 
   @overload
-  def on(self, event: Literal["connected"], cb: Callable[[ConnectionMessage], None]) -> None:
+  def on(self, event: Literal["connected"], cb: Callable[[LiveV2ConnectedMessage], None]) -> None:
     pass
 
   @overload
   def on(
     self, event: Literal["connected"]
-  ) -> Callable[[Callable[[ConnectionMessage], None]], None]:
+  ) -> Callable[[Callable[[LiveV2ConnectedMessage], None]], None]:
     pass
 
   @overload
-  def on(self, event: Literal["ending"], cb: Callable[[EndingMessage], None]) -> None:
+  def on(self, event: Literal["ending"], cb: Callable[[LiveV2EndingMessage], None]) -> None:
     pass
 
   @overload
-  def on(self, event: Literal["ending"]) -> Callable[[Callable[[EndingMessage], None]], None]:
+  def on(self, event: Literal["ending"]) -> Callable[[Callable[[LiveV2EndingMessage], None]], None]:
     pass
 
   @overload
-  def on(self, event: Literal["ended"], cb: Callable[[EndingMessage], None]) -> None:
+  def on(self, event: Literal["ended"], cb: Callable[[LiveV2EndedMessage], None]) -> None:
     pass
 
   @overload
-  def on(self, event: Literal["ended"]) -> Callable[[Callable[[EndingMessage], None]], None]:
+  def on(self, event: Literal["ended"]) -> Callable[[Callable[[LiveV2EndedMessage], None]], None]:
     pass
 
   @overload
@@ -319,39 +346,43 @@ class AsyncLiveV2Session:
     pass
 
   @overload
-  def once(self, event: Literal["connecting"], cb: Callable[[ConnectionMessage], None]) -> None:
+  def once(
+    self, event: Literal["connecting"], cb: Callable[[LiveV2ConnectingMessage], None]
+  ) -> None:
     pass
 
   @overload
   def once(
     self, event: Literal["connecting"]
-  ) -> Callable[[Callable[[ConnectionMessage], None]], None]:
+  ) -> Callable[[Callable[[LiveV2ConnectingMessage], None]], None]:
     pass
 
   @overload
-  def once(self, event: Literal["connected"], cb: Callable[[ConnectionMessage], None]) -> None:
+  def once(self, event: Literal["connected"], cb: Callable[[LiveV2ConnectedMessage], None]) -> None:
     pass
 
   @overload
   def once(
     self, event: Literal["connected"]
-  ) -> Callable[[Callable[[ConnectionMessage], None]], None]:
+  ) -> Callable[[Callable[[LiveV2ConnectedMessage], None]], None]:
     pass
 
   @overload
-  def once(self, event: Literal["ending"], cb: Callable[[EndingMessage], None]) -> None:
+  def once(self, event: Literal["ending"], cb: Callable[[LiveV2EndingMessage], None]) -> None:
     pass
 
   @overload
-  def once(self, event: Literal["ending"]) -> Callable[[Callable[[EndingMessage], None]], None]:
+  def once(
+    self, event: Literal["ending"]
+  ) -> Callable[[Callable[[LiveV2EndingMessage], None]], None]:
     pass
 
   @overload
-  def once(self, event: Literal["ended"], cb: Callable[[EndingMessage], None]) -> None:
+  def once(self, event: Literal["ended"], cb: Callable[[LiveV2EndedMessage], None]) -> None:
     pass
 
   @overload
-  def once(self, event: Literal["ended"]) -> Callable[[Callable[[EndingMessage], None]], None]:
+  def once(self, event: Literal["ended"]) -> Callable[[Callable[[LiveV2EndedMessage], None]], None]:
     pass
 
   @overload
@@ -389,22 +420,22 @@ class AsyncLiveV2Session:
 
   @overload
   def off(
-    self, event: Literal["connecting"], cb: Callable[[ConnectionMessage], None] | None
+    self, event: Literal["connecting"], cb: Callable[[LiveV2ConnectingMessage], None] | None
   ) -> None:
     pass
 
   @overload
   def off(
-    self, event: Literal["connected"], cb: Callable[[ConnectionMessage], None] | None
+    self, event: Literal["connected"], cb: Callable[[LiveV2ConnectedMessage], None] | None
   ) -> None:
     pass
 
   @overload
-  def off(self, event: Literal["ending"], cb: Callable[[EndingMessage], None] | None) -> None:
+  def off(self, event: Literal["ending"], cb: Callable[[LiveV2EndingMessage], None] | None) -> None:
     pass
 
   @overload
-  def off(self, event: Literal["ended"], cb: Callable[[EndingMessage], None] | None) -> None:
+  def off(self, event: Literal["ended"], cb: Callable[[LiveV2EndedMessage], None] | None) -> None:
     pass
 
   @overload
@@ -436,22 +467,24 @@ class AsyncLiveV2Session:
 
   @overload
   def add_listener(
-    self, event: Literal["connecting"], cb: Callable[[ConnectionMessage], None]
+    self, event: Literal["connecting"], cb: Callable[[LiveV2ConnectingMessage], None]
   ) -> None:
     pass
 
   @overload
   def add_listener(
-    self, event: Literal["connected"], cb: Callable[[ConnectionMessage], None]
+    self, event: Literal["connected"], cb: Callable[[LiveV2ConnectedMessage], None]
   ) -> None:
     pass
 
   @overload
-  def add_listener(self, event: Literal["ending"], cb: Callable[[EndingMessage], None]) -> None:
+  def add_listener(
+    self, event: Literal["ending"], cb: Callable[[LiveV2EndingMessage], None]
+  ) -> None:
     pass
 
   @overload
-  def add_listener(self, event: Literal["ended"], cb: Callable[[EndingMessage], None]) -> None:
+  def add_listener(self, event: Literal["ended"], cb: Callable[[LiveV2EndedMessage], None]) -> None:
     pass
 
   @overload
@@ -475,25 +508,25 @@ class AsyncLiveV2Session:
 
   @overload
   def remove_listener(
-    self, event: Literal["connecting"], cb: Callable[[ConnectionMessage], None] | None
+    self, event: Literal["connecting"], cb: Callable[[LiveV2ConnectingMessage], None] | None
   ) -> None:
     pass
 
   @overload
   def remove_listener(
-    self, event: Literal["connected"], cb: Callable[[ConnectionMessage], None] | None
+    self, event: Literal["connected"], cb: Callable[[LiveV2ConnectedMessage], None] | None
   ) -> None:
     pass
 
   @overload
   def remove_listener(
-    self, event: Literal["ending"], cb: Callable[[EndingMessage], None] | None
+    self, event: Literal["ending"], cb: Callable[[LiveV2EndingMessage], None] | None
   ) -> None:
     pass
 
   @overload
   def remove_listener(
-    self, event: Literal["ended"], cb: Callable[[EndingMessage], None] | None
+    self, event: Literal["ended"], cb: Callable[[LiveV2EndedMessage], None] | None
   ) -> None:
     pass
 

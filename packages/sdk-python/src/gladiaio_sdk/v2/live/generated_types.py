@@ -28,7 +28,7 @@ LiveV2BitDepth = Literal[8, 16, 24, 32]
 
 LiveV2SampleRate = Literal[8000, 16000, 32000, 44100, 48000]
 
-LiveV2Model = Literal["solaria-1"]
+LiveV2Model = Literal["solaria-1", "solaria-2"]
 
 LiveV2TranscriptionLanguageCode = Literal[
   "af",
@@ -134,7 +134,7 @@ LiveV2TranscriptionLanguageCode = Literal[
 ]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2LanguageConfig(BaseDataClass):
   # If one language is set, it will be used for the transcription. Otherwise, language will be
   # auto-detected by the model.
@@ -145,7 +145,7 @@ class LiveV2LanguageConfig(BaseDataClass):
   code_switching: bool | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PreProcessingConfig(BaseDataClass):
   # If true, apply pre-processing to the audio stream to enhance the quality.
   audio_enhancer: bool | None = None
@@ -154,7 +154,7 @@ class LiveV2PreProcessingConfig(BaseDataClass):
   speech_threshold: float | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CustomVocabularyEntry(BaseDataClass):
   # The text used to replace in the transcription.
   value: str
@@ -167,7 +167,7 @@ class LiveV2CustomVocabularyEntry(BaseDataClass):
   language: LiveV2TranscriptionLanguageCode | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CustomVocabularyConfig(BaseDataClass):
   # Specific vocabulary list to feed the transcription model with. Each item can be a string or an
   # object with the following properties: value, intensity, pronunciations, language.
@@ -176,7 +176,7 @@ class LiveV2CustomVocabularyConfig(BaseDataClass):
   default_intensity: float | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CustomSpellingConfig(BaseDataClass):
   # The list of spelling applied on the audio transcription
   spelling_dictionary: dict[str, list[str]]
@@ -289,7 +289,7 @@ LiveV2TranslationLanguageCode = Literal[
 LiveV2TranslationModel = Literal["base", "enhanced"]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranslationConfig(BaseDataClass):
   # Target language in `iso639-1` format you want the transcription translated to
   target_languages: list[LiveV2TranslationLanguageCode]
@@ -308,7 +308,7 @@ class LiveV2TranslationConfig(BaseDataClass):
   informal: bool | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2RealtimeProcessingConfig(BaseDataClass):
   # If true, enable custom vocabulary for the transcription.
   custom_vocabulary: bool | None = None
@@ -331,13 +331,13 @@ class LiveV2RealtimeProcessingConfig(BaseDataClass):
 LiveV2SummaryType = Literal["general", "bullet_points", "concise"]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SummarizationConfig(BaseDataClass):
   # The type of summarization to apply
   type: LiveV2SummaryType | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostProcessingConfig(BaseDataClass):
   # If true, generates summarization for the whole transcription.
   summarization: bool | None = None
@@ -347,7 +347,7 @@ class LiveV2PostProcessingConfig(BaseDataClass):
   chapterization: bool | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2MessagesConfig(BaseDataClass):
   # If true, partial transcript will be sent to websocket.
   receive_partial_transcripts: bool | None = None
@@ -369,7 +369,7 @@ class LiveV2MessagesConfig(BaseDataClass):
   receive_lifecycle_events: bool | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackConfig(BaseDataClass):
   # URL on which we will do a `POST` request with configured messages
   url: str | None = None
@@ -393,13 +393,13 @@ class LiveV2CallbackConfig(BaseDataClass):
   receive_lifecycle_events: bool | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Error(BaseDataClass):
   # The error message
   message: str
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2AudioChunkAckData(BaseDataClass):
   # Range in bytes length of the audio chunk (relative to the whole session)
   byte_range: list[int]
@@ -407,13 +407,13 @@ class LiveV2AudioChunkAckData(BaseDataClass):
   time_range: list[float]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2EndRecordingMessageData(BaseDataClass):
   # Total audio duration in seconds
   recording_duration: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Word(BaseDataClass):
   # Spoken word
   word: str
@@ -425,7 +425,7 @@ class LiveV2Word(BaseDataClass):
   confidence: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Utterance(BaseDataClass):
   # Start timestamp in seconds of this utterance
   start: float
@@ -445,7 +445,7 @@ class LiveV2Utterance(BaseDataClass):
   speaker: int | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranslationData(BaseDataClass):
   # Id of the utterance used for this result
   utterance_id: str
@@ -459,7 +459,7 @@ class LiveV2TranslationData(BaseDataClass):
   translated_utterance: LiveV2Utterance
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2NamedEntityRecognitionResult(BaseDataClass):
   entity_type: str
   text: str
@@ -467,7 +467,7 @@ class LiveV2NamedEntityRecognitionResult(BaseDataClass):
   end: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2NamedEntityRecognitionData(BaseDataClass):
   # Id of the utterance used for this result
   utterance_id: str
@@ -477,7 +477,7 @@ class LiveV2NamedEntityRecognitionData(BaseDataClass):
   results: list[LiveV2NamedEntityRecognitionResult]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2ChapterizationSentence(BaseDataClass):
   sentence: str
   start: float
@@ -485,7 +485,7 @@ class LiveV2ChapterizationSentence(BaseDataClass):
   words: list[LiveV2Word]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostChapterizationResult(BaseDataClass):
   headline: str
   gist: str
@@ -499,13 +499,13 @@ class LiveV2PostChapterizationResult(BaseDataClass):
   summary: str | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostChapterizationMessageData(BaseDataClass):
   # The chapters
   results: list[LiveV2PostChapterizationResult]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranscriptionMetadata(BaseDataClass):
   # Duration of the transcribed audio file
   audio_duration: float
@@ -517,7 +517,7 @@ class LiveV2TranscriptionMetadata(BaseDataClass):
   transcription_time: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2AddonError(BaseDataClass):
   # Status code of the addon error
   status_code: int
@@ -527,7 +527,7 @@ class LiveV2AddonError(BaseDataClass):
   message: str
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Sentences(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -544,7 +544,7 @@ class LiveV2Sentences(BaseDataClass):
 LiveV2SubtitlesFormat = Literal["srt", "vtt"]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Subtitle(BaseDataClass):
   # Format of the current subtitle
   format: LiveV2SubtitlesFormat
@@ -552,7 +552,7 @@ class LiveV2Subtitle(BaseDataClass):
   subtitles: str
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Transcription(BaseDataClass):
   # All transcription on text format without any other information
   full_transcript: str
@@ -566,7 +566,7 @@ class LiveV2Transcription(BaseDataClass):
   subtitles: list[LiveV2Subtitle] | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranslationResult(BaseDataClass):
   # All transcription on text format without any other information
   full_transcript: str
@@ -582,7 +582,7 @@ class LiveV2TranslationResult(BaseDataClass):
   subtitles: list[LiveV2Subtitle] | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Translation(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -596,7 +596,7 @@ class LiveV2Translation(BaseDataClass):
   results: list[LiveV2TranslationResult] | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Summarization(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -610,7 +610,7 @@ class LiveV2Summarization(BaseDataClass):
   results: str | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2NamedEntityRecognition(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -624,7 +624,7 @@ class LiveV2NamedEntityRecognition(BaseDataClass):
   error: LiveV2AddonError | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SentimentAnalysis(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -639,7 +639,7 @@ class LiveV2SentimentAnalysis(BaseDataClass):
   error: LiveV2AddonError | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2Chapterization(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -654,7 +654,7 @@ class LiveV2Chapterization(BaseDataClass):
   error: LiveV2AddonError | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranscriptionResult(BaseDataClass):
   # Metadata for the given transcription & audio file
   metadata: LiveV2TranscriptionMetadata
@@ -673,13 +673,13 @@ class LiveV2TranscriptionResult(BaseDataClass):
   chapterization: LiveV2Chapterization | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostSummarizationMessageData(BaseDataClass):
   # The summarization
   results: str
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SentimentAnalysisResult(BaseDataClass):
   sentiment: str
   emotion: str
@@ -689,7 +689,7 @@ class LiveV2SentimentAnalysisResult(BaseDataClass):
   channel: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SentimentAnalysisData(BaseDataClass):
   # Id of the utterance used for this result
   utterance_id: str
@@ -699,7 +699,7 @@ class LiveV2SentimentAnalysisData(BaseDataClass):
   results: list[LiveV2SentimentAnalysisResult]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2StopRecordingAckData(BaseDataClass):
   # Total audio duration in seconds
   recording_duration: float
@@ -707,7 +707,7 @@ class LiveV2StopRecordingAckData(BaseDataClass):
   recording_left_to_process: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranscriptMessageData(BaseDataClass):
   # Id of the utterance
   id: str
@@ -717,7 +717,7 @@ class LiveV2TranscriptMessageData(BaseDataClass):
   utterance: LiveV2Utterance
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SpeechMessageData(BaseDataClass):
   # Timestamp in seconds of the speech event
   time: float
@@ -725,14 +725,14 @@ class LiveV2SpeechMessageData(BaseDataClass):
   channel: float
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2EventPayload(BaseDataClass):
   # Id of the job
   id: str
 
 
 # Init Session Types
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2InitRequest(BaseDataClass):
   # The encoding format of the audio stream. Supported formats:
   # - PCM: 8, 16, 24, and 32 bits
@@ -773,7 +773,7 @@ class LiveV2InitRequest(BaseDataClass):
   callback_config: LiveV2CallbackConfig | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2InitResponse(BaseDataClass):
   # Id of the job
   id: str
@@ -785,7 +785,7 @@ class LiveV2InitResponse(BaseDataClass):
 
 
 # WebSocket Messages Types
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2AudioChunkAckMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -800,7 +800,7 @@ class LiveV2AudioChunkAckMessage(BaseDataClass):
   data: LiveV2AudioChunkAckData | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2EndRecordingMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -811,7 +811,7 @@ class LiveV2EndRecordingMessage(BaseDataClass):
   data: LiveV2EndRecordingMessageData
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2EndSessionMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -820,7 +820,7 @@ class LiveV2EndSessionMessage(BaseDataClass):
   type: Literal["end_session"]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranslationMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -833,7 +833,7 @@ class LiveV2TranslationMessage(BaseDataClass):
   data: LiveV2TranslationData | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2NamedEntityRecognitionMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -846,7 +846,7 @@ class LiveV2NamedEntityRecognitionMessage(BaseDataClass):
   data: LiveV2NamedEntityRecognitionData | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostChapterizationMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -859,7 +859,7 @@ class LiveV2PostChapterizationMessage(BaseDataClass):
   data: LiveV2PostChapterizationMessageData | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostFinalTranscriptMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -870,7 +870,7 @@ class LiveV2PostFinalTranscriptMessage(BaseDataClass):
   data: LiveV2TranscriptionResult
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostSummarizationMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -883,7 +883,7 @@ class LiveV2PostSummarizationMessage(BaseDataClass):
   data: LiveV2PostSummarizationMessageData | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2PostTranscriptMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -894,7 +894,7 @@ class LiveV2PostTranscriptMessage(BaseDataClass):
   data: LiveV2Transcription
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SentimentAnalysisMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -907,7 +907,7 @@ class LiveV2SentimentAnalysisMessage(BaseDataClass):
   data: LiveV2SentimentAnalysisData | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2StartRecordingMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -916,7 +916,7 @@ class LiveV2StartRecordingMessage(BaseDataClass):
   type: Literal["start_recording"]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2StartSessionMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -925,7 +925,7 @@ class LiveV2StartSessionMessage(BaseDataClass):
   type: Literal["start_session"]
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2StopRecordingAckMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -940,7 +940,7 @@ class LiveV2StopRecordingAckMessage(BaseDataClass):
   data: LiveV2StopRecordingAckData | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2TranscriptMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -951,7 +951,7 @@ class LiveV2TranscriptMessage(BaseDataClass):
   data: LiveV2TranscriptMessageData
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SpeechStartMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -962,7 +962,7 @@ class LiveV2SpeechStartMessage(BaseDataClass):
   data: LiveV2SpeechMessageData
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2SpeechEndMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -1037,7 +1037,7 @@ def create_live_v2_web_socket_message_from_json(
 
 
 # Callback Messages Types
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackAudioChunkAckMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1046,7 +1046,7 @@ class LiveV2CallbackAudioChunkAckMessage(BaseDataClass):
   payload: LiveV2AudioChunkAckMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackEndRecordingMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1055,7 +1055,7 @@ class LiveV2CallbackEndRecordingMessage(BaseDataClass):
   payload: LiveV2EndRecordingMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackEndSessionMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1064,7 +1064,7 @@ class LiveV2CallbackEndSessionMessage(BaseDataClass):
   payload: LiveV2EndSessionMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackTranslationMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1073,7 +1073,7 @@ class LiveV2CallbackTranslationMessage(BaseDataClass):
   payload: LiveV2TranslationMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackNamedEntityRecognitionMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1082,7 +1082,7 @@ class LiveV2CallbackNamedEntityRecognitionMessage(BaseDataClass):
   payload: LiveV2NamedEntityRecognitionMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackPostChapterizationMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1091,7 +1091,7 @@ class LiveV2CallbackPostChapterizationMessage(BaseDataClass):
   payload: LiveV2PostChapterizationMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackPostFinalTranscriptMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1100,7 +1100,7 @@ class LiveV2CallbackPostFinalTranscriptMessage(BaseDataClass):
   payload: LiveV2PostFinalTranscriptMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackPostSummarizationMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1109,7 +1109,7 @@ class LiveV2CallbackPostSummarizationMessage(BaseDataClass):
   payload: LiveV2PostSummarizationMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackPostTranscriptMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1118,7 +1118,7 @@ class LiveV2CallbackPostTranscriptMessage(BaseDataClass):
   payload: LiveV2PostTranscriptMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackSentimentAnalysisMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1127,7 +1127,7 @@ class LiveV2CallbackSentimentAnalysisMessage(BaseDataClass):
   payload: LiveV2SentimentAnalysisMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackStartRecordingMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1136,7 +1136,7 @@ class LiveV2CallbackStartRecordingMessage(BaseDataClass):
   payload: LiveV2StartRecordingMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackStartSessionMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1145,7 +1145,7 @@ class LiveV2CallbackStartSessionMessage(BaseDataClass):
   payload: LiveV2StartSessionMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackStopRecordingAckMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1154,7 +1154,7 @@ class LiveV2CallbackStopRecordingAckMessage(BaseDataClass):
   payload: LiveV2StopRecordingAckMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackTranscriptMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1163,7 +1163,7 @@ class LiveV2CallbackTranscriptMessage(BaseDataClass):
   payload: LiveV2TranscriptMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackSpeechStartMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1172,7 +1172,7 @@ class LiveV2CallbackSpeechStartMessage(BaseDataClass):
   payload: LiveV2SpeechStartMessage
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2CallbackSpeechEndMessage(BaseDataClass):
   # Id of the job
   id: str
@@ -1245,25 +1245,25 @@ def create_live_v2_callback_message_from_json(
 
 
 # Webhook Messages Types
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2WebhookStartSessionMessage(BaseDataClass):
   event: Literal["live.start_session"]
   payload: LiveV2EventPayload
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2WebhookStartRecordingMessage(BaseDataClass):
   event: Literal["live.start_recording"]
   payload: LiveV2EventPayload
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2WebhookEndRecordingMessage(BaseDataClass):
   event: Literal["live.end_recording"]
   payload: LiveV2EventPayload
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class LiveV2WebhookEndSessionMessage(BaseDataClass):
   event: Literal["live.end_session"]
   payload: LiveV2EventPayload

@@ -1,67 +1,51 @@
+import os
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Literal, TypedDict
+from dataclasses import dataclass, field
+from typing import Literal, cast
 
 # Region parameter
 Region = Literal["eu-west", "us-west"]
 
 
-@dataclass
-class InternalHttpRetryOptions:
-  max_attempts: int
-  status_codes: list[int | tuple[int, int]]
-  delay: Callable[[int], float]
-
-
-@dataclass
-class InternalWebSocketRetryOptions:
-  max_attempts_per_connection: int
-  delay: Callable[[int], float]
-  max_connections: int
-  close_codes: list[int | tuple[int, int]]
-
-
-@dataclass
-class InternalGladiaClientOptions:
-  api_url: str
-  http_headers: dict[str, str]
-  http_retry: InternalHttpRetryOptions
-  http_timeout: float
-  ws_retry: InternalWebSocketRetryOptions
-  ws_timeout: float
-
-  # optional parameters
-  api_key: str | None = None
-  region: Region | None = None
+@dataclass(frozen=True, slots=True)
+class HttpRetryOptions:
+  max_attempts: int = 2
+  status_codes: list[int | tuple[int, int]] = field(
+    default_factory=lambda: [408, 413, (500, 599), 429]
+  )
+  delay: Callable[[int], float] = lambda attempt: min(0.3 * (2.0 ** (attempt - 1)), 10)
 
   def __post_init__(self) -> None:
-    # Coerce nested dicts into their dataclass counterparts
-    if isinstance(self.http_retry, dict):
-      self.http_retry = InternalHttpRetryOptions(**self.http_retry)
-
-    if isinstance(self.ws_retry, dict):
-      self.ws_retry = InternalWebSocketRetryOptions(**self.ws_retry)
+    object.__setattr__(self, "max_attempts", max(0, self.max_attempts))
 
 
-class HttpRetryOptions(TypedDict):
-  max_attempts: int | None
-  status_codes: list[int | tuple[int, int]] | None
-  delay: Callable[[int], float] | None
+@dataclass(frozen=True, slots=True)
+class WebSocketRetryOptions:
+  max_attempts_per_connection: int = 5
+  delay: Callable[[int], float] = lambda attempt: min(0.3 * (2.0 ** (attempt - 1)), 2)
+  max_connections: int = 0
+  close_codes: list[int | tuple[int, int]] = field(
+    default_factory=lambda: [(1002, 4399), (4500, 9999)]
+  )
+
+  def __post_init__(self) -> None:
+    object.__setattr__(
+      self, "max_attempts_per_connection", max(0, self.max_attempts_per_connection)
+    )
+    object.__setattr__(self, "max_connections", max(0, self.max_connections))
 
 
-class WebSocketRetryOptions(TypedDict):
-  max_attempts_per_connection: int | None
-  delay: Callable[[int], float] | None
-  max_connections: int | None
-  close_codes: list[int | tuple[int, int]] | None
+@dataclass(frozen=True, slots=True)
+class GladiaClientOptions:
+  api_key: str | None = os.environ.get("GLADIA_API_KEY")
+  api_url: str = os.environ.get("GLADIA_API_URL", "https://api.gladia.io")
+  region: Region | None = cast(Region | None, os.environ.get("GLADIA_REGION"))
+  http_headers: dict[str, str] = field(default_factory=dict)
+  http_retry: HttpRetryOptions = HttpRetryOptions()
+  http_timeout: float = 10
+  ws_retry: WebSocketRetryOptions = WebSocketRetryOptions()
+  ws_timeout: float = 10
 
-
-class GladiaClientOptions(TypedDict):
-  api_key: str | None
-  api_url: str | None
-  region: Region | None
-  http_headers: dict[str, str] | None
-  http_retry: HttpRetryOptions | None
-  http_timeout: float | None
-  ws_retry: WebSocketRetryOptions | None
-  ws_timeout: float | None
+  def __post_init__(self) -> None:
+    object.__setattr__(self, "http_timeout", max(0, self.http_timeout))
+    object.__setattr__(self, "ws_timeout", max(0, self.ws_timeout))
