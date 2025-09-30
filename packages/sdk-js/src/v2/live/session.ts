@@ -222,7 +222,8 @@ export class LiveV2Session {
 
       // We forced the acknowledgment reception for resume so we must not emit them if user don't want them
       if (
-        this.sessionOptions.messages_config?.receive_acknowledgments ||
+        !this.sessionOptions.messages_config ||
+        this.sessionOptions.messages_config.receive_acknowledgments ||
         !('acknowledged' in message)
       ) {
         this.emit('message', message)
