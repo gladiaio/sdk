@@ -17,6 +17,7 @@ for (let i = 0; i < rawArgs.length; i++) {
   else if (a === '--skipPublish' || a === '--skip-publish') argv.skipPublish = true
   else if (a === '--projects') argv.projects = rawArgs[++i]
   else if (a === '--specifier') argv.specifier = rawArgs[++i]
+  else if (a === '--firstRelease' || a === '--first-release') argv.firstRelease = true
 }
 
 const projectsFilter = argv.projects
@@ -35,6 +36,7 @@ const { workspaceVersion, projectsVersionData } = await releaseVersion({
   dryRun: argv.dryRun,
   verbose: argv.verbose,
   projects: projectsFilter,
+  firstRelease: argv.firstRelease,
 })
 
 // Build selected projects after version bump so generated files can be committed
@@ -58,6 +60,7 @@ await releaseChangelog({
   dryRun: argv.dryRun,
   verbose: argv.verbose,
   projects: projectsFilter,
+  firstRelease: argv.firstRelease,
 })
 
 // Intentionally skipping publish in this custom flow
