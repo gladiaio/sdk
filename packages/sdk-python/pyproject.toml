@@ -23,9 +23,6 @@ dev = [
 requires = [ "hatchling" ]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-include = [ "src/gladiaio_sdk/py.typed" ]
-
 [tool.hatch.build.targets.wheel]
 packages = [ "src/gladiaio_sdk" ]
 
