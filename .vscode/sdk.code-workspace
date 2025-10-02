@@ -1,12 +1,27 @@
 {
   "folders": [
     {
+      "name": "sdk",
       "path": "..",
     },
     {
+      "name": "sdk-js",
+      "path": "../packages/sdk-js",
+    },
+    {
+      "name": "sdk-python",
       "path": "../packages/sdk-python",
     },
     {
+      "name": "e2e-node-cjs",
+      "path": "../e2e/e2e-node-cjs",
+    },
+    {
+      "name": "e2e-node-esm",
+      "path": "../e2e/e2e-node-esm",
+    },
+    {
+      "name": "e2e-python",
       "path": "../e2e/e2e-python",
     },
   ],

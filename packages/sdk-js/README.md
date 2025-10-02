@@ -2,6 +2,11 @@
 
 A TypeScript/JavaScript SDK for the Gladia API.
 
+## Requirements
+
+For non-browser environment, you need either Node 20+ or Bun.  
+It may work on other runtimes but they are not supported / tested.
+
 ## Installation
 
 ```bash
@@ -17,6 +22,13 @@ npm install ws
 On Node >= 22, Bun and browser, the native WebSocket client will be used.
 
 ## Usage
+
+To use the SDK, import `GladiaClient` and create a new instance of it.
+
+You have to give a valid `apiKey` to make requests.
+If the SDK is used in public code (on browser for example) and you don't want to give away your private api key, you can also change the default `apiUrl` to redirect calls to a proxy that will redirect to `https://api.gladia.io` and add the header `X-Gladia-Key`.
+
+You can also configure `apiKey`, `apiUrl` and `region` through their respective environment variables: `GLADIA_API_KEY`, `GLADIA_API_URL` and `GLADIA_REGION`.
 
 ### Node.js / Browser (ESM)
 
@@ -74,6 +86,10 @@ liveSession.on('message', (message) => {
 
 liveSession.once('started', () => {
   console.log(`Session ${liveSession.sessionId} started`)
+})
+
+liveSession.on('error', (err) => {
+  console.error('An error occurred during live session:', err)
 })
 
 liveSession.once('ended', () => {
