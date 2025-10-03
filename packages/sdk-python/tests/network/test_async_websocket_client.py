@@ -6,7 +6,7 @@ from typing import Any, TypedDict
 import pytest
 
 from gladiaio_sdk.client_options import WebSocketRetryOptions
-from gladiaio_sdk.network.async_websocket_client import (
+from gladiaio_sdk.network import (
   WS_STATES,
   AsyncWebSocketClient,
 )

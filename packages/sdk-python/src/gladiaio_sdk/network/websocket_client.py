@@ -1,11 +1,12 @@
 """Async WebSocket client/session with retry and timeout semantics matching the JS SDK."""
 
-import asyncio
+import threading
+import time
 from collections.abc import Callable
-from contextlib import suppress
 from typing import Any, final
 
-from websockets.asyncio import client as _ws_client
+from websockets import ConnectionClosed
+from websockets.sync import client as _ws_client
 
 from gladiaio_sdk.client_options import WebSocketRetryOptions
 
@@ -27,7 +28,7 @@ def _matches_close(code: int, rules: list[int | tuple[int, int]] | None) -> bool
 
 
 @final
-class AsyncWebSocketSession:
+class WebSocketSession:
   onconnecting: Callable[[dict[str, int]], None] | None = None
   onopen: Callable[[dict[str, int]], None] | None = None
   onerror: Callable[[Exception], None] | None = None
@@ -41,8 +42,9 @@ class AsyncWebSocketSession:
   _ws: _ws_client.ClientConnection | None = None
   _connection_count: int = 0
   _connection_attempt: int = 0
-  _connection_timeout_handle: asyncio.TimerHandle | None = None
-  _task: asyncio.Task[None]
+  _thread: threading.Thread | None = None
+  _stop: threading.Event
+  _send_lock: threading.Lock
 
   def __init__(
     self, url: str, retry: WebSocketRetryOptions, timeout: float, *, base_url: str
@@ -50,10 +52,8 @@ class AsyncWebSocketSession:
     self._url = url
     self._retry = retry
     self._timeout = timeout
-    # Create task on the current event loop; if none is running, this schedules
-    # the coroutine for when the loop starts (avoids RuntimeError in sync contexts/tests).
-    loop = asyncio.get_event_loop()
-    self._task = loop.create_task(self._connect())
+    self._stop = threading.Event()
+    self._send_lock = threading.Lock()
 
   @property
   def ready_state(self) -> WS_STATES:
@@ -67,7 +67,8 @@ class AsyncWebSocketSession:
     if self.ready_state == WS_STATES.OPEN:
       if not self._ws:
         raise RuntimeError("readyState is open but ws is not initialized")
-      _ = asyncio.create_task(self._ws.send(data))
+      with self._send_lock:
+        self._ws.send(data)
     else:
       raise RuntimeError("WebSocket is not open")
 
@@ -75,16 +76,23 @@ class AsyncWebSocketSession:
     if self.ready_state in (WS_STATES.CLOSING, WS_STATES.CLOSED):
       return
 
-    self._clear_connection_timeout()
     self._ready_state = WS_STATES.CLOSING
+    self._stop.set()
 
     if self._ws and self._ws.state == 1:
-      _ = asyncio.create_task(self._ws.close(code=code))
+      self._ws.close(code=code)
     else:
       self._on_ws_close(code, reason)
 
-  async def _connect(self, is_retry: bool = False) -> None:
-    self._clear_connection_timeout()
+  def start(self) -> None:
+    """Start the background receive/reconnect loop in a dedicated thread."""
+    if self._thread and self._thread.is_alive():
+      return
+    t = threading.Thread(target=self._connect, name="ws-recv", daemon=True)
+    self._thread = t
+    t.start()
+
+  def _connect(self, is_retry: bool = False) -> None:
     if not is_retry:
       self._connection_count += 1
       self._connection_attempt = 0
@@ -98,12 +106,7 @@ class AsyncWebSocketSession:
         }
       )
 
-    if self._timeout > 0:
-      loop = asyncio.get_running_loop()
-      self._connection_timeout_handle = loop.call_later(self._timeout, self._timeout_close)
-
-    async def on_error(err: Exception | None) -> None:
-      self._clear_connection_timeout()
+    def on_error(err: Exception | None) -> None:
       if self._ready_state != WS_STATES.CONNECTING:
         return
       no_retry = (
@@ -115,33 +118,24 @@ class AsyncWebSocketSession:
           self.onerror(Exception("WebSocket connection error" if err is None else str(err)))
         self.close(1006, "WebSocket connection error")
         return
-      await asyncio.sleep(self._retry.delay(self._connection_attempt))
+      time.sleep(self._retry.delay(self._connection_attempt))
       if self._ready_state == WS_STATES.CONNECTING:
-        await self._connect(True)
+        self._connect(True)
 
     try:
       if self._timeout > 0:
-        try:
-          ws = await asyncio.wait_for(
-            _ws_client.connect(
-              self._url,
-              open_timeout=self._timeout,
-            ),
-            timeout=self._timeout,
-          )
-        except asyncio.TimeoutError:
-          self._timeout_close()
-          return
+        ws = _ws_client.connect(
+          self._url,
+          open_timeout=self._timeout,
+        )
       else:
-        ws = await _ws_client.connect(self._url, open_timeout=None)
+        ws = _ws_client.connect(self._url, open_timeout=None)
     except Exception as e:
-      await on_error(e)
+      on_error(e)
       return
 
-    self._clear_connection_timeout()
-
     if self._ready_state != WS_STATES.CONNECTING:
-      await ws.close(code=1001)
+      ws.close(code=1001)
       return
 
     self._ws = ws
@@ -154,40 +148,21 @@ class AsyncWebSocketSession:
         }
       )
 
-    async def reader() -> None:
-      try:
-        while True:
-          msg = await ws.recv()
-          if self.onmessage:
-            self.onmessage({"data": msg})
-      except Exception:
-        pass
-
-    reader_task = asyncio.create_task(reader())
-
-    error: Exception | None = None
+    close_code: int = 1006
+    close_reason: str = "Abnormal closure"
     try:
-      await ws.wait_closed()
-    except Exception as e:
-      error = e
-    finally:
-      _ = reader_task.cancel()
-      with suppress(asyncio.CancelledError):
-        await reader_task
+      while not self._stop.is_set():
+        msg = ws.recv()
+        if self.onmessage:
+          self.onmessage({"data": msg})
+    except ConnectionClosed as e:
+      close_code = e.code
+      close_reason = e.reason
 
     if self._ws is not ws:
       return
 
     self._ws = None
-
-    close_code = ws.close_code
-    close_reason = ws.close_reason or ""
-    if close_code is None:
-      if error is None:
-        close_code = 1000
-      else:
-        close_code = 1006
-        close_reason = "WebSocket connection error"
 
     if self.ready_state == WS_STATES.CLOSING:
       self._on_ws_close(close_code, close_reason)
@@ -202,14 +177,10 @@ class AsyncWebSocketSession:
       )
       return
 
-    _ = asyncio.create_task(self._connect(False))
-
-  def _timeout_close(self) -> None:
-    self.close(3008, "WebSocket connection timeout")
+    if not self._stop.is_set():
+      self._connect(False)
 
   def _on_ws_close(self, code: int = 1000, reason: str = "") -> None:
-    self._clear_connection_timeout()
-
     if self._ready_state != WS_STATES.CLOSED:
       self._ready_state = WS_STATES.CLOSED
       if self.onclose:
@@ -222,19 +193,14 @@ class AsyncWebSocketSession:
     self.onmessage = None
     self._ws = None
 
-  def _clear_connection_timeout(self) -> None:
-    if self._connection_timeout_handle:
-      self._connection_timeout_handle.cancel()
-      self._connection_timeout_handle = None
-
 
 @final
-class AsyncWebSocketClient:
+class WebSocketClient:
   def __init__(self, base_url: str, retry: WebSocketRetryOptions, timeout: float) -> None:
     self._base_url = base_url
     self._retry = retry
     self._timeout = timeout
 
-  def create_session(self, url: str) -> AsyncWebSocketSession:
+  def create_session(self, url: str) -> WebSocketSession:
     # TODO use base_url
-    return AsyncWebSocketSession(url, self._retry, self._timeout, base_url=self._base_url)
+    return WebSocketSession(url, self._retry, self._timeout, base_url=self._base_url)

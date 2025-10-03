@@ -1,6 +1,6 @@
 """Async HTTP client with retry and timeout semantics matching the JS SDK."""
 
-import asyncio
+import time
 from typing import Any, final
 
 import httpx
@@ -25,7 +25,7 @@ def _matches_status(status: int, rules: list[int | tuple[int, int]] | None) -> b
 
 
 @final
-class AsyncHttpClient:
+class HttpClient:
   def __init__(
     self,
     base_url: str,
@@ -40,31 +40,29 @@ class AsyncHttpClient:
     self._retry = retry
     self._timeout = timeout
 
-    self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
+    self._client = httpx.Client(base_url=self._base_url, timeout=self._timeout)
 
-  async def aclose(self) -> None:
-    await self._client.aclose()
+  def close(self) -> None:
+    self._client.close()
 
-  async def get(self, url: str, init: dict[str, Any] | None = None) -> httpx.Response:
-    return await self._request("GET", url, init or {})
+  def get(self, url: str, init: dict[str, Any] | None = None) -> httpx.Response:
+    return self._request("GET", url, init or {})
 
-  async def post(
-    self, url: str, init: dict[str, Any] | None = None, **kwargs: Any
-  ) -> httpx.Response:
+  def post(self, url: str, init: dict[str, Any] | None = None, **kwargs: Any) -> httpx.Response:
     merged: dict[str, Any] = {}
     if init:
       merged.update(init)
     if kwargs:
       merged.update(kwargs)
-    return await self._request("POST", url, merged)
+    return self._request("POST", url, merged)
 
-  async def put(self, url: str, init: dict[str, Any] | None = None) -> httpx.Response:
-    return await self._request("PUT", url, init or {})
+  def put(self, url: str, init: dict[str, Any] | None = None) -> httpx.Response:
+    return self._request("PUT", url, init or {})
 
-  async def delete(self, url: str, init: dict[str, Any] | None = None) -> httpx.Response:
-    return await self._request("DELETE", url, init or {})
+  def delete(self, url: str, init: dict[str, Any] | None = None) -> httpx.Response:
+    return self._request("DELETE", url, init or {})
 
-  async def _request(self, method: str, url: str, init: dict[str, Any]) -> httpx.Response:
+  def _request(self, method: str, url: str, init: dict[str, Any]) -> httpx.Response:
     # Merge query params and base URL
     base = httpx.URL(self._base_url)
     request_url = base.join(url)
@@ -77,7 +75,7 @@ class AsyncHttpClient:
     data = init.get("body")
     json_body = init.get("json")
 
-    overall_start = asyncio.get_event_loop().time()
+    overall_start = time.time()
     attempt_errors: list[BaseException] = []
 
     attempt = 0
@@ -90,7 +88,7 @@ class AsyncHttpClient:
         if params:
           qp = httpx.QueryParams(params)
           request_url = request_url.copy_with(query=str(qp).encode())
-        response = await self._client.request(
+        response = self._client.request(
           method,
           request_url,
           headers=headers,
@@ -102,17 +100,17 @@ class AsyncHttpClient:
         if 200 <= response.status_code < 300:
           return response
 
-        http_err = await self._create_http_error(method, str(request_url), response)
+        http_err = self._create_http_error(method, str(request_url), response)
         # Retry conditions
         should_retry = (limit == 0) or (attempt < limit)
         if should_retry and _matches_status(response.status_code, self._retry.status_codes):
-          await asyncio.sleep(self._retry.delay(attempt))
+          time.sleep(self._retry.delay(attempt))
           continue
         # Throw immediately
         raise http_err
       except httpx.TimeoutException as err:
         # Do not retry on timeout
-        elapsed = round((asyncio.get_event_loop().time() - overall_start), 3)
+        elapsed = round((time.time() - overall_start), 3)
         raise TimeoutError(
           f"Request timed out after {self._timeout}s on attempt {attempt}"
           f" (duration={elapsed}s) for {method} {request_url}",
@@ -122,7 +120,7 @@ class AsyncHttpClient:
         # Already constructed HttpError from previous branch
         if attempt_errors:
           attempt_errors.append(err)
-          elapsed = round((asyncio.get_event_loop().time() - overall_start), 3)
+          elapsed = round((time.time() - overall_start), 3)
           raise Exception(
             f"HTTP request failed after {attempt} attempts over {elapsed}s"
             f" for {method} {request_url}",
@@ -133,15 +131,15 @@ class AsyncHttpClient:
         should_retry = (limit == 0) or (attempt < limit)
         if should_retry:
           attempt_errors.append(err)
-          await asyncio.sleep(self._retry.delay(attempt))
+          time.sleep(self._retry.delay(attempt))
           continue
-        elapsed = round((asyncio.get_event_loop().time() - overall_start), 3)
+        elapsed = round((time.time() - overall_start), 3)
         raise Exception(
           f"HTTP request failed after {attempt} attempts over {elapsed}s"
           f" for {method} {request_url}",
         ) from Exception("All retry attempts failed", err)
 
-  async def _create_http_error(self, method: str, url: str, response: httpx.Response) -> HttpError:
+  def _create_http_error(self, method: str, url: str, response: httpx.Response) -> HttpError:
     message: str | None = None
     request_id: str | None = None
     call_id: str | None = None

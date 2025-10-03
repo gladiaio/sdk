@@ -12,6 +12,7 @@ from gladiaio_sdk.client_options import (
   WebSocketRetryOptions,
 )
 from gladiaio_sdk.v2.live.async_client import LiveV2AsyncClient
+from gladiaio_sdk.v2.live.client import LiveV2Client
 from gladiaio_sdk.version import SDK_VERSION
 
 
@@ -71,6 +72,28 @@ class GladiaClient:
     self.options = args[0] if len(args) > 0 and args[0] else GladiaClientOptions(**kwargs)
 
   @overload
+  def live_v2(
+    self,
+    *,
+    api_key: str | None = None,
+    api_url: str | None = None,
+    region: Region | None = None,
+    http_headers: dict[str, str] | None = None,
+    http_retry: HttpRetryOptions | None = None,
+    http_timeout: float | None = None,
+    ws_retry: WebSocketRetryOptions | None = None,
+    ws_timeout: float | None = None,
+  ) -> LiveV2Client: ...
+  @overload
+  def live_v2(
+    self,
+    opts: GladiaClientOptions,
+  ) -> LiveV2Client: ...
+  def live_v2(self, *args, **kwargs) -> LiveV2Client:
+    merged_options = self._merge_options(*args, **kwargs)
+    return LiveV2Client(merged_options)
+
+  @overload
   def live_v2_async(
     self,
     *,
@@ -89,6 +112,10 @@ class GladiaClient:
     opts: GladiaClientOptions,
   ) -> LiveV2AsyncClient: ...
   def live_v2_async(self, *args, **kwargs) -> LiveV2AsyncClient:
+    merged_options = self._merge_options(*args, **kwargs)
+    return LiveV2AsyncClient(merged_options)
+
+  def _merge_options(self, *args, **kwargs) -> GladiaClientOptions:
     merged_options: GladiaClientOptions = self.options
     if len(args) > 0 and args[0]:
       merged_options = cast(GladiaClientOptions, args[0])
@@ -111,4 +138,4 @@ class GladiaClient:
     # Validate
     _assert_valid_options(merged_options)
 
-    return LiveV2AsyncClient(merged_options)
+    return merged_options
