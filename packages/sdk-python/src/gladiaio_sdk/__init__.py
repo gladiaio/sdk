@@ -5,7 +5,7 @@ Import GladiaClient and start using Gladia API.
 
 from .client import GladiaClient
 from .client_options import GladiaClientOptions, HttpRetryOptions, WebSocketRetryOptions
-from .network.async_http_client import HttpError, TimeoutError
+from .network import HttpError, TimeoutError
 from .v2.live.async_client import LiveV2AsyncClient
 from .v2.live.async_session import LiveV2AsyncSession
 from .v2.live.types import (

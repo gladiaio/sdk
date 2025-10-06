@@ -37,23 +37,28 @@ gladia_client = GladiaClient(
 
 ## Live V2
 
-### Usage
+### Threaded vs Async
+
+Our Python SDK supports sync/threaded and asyncio versions.  
+To get the sync/threaded version, do:
 
 ```python
-from gladiaio_sdk import (
-  GladiaClient,
-  LiveV2EndedMessage,
-  LiveV2InitRequest,
-  LiveV2InitResponse,
-  LiveV2LanguageConfig,
-  LiveV2MessagesConfig,
-  LiveV2WebSocketMessage,
-)
+live_client = gladia_client.live_v2()
+```
 
-gladia_client = GladiaClient(api_key="your_api_key")
+And to get the async version:
 
+```python
+live_client = gladia_client.live_v2_async()
+```
+
+### Usage
+
+Once you decided between sync and async client, you can use the client to run a Live session:
+
+```python
 # Create session
-live_session = gladia_client.live_v2_async().start_session(
+live_session = live_client.start_session(
   LiveV2InitRequest(
     language_config=LiveV2LanguageConfig(
       languages=["en"],

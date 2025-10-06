@@ -6,9 +6,9 @@ from typing import Any, TypedDict
 import pytest
 
 from gladiaio_sdk.client_options import WebSocketRetryOptions
-from gladiaio_sdk.network.async_websocket_client import (
+from gladiaio_sdk.network import (
   WS_STATES,
-  AsyncWebSocketClient,
+  WebSocketClient,
 )
 
 
@@ -95,13 +95,13 @@ def test_connect_and_message(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
+  import gladiaio_sdk.network.websocket_client as ws_client_mod
 
-  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod.async_ws_client, "connect", fake_connect)
 
   async def main():
-    client = AsyncWebSocketClient(**partial_options())
-    session = client.create_session("ws://localhost:8080")
+    client = WebSocketClient(**partial_options())
+    session = client.create_async_session("ws://localhost:8080")
 
     events = {"open": [], "msg": []}
     session.onopen = lambda payload: events["open"].append(payload)
@@ -123,15 +123,15 @@ def test_send_when_open(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
+  import gladiaio_sdk.network.websocket_client as ws_client_mod
 
-  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod.async_ws_client, "connect", fake_connect)
 
   async def main():
-    client = AsyncWebSocketClient(
+    client = WebSocketClient(
       **partial_options(retry=WebSocketRetryOptions(max_attempts_per_connection=1))
     )
-    session = client.create_session("ws://localhost:8080")
+    session = client.create_async_session("ws://localhost:8080")
     await asyncio.sleep(0.02)
     assert session.ready_state == WS_STATES.OPEN
     session.send("payload")
@@ -147,13 +147,13 @@ def test_send_when_not_open(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
+  import gladiaio_sdk.network.websocket_client as ws_client_mod
 
-  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod.async_ws_client, "connect", fake_connect)
 
   async def main():
-    client = AsyncWebSocketClient(**partial_options())
-    session = client.create_session("ws://localhost:8080")
+    client = WebSocketClient(**partial_options())
+    session = client.create_async_session("ws://localhost:8080")
     assert session.ready_state == WS_STATES.CONNECTING
     with pytest.raises(RuntimeError):
       session.send("data")
@@ -167,13 +167,13 @@ def test_close_manually(monkeypatch):
   async def fake_connect(url, open_timeout=None):  # noqa: ARG001
     return fake
 
-  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
+  import gladiaio_sdk.network.websocket_client as ws_client_mod
 
-  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod.async_ws_client, "connect", fake_connect)
 
   async def main():
-    client = AsyncWebSocketClient(**partial_options())
-    session = client.create_session("ws://localhost:8080")
+    client = WebSocketClient(**partial_options())
+    session = client.create_async_session("ws://localhost:8080")
     events = {"close": []}
     session.onclose = lambda payload: events["close"].append(payload)
     await asyncio.sleep(0.05)
@@ -186,19 +186,17 @@ def test_close_manually(monkeypatch):
 
 
 def test_timeout(monkeypatch):
-  fake = FakeWS()
+  async def fake_connect(url, open_timeout: float):  # noqa: ARG001
+    await asyncio.sleep(open_timeout)
+    raise asyncio.TimeoutError()
 
-  async def fake_connect(url, open_timeout=None):  # noqa: ARG001
-    await asyncio.sleep(0.2)
-    return fake
+  import gladiaio_sdk.network.websocket_client as ws_client_mod
 
-  import gladiaio_sdk.network.async_websocket_client as ws_client_mod
-
-  monkeypatch.setattr(ws_client_mod._ws_client, "connect", fake_connect)
+  monkeypatch.setattr(ws_client_mod.async_ws_client, "connect", fake_connect)
 
   async def main():
-    client = AsyncWebSocketClient(**partial_options(timeout=0.05))
-    session = client.create_session("ws://localhost:8080")
+    client = WebSocketClient(**partial_options(timeout=0.05))
+    session = client.create_async_session("ws://localhost:8080")
     events = {"close": []}
     session.onclose = lambda payload: events["close"].append(payload)
     await asyncio.sleep(0.3)

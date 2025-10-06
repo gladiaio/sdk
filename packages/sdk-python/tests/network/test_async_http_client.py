@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from gladiaio_sdk.client_options import HttpRetryOptions
-from gladiaio_sdk.network.async_http_client import (
+from gladiaio_sdk.network import (
   AsyncHttpClient,
   HttpError,
   TimeoutError,
