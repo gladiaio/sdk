@@ -1,3 +1,9 @@
+## 0.2.0 (2025-10-06)
+
+### 🚀 Features
+
+- **sdk-python:** Add sync/threaded version
+
 ## 0.1.1 (2025-10-01)
 
 ### 🩹 Fixes
