@@ -1,0 +1,86 @@
+name: CI
+
+on: pull_request
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+env:
+  GLADIA_API_KEY: ${{ secrets.GLADIA_API_KEY }}
+
+jobs:
+  security:
+    name: Security check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      # Generate a yarn.lock file for audit-ci to work
+      - run: bun install --yarn
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Audit for JavaScript vulnerabilities
+        run: bunx audit-ci@^7 --config ./audit-ci.jsonc
+
+      - name: Audit for Python vulnerabilities
+        run: bun nx run-many -t audit
+
+  check:
+    name: Lint, Format and Typing Check + Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          lfs: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: bun install
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install Python deps
+        run: bun nx run-many -t sync
+
+      - name: Run all the checks
+        run: bun nx run-many -t build,test,format:check,lint,typecheck
+
+  check-node20:
+    name: Tests with Node 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          lfs: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          package-manager-cache: false
+      - run: bun install
+      # Add optional dependencies for Node 20
+      # because the ws package present on e2e-node-cjs is not visible to the sdk code
+      - run: bun add -D ws undici
+
+      - name: Run all the checks
+        run: bun nx run-many -t test -p sdk-js,e2e-node-cjs

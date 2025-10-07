@@ -86,6 +86,14 @@
         "cwd": "{projectRoot}"
       }
     },
+    "version:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["version"],
+      "options": {
+        "command": "git diff --exit-code HEAD **/version.*",
+        "cwd": "{projectRoot}"
+      }
+    },
     "build": {
       "dependsOn": ["^build", "version"]
     },

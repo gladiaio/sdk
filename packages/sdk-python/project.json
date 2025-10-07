@@ -23,6 +23,13 @@
       "executor": "@nxlv/python:sync",
       "options": {}
     },
+    "audit": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "uvx pysentry-rs .",
+        "cwd": "{projectRoot}"
+      }
+    },
     "add": {
       "executor": "@nxlv/python:add",
       "options": {}
@@ -36,6 +43,7 @@
       "options": {}
     },
     "version": {},
+    "version:check": {},
     "build": {
       "executor": "@nxlv/python:build",
       "outputs": ["{projectRoot}/dist"],
