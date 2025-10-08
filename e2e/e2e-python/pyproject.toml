@@ -28,5 +28,10 @@ indent-width = 2
   fixable = [ "ALL" ]
   unfixable = [ ]
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
+
 [tool.uv.sources]
 gladiaio-sdk = { path = "../../packages/sdk-python", editable = true }

@@ -26,9 +26,9 @@
     "remove": {},
     "format:check": {},
     "format:write": {},
-    "lint": {},
-    "lint:fix": {},
-    "typecheck": {},
+    "lint:check": {},
+    "lint:write": {},
+    "type:check": {},
     "test": {}
   },
   "tags": ["type:lib", "scope:sdk"]

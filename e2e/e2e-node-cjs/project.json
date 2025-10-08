@@ -17,8 +17,8 @@
     "remove": {},
     "format:check": {},
     "format:write": {},
-    "lint": {},
-    "lint:fix": {}
+    "lint:check": {},
+    "lint:write": {}
   },
   "tags": ["type:lib", "scope:e2e"]
 }

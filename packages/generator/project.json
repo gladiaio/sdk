@@ -16,8 +16,9 @@
     "remove": {},
     "format:check": {},
     "format:write": {},
-    "lint": {},
-    "lint:fix": {}
+    "lint:check": {},
+    "lint:write": {},
+    "type:check": {}
   },
   "tags": ["type:app", "scope:generator"]
 }

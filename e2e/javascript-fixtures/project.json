@@ -9,10 +9,9 @@
     "remove": {},
     "format:check": {},
     "format:write": {},
-    "lint": {},
-    "lint:fix": {},
-
-    "typecheck": {}
+    "lint:check": {},
+    "lint:write": {},
+    "type:check": {}
   },
   "tags": ["type:lib", "scope:e2e"]
 }

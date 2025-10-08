@@ -55,7 +55,7 @@
       },
       "cache": true
     },
-    "lint": {
+    "lint:check": {
       "executor": "@nxlv/python:ruff-check",
       "outputs": [],
       "options": {
@@ -63,7 +63,7 @@
       },
       "cache": true
     },
-    "lint:fix": {
+    "lint:write": {
       "executor": "@nxlv/python:ruff-check",
       "outputs": [],
       "options": {
@@ -85,6 +85,13 @@
       "outputs": [],
       "options": {
         "filePatterns": ["src", "tests"]
+      }
+    },
+    "type:check": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "uvx pyright",
+        "cwd": "{projectRoot}"
       }
     },
     "test": {

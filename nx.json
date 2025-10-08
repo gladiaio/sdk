@@ -44,22 +44,20 @@
         "cwd": "{projectRoot}"
       }
     },
-    "lint": {
+    "lint:check": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["{projectRoot}/**/*.{cjs,mjs,ts,tsx,js,jsx}"]
-      },
-      "cache": true
+      }
     },
-    "lint:fix": {
+    "lint:write": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["{projectRoot}/**/*.{cjs,mjs,ts,tsx,js,jsx}"],
         "fix": true
-      },
-      "cache": true
+      }
     },
     "format:check": {
       "executor": "nx:run-commands",
@@ -79,7 +77,7 @@
       "executor": "@nx/vite:test",
       "dependsOn": ["^build"]
     },
-    "version": {
+    "version:write": {
       "executor": "nx:run-commands",
       "options": {
         "command": "bun run scripts/write-version.mjs",
@@ -88,16 +86,16 @@
     },
     "version:check": {
       "executor": "nx:run-commands",
-      "dependsOn": ["version"],
+      "dependsOn": ["version:write"],
       "options": {
         "command": "git diff --exit-code -- HEAD 'src/version.*' 'src/**/version.*'",
         "cwd": "{projectRoot}"
       }
     },
     "build": {
-      "dependsOn": ["^build", "version"]
+      "dependsOn": ["^build", "version:write"]
     },
-    "typecheck": {
+    "type:check": {
       "executor": "nx:run-commands",
       "options": {
         "command": "tsc --noEmit",

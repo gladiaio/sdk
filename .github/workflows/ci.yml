@@ -60,7 +60,7 @@ jobs:
         run: bun nx run-many -t sync
 
       - name: Run all the checks
-        run: bun nx run-many -t build,test,format:check,lint,typecheck
+        run: bun nx run-many -t build,test,format:check,lint:check,type:check,version:check
 
   check-node20:
     name: Tests with Node 20

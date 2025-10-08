@@ -1,7 +1,7 @@
 import os
 from asyncio import sleep as async_sleep
 from time import sleep
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from gladiaio_sdk import (
   LiveV2AsyncSession,
@@ -49,8 +49,10 @@ def parse_audio_file(file: str) -> AudioFile:
     raise ValueError("Unsupported encoding")
 
   channels = int.from_bytes(file_content[22:24], "little")
-  sample_rate: LiveV2SampleRate = int.from_bytes(file_content[24:28], "little")
-  bit_depth: LiveV2BitDepth = int.from_bytes(file_content[34:36], "little")
+  sample_rate: LiveV2SampleRate = cast(
+    LiveV2SampleRate, int.from_bytes(file_content[24:28], "little")
+  )
+  bit_depth: LiveV2BitDepth = cast(LiveV2BitDepth, int.from_bytes(file_content[34:36], "little"))
 
   # Locate the 'data' chunk, skipping any intervening chunks
   next_subchunk = 16 + 4 + fmt_size

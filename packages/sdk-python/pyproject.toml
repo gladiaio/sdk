@@ -36,3 +36,8 @@ indent-width = 2
   ignore = [ ]
   fixable = [ "ALL" ]
   unfixable = [ ]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
