@@ -121,6 +121,11 @@
     },
     "version": {
       "conventionalCommits": true
+    },
+    "conventionalCommits": {
+      "types": {
+        "docs": true
+      }
     }
   }
 }
