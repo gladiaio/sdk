@@ -1,3 +1,9 @@
+## 0.5.2 (2025-10-08)
+
+### 📖 Documentation
+
+- **all:** Add type "docs" to release process
+
 ## 0.5.1 (2025-09-30)
 
 ### 🩹 Fixes
