@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { releaseChangelog, releaseVersion } from 'nx/release/index.js'
+import { releaseChangelog, releasePublish, releaseVersion } from 'nx/release/index.js'
 
 /**
  * Programmatic release flow that inserts a build step between versioning and changelog.
@@ -39,22 +39,23 @@ const { workspaceVersion, projectsVersionData } = await releaseVersion({
   firstRelease: argv.firstRelease,
 })
 
-// Build selected projects after version bump so generated files can be committed
-if (projectsFilter?.length) {
-  const projectList = projectsFilter.join(',')
-  // Ensure prebuild hooks run via npm scripts in each project
-  execSync(`bun nx run-many --tui false -t build -p ${projectList}`, {
-    env: { ...process.env, NX_DAEMON: 'false' },
-  })
-} else {
-  execSync('bun nx run-many --tui false -t build', {
-    env: { ...process.env, NX_DAEMON: 'false' },
-  })
+if (!argv.dryRun) {
+  // Build selected projects after version bump so generated files can be committed
+  if (projectsFilter?.length) {
+    const projectList = projectsFilter.join(',')
+    // Ensure prebuild hooks run via npm scripts in each project
+    execSync(`bun nx run-many --tui false -t build -p ${projectList}`, {
+      env: { ...process.env, NX_DAEMON: 'false' },
+    })
+  } else {
+    execSync('bun nx run-many --tui false -t build', {
+      env: { ...process.env, NX_DAEMON: 'false' },
+    })
+  }
+  execSync('git add .')
 }
 
-execSync('git add .')
-
-await releaseChangelog({
+const { workspaceChangelog, projectChangelogs } = await releaseChangelog({
   version: workspaceVersion,
   versionData: projectsVersionData,
   dryRun: argv.dryRun,
@@ -63,8 +64,22 @@ await releaseChangelog({
   firstRelease: argv.firstRelease,
 })
 
-// Intentionally skipping publish in this custom flow
-if (!argv.dryRun) {
-  console.log('Note: publish is intentionally skipped in this script.')
+if (argv.dryRun) {
+  process.exit(0)
 }
-process.exit(0)
+
+if (!workspaceChangelog && !Object.keys(projectChangelogs).length) {
+  console.log('No release, skipping publish')
+  process.exit(0)
+}
+
+execSync('git push --follow-tags')
+
+await releasePublish({
+  version: workspaceVersion,
+  versionData: projectsVersionData,
+  dryRun: argv.dryRun,
+  verbose: argv.verbose,
+  projects: projectsFilter,
+  firstRelease: argv.firstRelease,
+})
