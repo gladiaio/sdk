@@ -16,7 +16,7 @@
         "devTargetName": "dev",
         "previewTargetName": "preview",
         "serveStaticTargetName": "serve-static",
-        "typecheckTargetName": "typecheck",
+        "typecheckTargetName": "type:check",
         "buildDepsTargetName": "build-deps",
         "watchDepsTargetName": "watch-deps"
       }
