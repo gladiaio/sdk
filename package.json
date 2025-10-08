@@ -35,8 +35,6 @@
     "vitest": "^3.2.4"
   },
   "scripts": {
-    "release": "node tools/scripts/release.mjs",
-    "prepublish": "nx run-many --tui false -t build",
-    "publish": "nx release publish"
+    "release": "node tools/scripts/release.mjs"
   }
 }

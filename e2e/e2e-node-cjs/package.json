@@ -8,9 +8,7 @@
   },
   "dependencies": {
     "@gladiaio/sdk": "workspace:*",
-    "@gladiaio/sdk-e2e-javascript-fixtures": "workspace:*",
-    "undici": "^7.16.0",
-    "ws": "^8.18.3"
+    "@gladiaio/sdk-e2e-javascript-fixtures": "workspace:*"
   },
   "engines": {
     "node": ">=20"

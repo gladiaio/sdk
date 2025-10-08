@@ -5,6 +5,7 @@
   "projectType": "library",
   "targets": {
     "version": {},
+    "version:check": {},
     "build": {
       "executor": "nx:run-commands",
       "options": {

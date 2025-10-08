@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { releaseChangelog, releaseVersion } from 'nx/release/index.js'
+import { releaseChangelog, releasePublish, releaseVersion } from 'nx/release/index.js'
 
 /**
  * Programmatic release flow that inserts a build step between versioning and changelog.
@@ -39,22 +39,23 @@ const { workspaceVersion, projectsVersionData } = await releaseVersion({
   firstRelease: argv.firstRelease,
 })
 
-// Build selected projects after version bump so generated files can be committed
-if (projectsFilter?.length) {
-  const projectList = projectsFilter.join(',')
-  // Ensure prebuild hooks run via npm scripts in each project
-  execSync(`bun nx run-many --tui false -t build -p ${projectList}`, {
-    env: { ...process.env, NX_DAEMON: 'false' },
-  })
-} else {
-  execSync('bun nx run-many --tui false -t build', {
-    env: { ...process.env, NX_DAEMON: 'false' },
-  })
+if (!argv.dryRun) {
+  // Build selected projects after version bump so generated files can be committed
+  if (projectsFilter?.length) {
+    const projectList = projectsFilter.join(',')
+    // Ensure prebuild hooks run via npm scripts in each project
+    execSync(`bun nx run-many --tui false -t build -p ${projectList}`, {
+      env: { ...process.env, NX_DAEMON: 'false' },
+    })
+  } else {
+    execSync('bun nx run-many --tui false -t build', {
+      env: { ...process.env, NX_DAEMON: 'false' },
+    })
+  }
+  execSync('git add .')
 }
 
-execSync('git add .')
-
-await releaseChangelog({
+const { projectChangelogs } = await releaseChangelog({
   version: workspaceVersion,
   versionData: projectsVersionData,
   dryRun: argv.dryRun,
@@ -63,8 +64,27 @@ await releaseChangelog({
   firstRelease: argv.firstRelease,
 })
 
-// Intentionally skipping publish in this custom flow
-if (!argv.dryRun) {
-  console.log('Note: publish is intentionally skipped in this script.')
+if (argv.dryRun) {
+  process.exit(0)
 }
-process.exit(0)
+
+for (const projectName of Object.keys(projectChangelogs)) {
+  console.log(`Publishing ${projectName}`)
+  const results = await releasePublish({
+    version: workspaceVersion,
+    versionData: projectsVersionData,
+    dryRun: argv.dryRun,
+    verbose: argv.verbose,
+    projects: [projectName],
+    firstRelease: argv.firstRelease,
+  })
+  if (results[projectName].code !== 0) {
+    console.error(`Failed to publish ${projectName}`)
+    process.exit(1)
+  }
+}
+
+// Push the commits first
+execSync('git push')
+// Then push the tags because commits can fail to push and not tags
+execSync('git push --follow-tags')
