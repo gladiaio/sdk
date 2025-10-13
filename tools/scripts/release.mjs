@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { releaseChangelog, releasePublish, releaseVersion } from 'nx/release/index.js'
+import { releaseChangelog, releaseVersion } from 'nx/release/index.js'
 
 /**
  * Programmatic release flow that inserts a build step between versioning and changelog.
@@ -70,16 +70,16 @@ if (argv.dryRun) {
 
 for (const projectName of Object.keys(projectChangelogs)) {
   console.log(`Publishing ${projectName}`)
-  const results = await releasePublish({
-    version: workspaceVersion,
-    versionData: projectsVersionData,
-    dryRun: argv.dryRun,
-    verbose: argv.verbose,
-    projects: [projectName],
-    firstRelease: argv.firstRelease,
-  })
-  if (results[projectName].code !== 0) {
-    console.error(`Failed to publish ${projectName}`)
-    process.exit(1)
-  }
+  // const results = await releasePublish({
+  //   version: workspaceVersion,
+  //   versionData: projectsVersionData,
+  //   dryRun: argv.dryRun,
+  //   verbose: argv.verbose,
+  //   projects: [projectName],
+  //   firstRelease: argv.firstRelease,
+  // })
+  // if (results[projectName].code !== 0) {
+  //   console.error(`Failed to publish ${projectName}`)
+  //   process.exit(1)
+  // }
 }
