@@ -1,11 +1,6 @@
 name: CD
 
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - closed
   workflow_dispatch:
 
 concurrency:
@@ -20,14 +15,18 @@ jobs:
     name: Publish packages
     runs-on: ubuntu-latest
     steps:
+      - name: Fetch 1password key
+        id: secrets
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          SDK_PUBLISHER_PRIVATE_KEY: op://infra_automation/sdkreleasemanager/private key
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SA_TOKEN_INFRA_AUTOMATION }}
+
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - name: Configure Git author
-        run: |
-          git config user.name "SDK Release Bot"
-          git config user.email "tech+sdk-release-bot@gladia.io"
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -46,5 +45,26 @@ jobs:
       - name: Install Python deps
         run: bun nx run-many -t sync
 
+      - name: Generate a token
+        id: generate-token-sdk-publisher
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: '2089066'
+          private-key: ${{ steps.secrets.outputs.SDK_PUBLISHER_PRIVATE_KEY }}
+          owner: 'gladiaio'
+          repositories: 'sdk'
+
+      - name: Configure Git author
+        run: |
+          git config user.name "SDK Release Manager"
+          git config user.email "tech+sdk-release-manager@gladia.io"
+
       - name: Make the release
         run: bun run release
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
+
+      - name: Push the commit and tags
+        run: git push --follow-tags
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}

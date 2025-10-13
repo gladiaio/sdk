@@ -83,8 +83,3 @@ for (const projectName of Object.keys(projectChangelogs)) {
     process.exit(1)
   }
 }
-
-// Push the commits first
-execSync('git push')
-// Then push the tags because commits can fail to push and not tags
-execSync('git push --follow-tags')
