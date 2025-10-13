@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: '${{ github.workflow }}'
+  group: "${{ github.workflow }}"
   cancel-in-progress: false
 
 jobs:
@@ -49,10 +49,10 @@ jobs:
         id: generate-token-sdk-publisher
         uses: actions/create-github-app-token@v1
         with:
-          app-id: '2089066'
+          app-id: "2089066"
           private-key: ${{ steps.secrets.outputs.SDK_PUBLISHER_PRIVATE_KEY }}
-          owner: 'gladiaio'
-          repositories: 'sdk'
+          owner: "gladiaio"
+          repositories: "sdk"
 
       - name: Configure Git author
         run: |
@@ -65,6 +65,8 @@ jobs:
           GITHUB_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
 
       - name: Push the commit and tags
-        run: git push --follow-tags
+        run: |
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/gladiaio/sdk.git
+          git push origin main --follow-tags
         env:
           GITHUB_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
