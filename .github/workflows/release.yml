@@ -1,10 +1,10 @@
-name: CD
+name: Release
 
 on:
   workflow_dispatch:
     inputs:
       project:
-        description: 'Target project to release (optional)'
+        description: 'Target project to release'
         type: choice
         required: false
         options:
@@ -13,7 +13,7 @@ on:
           - sdk-python
         default: ''
       version:
-        description: 'Version bump type (optional)'
+        description: 'Version bump type'
         type: choice
         required: false
         options:
@@ -23,7 +23,12 @@ on:
           - patch
         default: ''
       first-release:
-        description: 'Is this the first release? (optional)'
+        description: 'Is this the first release?'
+        type: boolean
+        required: false
+        default: false
+      dry-run:
+        description: 'Dry run (no changes pushed)'
         type: boolean
         required: false
         default: false
@@ -33,11 +38,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  cd:
+  release:
     permissions:
       contents: write
       id-token: write
-    name: Publish packages
+    name: Release packages
     runs-on: ubuntu-latest
     steps:
       - name: Fetch 1password key
@@ -65,8 +70,8 @@ jobs:
           GH_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
 
       - run: |
-          git config --global user.name '${{ steps.generate-token-sdk-publisher.outputs.app-slug }}[bot]'
-          git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.generate-token-sdk-publisher.outputs.app-slug }}[bot]@gladia.io'
+          git config --global user.name '${{ steps.generate-token-sdk-publisher.outputs.app-slug }}'
+          git config --global user.email '${{ steps.generate-token-sdk-publisher.outputs.app-slug }}@gladia.io'
 
       - uses: actions/checkout@v5
         with:
@@ -93,24 +98,11 @@ jobs:
       - name: Make the release
         id: release
         run: |
-          bun run release -- \
-            --projects "${{ github.event.inputs.project }}" \
-            --specifier "${{ github.event.inputs.version }}" \
-            $([ "${{ github.event.inputs['first-release'] }}" = "true" ] && echo --firstRelease || true)
+          bun run release -- --verbose \
+            $([ -n "${{ github.event.inputs.project }}" ] && echo --projects "${{ github.event.inputs.project }}" || true) \
+            $([ -n "${{ github.event.inputs.version }}" ] && echo --specifier "${{ github.event.inputs.version }}" || true) \
+            $([ "${{ github.event.inputs['first-release'] }}" = "true" ] && echo --firstRelease || true) \
+            $([ "${{ github.event.inputs['dry-run'] }}" = "true" ] && echo --dryRun || true)
 
       - name: Push the commit and tags
         run: git push --follow-tags
-
-      - name: Trigger publish workflows
-        if: ${{ steps.release.outputs.released_projects != '' }}
-        env:
-          GH_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
-        run: |
-          SHA=$(git rev-parse HEAD)
-          IFS=',' read -ra PROJECTS <<< "${{ steps.release.outputs.released_projects }}"
-          for PROJECT in "${PROJECTS[@]}"; do
-            PROJECT_TRIMMED="$(echo "$PROJECT" | xargs)"
-            if [ -n "$PROJECT_TRIMMED" ]; then
-              gh workflow run .github/workflows/publish.yml --ref "${{ github.ref_name }}" -f project="$PROJECT_TRIMMED" -f ref="$SHA"
-            fi
-          done

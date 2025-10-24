@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import { releasePublish } from 'nx/release/index.js'
 
 const { values: argv } = parseArgs({
   options: {
@@ -21,8 +22,6 @@ const projectsFilter =
 
 for (const projectName of projectsFilter) {
   const results = await releasePublish({
-    version: workspaceVersion,
-    versionData: projectsVersionData,
     dryRun: argv.dryRun,
     verbose: argv.verbose,
     projects: [projectName],

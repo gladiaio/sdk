@@ -1,5 +1,4 @@
 import { execSync } from 'node:child_process'
-import { appendFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { releaseChangelog, releaseVersion } from 'nx/release/index.js'
 
@@ -24,9 +23,9 @@ const projectsFilter = argv.projects
   .filter(Boolean)
 
 if (!argv.dryRun) {
-  const hasUntrackedChanges = execSync('git status --porcelain').toString().trim().length > 0
-  if (hasUntrackedChanges) {
-    console.error('Error: There are untracked changes in the repository.')
+  const changes = execSync('git status --porcelain').toString().trim()
+  if (changes.length > 0) {
+    console.error('Error: There are untracked changes in the repository.', changes)
     process.exit(1)
   }
 }
@@ -65,9 +64,6 @@ const { projectChangelogs } = await releaseChangelog({
 })
 
 const releasedProjects = Object.keys(projectChangelogs)
-if (process.env.GITHUB_OUTPUT) {
-  appendFileSync(process.env.GITHUB_OUTPUT, `released_projects=${releasedProjects.join(',')}\n`)
-}
 if (argv.verbose) {
   console.log('releasedProjects:', releasedProjects)
 }
