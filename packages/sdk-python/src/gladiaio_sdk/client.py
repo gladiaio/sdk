@@ -48,7 +48,7 @@ gladia_version = f"SdkPython/{SDK_VERSION}"
 
 
 class GladiaClient:
-  """Entrypoint for Gladia SDK."""
+  """Entrypoint for Gladia SDK"""
 
   options: GladiaClientOptions
 
