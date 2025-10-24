@@ -1,6 +1,6 @@
 [project]
 name = "gladiaio-sdk"
-version = "0.3.0"
+version = "0.3.1"
 description = "Gladia SDK for Python"
 requires-python = ">=3.10,<4"
 readme = "README.md"

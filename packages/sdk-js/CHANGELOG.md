@@ -1,3 +1,13 @@
+## 0.5.3 (2025-10-24)
+
+### 🩹 Fixes
+
+- Version wasn't updated on release
+
+### 📖 Documentation
+
+- **sdk-js:** Improve doc
+
 ## 0.5.2 (2025-10-08)
 
 ### 📖 Documentation

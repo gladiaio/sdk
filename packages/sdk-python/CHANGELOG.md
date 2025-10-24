@@ -1,3 +1,13 @@
+## 0.3.1 (2025-10-24)
+
+### 🩹 Fixes
+
+- Version wasn't updated on release
+
+### 📖 Documentation
+
+- **sdk-python:** Improve doc
+
 ## 0.3.0 (2025-10-24)
 
 ### 📖 Documentation
