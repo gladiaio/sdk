@@ -42,12 +42,12 @@ if (!argv.dryRun) {
   // Build selected projects after version bump so generated files can be committed
   if (projectsFilter?.length) {
     const projectList = projectsFilter.join(',')
-    // Ensure prebuild hooks run via npm scripts in each project
-    execSync(`bun nx run-many --tui false -t build -p ${projectList}`, {
+    // Update the version
+    execSync(`bun nx run-many --tui false -t version:write -p ${projectList}`, {
       env: { ...process.env, NX_DAEMON: 'false' },
     })
   } else {
-    execSync('bun nx run-many --tui false -t build', {
+    execSync('bun nx run-many --tui false -t version:write', {
       env: { ...process.env, NX_DAEMON: 'false' },
     })
   }

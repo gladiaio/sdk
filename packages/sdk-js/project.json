@@ -4,7 +4,7 @@
   "sourceRoot": "{projectRoot}/src",
   "projectType": "library",
   "targets": {
-    "version": {},
+    "version:write": {},
     "version:check": {},
     "build": {
       "executor": "nx:run-commands",

@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { execSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,3 +27,8 @@ mkdirSync(dirname(outputPath), { recursive: true })
 writeFileSync(outputPath, content, 'utf8')
 
 console.log(`[sdk-python] Wrote ${outputPath} with version ${version}`)
+
+// Update lockfile
+execSync(`bun nx run-many --tui false -t sync`, {
+  env: { ...process.env, NX_DAEMON: 'false' },
+})

@@ -42,7 +42,7 @@
       "executor": "@nxlv/python:remove",
       "options": {}
     },
-    "version": {},
+    "version:write": {},
     "version:check": {},
     "build": {
       "executor": "@nxlv/python:build",
