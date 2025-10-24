@@ -1,0 +1,116 @@
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Target project to release (optional)'
+        type: choice
+        required: false
+        options:
+          - ''
+          - sdk-js
+          - sdk-python
+        default: ''
+      version:
+        description: 'Version bump type (optional)'
+        type: choice
+        required: false
+        options:
+          - ''
+          - major
+          - minor
+          - patch
+        default: ''
+      first-release:
+        description: 'Is this the first release? (optional)'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: '${{ github.workflow }}'
+  cancel-in-progress: false
+
+jobs:
+  cd:
+    permissions:
+      contents: write
+      id-token: write
+    name: Publish packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch 1password key
+        id: secrets
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          SDK_PUBLISHER_PRIVATE_KEY: op://infra_automation/sdkreleasemanager/private key
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SA_TOKEN_INFRA_AUTOMATION }}
+
+      - name: Generate a token
+        id: generate-token-sdk-publisher
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: '2089066'
+          private-key: ${{ steps.secrets.outputs.SDK_PUBLISHER_PRIVATE_KEY }}
+          owner: 'gladiaio'
+          repositories: 'sdk'
+
+      - name: Get GitHub App User ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.generate-token-sdk-publisher.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
+
+      - run: |
+          git config --global user.name '${{ steps.generate-token-sdk-publisher.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.generate-token-sdk-publisher.outputs.app-slug }}[bot]@gladia.io'
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token-sdk-publisher.outputs.token }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm install -g npm
+      - run: bun install
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install Python deps
+        run: bun nx run-many -t sync
+
+      - name: Make the release
+        id: release
+        run: |
+          bun run release -- \
+            --projects "${{ github.event.inputs.project }}" \
+            --specifier "${{ github.event.inputs.version }}" \
+            $([ "${{ github.event.inputs['first-release'] }}" = "true" ] && echo --firstRelease || true)
+
+      - name: Push the commit and tags
+        run: git push --follow-tags
+
+      - name: Trigger publish workflows
+        if: ${{ steps.release.outputs.released_projects != '' }}
+        env:
+          GH_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          IFS=',' read -ra PROJECTS <<< "${{ steps.release.outputs.released_projects }}"
+          for PROJECT in "${PROJECTS[@]}"; do
+            PROJECT_TRIMMED="$(echo "$PROJECT" | xargs)"
+            if [ -n "$PROJECT_TRIMMED" ]; then
+              gh workflow run .github/workflows/publish.yml --ref "${{ github.ref_name }}" -f project="$PROJECT_TRIMMED" -f ref="$SHA"
+            fi
+          done

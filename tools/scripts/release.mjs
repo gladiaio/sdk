@@ -1,23 +1,21 @@
 import { execSync } from 'node:child_process'
-import { releaseChangelog, releasePublish, releaseVersion } from 'nx/release/index.js'
+import { appendFileSync } from 'node:fs'
+import { parseArgs } from 'node:util'
+import { releaseChangelog, releaseVersion } from 'nx/release/index.js'
 
-/**
- * Programmatic release flow that inserts a build step between versioning and changelog.
- * Usage examples:
- *   node tools/scripts/release.mjs --projects sdk-js --skip-publish --dryRun
- *   node tools/scripts/release.mjs --specifier patch --projects sdk-js
- */
-// Minimal CLI arg parsing to avoid external deps
-const rawArgs = process.argv.slice(2)
-const argv = { dryRun: false, verbose: false, skipPublish: true }
-for (let i = 0; i < rawArgs.length; i++) {
-  const a = rawArgs[i]
-  if (a === '--dryRun' || a === '--dry-run' || a === '-d') argv.dryRun = true
-  else if (a === '--verbose') argv.verbose = true
-  else if (a === '--skipPublish' || a === '--skip-publish') argv.skipPublish = true
-  else if (a === '--projects') argv.projects = rawArgs[++i]
-  else if (a === '--specifier') argv.specifier = rawArgs[++i]
-  else if (a === '--firstRelease' || a === '--first-release') argv.firstRelease = true
+const { values: argv } = parseArgs({
+  options: {
+    dryRun: { type: 'boolean', default: false },
+    verbose: { type: 'boolean', default: false },
+    projects: { type: 'string' },
+    specifier: { type: 'string' },
+    firstRelease: { type: 'boolean', default: false },
+  },
+  strict: true,
+})
+
+if (argv.verbose) {
+  console.log('argv:', JSON.stringify(argv, null, 2))
 }
 
 const projectsFilter = argv.projects
@@ -25,10 +23,12 @@ const projectsFilter = argv.projects
   .map((p) => p.trim())
   .filter(Boolean)
 
-const hasUntrackedChanges = execSync('git status --porcelain').toString().trim().length > 0
-if (hasUntrackedChanges) {
-  console.error('Error: There are untracked changes in the repository.')
-  process.exit(1)
+if (!argv.dryRun) {
+  const hasUntrackedChanges = execSync('git status --porcelain').toString().trim().length > 0
+  if (hasUntrackedChanges) {
+    console.error('Error: There are untracked changes in the repository.')
+    process.exit(1)
+  }
 }
 
 const { workspaceVersion, projectsVersionData } = await releaseVersion({
@@ -64,27 +64,12 @@ const { projectChangelogs } = await releaseChangelog({
   firstRelease: argv.firstRelease,
 })
 
-if (argv.dryRun) {
-  process.exit(0)
+const releasedProjects = Object.keys(projectChangelogs)
+if (process.env.GITHUB_OUTPUT) {
+  appendFileSync(process.env.GITHUB_OUTPUT, `released_projects=${releasedProjects.join(',')}\n`)
+}
+if (argv.verbose) {
+  console.log('releasedProjects:', releasedProjects)
 }
 
-for (const projectName of Object.keys(projectChangelogs)) {
-  console.log(`Publishing ${projectName}`)
-  const results = await releasePublish({
-    version: workspaceVersion,
-    versionData: projectsVersionData,
-    dryRun: argv.dryRun,
-    verbose: argv.verbose,
-    projects: [projectName],
-    firstRelease: argv.firstRelease,
-  })
-  if (results[projectName].code !== 0) {
-    console.error(`Failed to publish ${projectName}`)
-    process.exit(1)
-  }
-}
-
-// Push the commits first
-execSync('git push')
-// Then push the tags because commits can fail to push and not tags
-execSync('git push --follow-tags')
+process.exit(0)

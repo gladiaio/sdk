@@ -38,6 +38,7 @@
     "vitest": "^3.2.4"
   },
   "scripts": {
-    "release": "node tools/scripts/release.mjs"
+    "release": "node tools/scripts/release.mjs",
+    "publish": "node tools/scripts/publish.mjs"
   }
 }
