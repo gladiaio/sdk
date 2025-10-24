@@ -1,3 +1,9 @@
+## 0.3.0 (2025-10-24)
+
+### 📖 Documentation
+
+- **sdk-python:** Improve doc
+
 ## 0.2.0 (2025-10-06)
 
 ### 🚀 Features
