@@ -68,7 +68,7 @@ const defaultOptions: InternalGladiaClientOptions = {
 }
 
 /**
- * Entrypoint for Gladia SDK
+ * Entrypoint for Gladia SDK.
  */
 export class GladiaClient {
   private options: InternalGladiaClientOptions
