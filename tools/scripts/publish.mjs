@@ -20,15 +20,20 @@ const projectsFilter =
     .map((p) => p.trim())
     .filter(Boolean) ?? []
 
-for (const projectName of projectsFilter) {
-  const results = await releasePublish({
-    dryRun: argv.dryRun,
-    verbose: argv.verbose,
-    projects: [projectName],
-    firstRelease: argv.firstRelease,
-  })
-  if (results[projectName].code !== 0) {
-    console.error(`Failed to publish ${projectName}`)
-    process.exit(1)
+const results = await releasePublish({
+  dryRun: argv.dryRun,
+  verbose: argv.verbose,
+  projects: projectsFilter,
+  firstRelease: argv.firstRelease,
+})
+
+const failedPublishes = Object.entries(results)
+  .filter(([, result]) => result.code !== 0)
+  .map(([projectName]) => projectName)
+if (failedPublishes.length > 0) {
+  console.error(`Failed to publish ${failedPublishes.length} projects:`)
+  for (const projectName of failedPublishes) {
+    console.error(`- ${projectName}`)
   }
+  process.exit(1)
 }
