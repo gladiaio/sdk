@@ -28,7 +28,7 @@ LiveV2BitDepth = Literal[8, 16, 24, 32]
 
 LiveV2SampleRate = Literal[8000, 16000, 32000, 44100, 48000]
 
-LiveV2Model = Literal["solaria-1", "solaria-2"]
+LiveV2Model = Literal["solaria-1"]
 
 LiveV2TranscriptionLanguageCode = Literal[
   "af",
@@ -129,7 +129,6 @@ LiveV2TranscriptionLanguageCode = Literal[
   "vi",
   "yi",
   "yo",
-  "yue",
   "zh",
 ]
 
@@ -282,7 +281,6 @@ LiveV2TranslationLanguageCode = Literal[
   "wo",
   "yi",
   "yo",
-  "yue",
   "zh",
 ]
 

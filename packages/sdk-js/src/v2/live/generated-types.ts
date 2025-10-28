@@ -10,7 +10,7 @@ export type LiveV2BitDepth = 8 | 16 | 24 | 32
 
 export type LiveV2SampleRate = 8000 | 16000 | 32000 | 44100 | 48000
 
-export type LiveV2Model = 'solaria-1' | 'solaria-2'
+export type LiveV2Model = 'solaria-1'
 
 export type LiveV2TranscriptionLanguageCode =
   | 'af'
@@ -111,7 +111,6 @@ export type LiveV2TranscriptionLanguageCode =
   | 'vi'
   | 'yi'
   | 'yo'
-  | 'yue'
   | 'zh'
 
 export interface LiveV2LanguageConfig {
@@ -251,7 +250,6 @@ export type LiveV2TranslationLanguageCode =
   | 'wo'
   | 'yi'
   | 'yo'
-  | 'yue'
   | 'zh'
 
 export type LiveV2TranslationModel = 'base' | 'enhanced'
