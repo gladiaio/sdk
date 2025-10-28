@@ -1,3 +1,9 @@
+## 0.4.0 (2025-10-28)
+
+### 🚀 Features
+
+- Update OpenAPI interfaces
+
 ## 0.3.1 (2025-10-24)
 
 ### 🩹 Fixes
