@@ -1,5 +1,6 @@
 import { getEnv } from '../helpers.js';
 
+// Max safe integer in 32-bit environment 
 const MAX_TIMEOUT = 2147483647;
 
 export async function initFetch(): Promise<typeof fetch> {
