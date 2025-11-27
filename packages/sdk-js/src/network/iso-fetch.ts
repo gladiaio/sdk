@@ -1,5 +1,8 @@
 import { getEnv } from '../helpers.js'
 
+// Max safe integer in 32-bit environment
+const MAX_TIMEOUT = 2147483647
+
 export async function initFetch(): Promise<typeof fetch> {
   if (getEnv('VITEST_WORKER_ID')) {
     return fetch
@@ -14,9 +17,9 @@ export async function initFetch(): Promise<typeof fetch> {
     // @ts-expect-error undici is an optional dependency
     const { fetch: uFetch, Agent } = await import('undici')
     const agent = new Agent({
-      connectTimeout: Number.MAX_SAFE_INTEGER,
-      connect: { timeout: Number.MAX_SAFE_INTEGER },
-      headersTimeout: Number.MAX_SAFE_INTEGER,
+      connectTimeout: MAX_TIMEOUT,
+      connect: { timeout: MAX_TIMEOUT },
+      headersTimeout: MAX_TIMEOUT,
       bodyTimeout: 0,
     })
     return (url: string | URL | Request, init?: RequestInit | undefined) => {
