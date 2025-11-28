@@ -1,3 +1,9 @@
+## 0.6.1 (2025-11-28)
+
+### 🩹 Fixes
+
+- **sdk-js:** Use a safe integer as max timeout for iso-fetch
+
 ## 0.6.0 (2025-10-28)
 
 ### 🚀 Features
