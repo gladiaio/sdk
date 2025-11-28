@@ -4,6 +4,7 @@
   "version": "0.6.0",
   "author": "Gladia",
   "license": "MIT",
+  "repository": "github:gladiaio/sdk",
   "keywords": [
     "gladia",
     "sdk",
