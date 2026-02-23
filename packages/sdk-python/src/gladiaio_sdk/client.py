@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import os
 from typing import cast, overload
 
 from gladiaio_sdk.client_options import (
@@ -37,9 +38,8 @@ def _assert_valid_options(options: GladiaClientOptions) -> None:
   except Exception as err:
     raise ValueError(f'Invalid url: "{options.api_url}".') from err
 
-  if not options.api_key and (url.hostname or "").endswith(".gladia.io"):
-    raise ValueError('You have to set your "api_key" or define a proxy "api_url".')
-
+  if not options.api_key:
+    raise ValueError('You must set your "api_key" or GLADIA_API_KEY environment variable set.')
   if url.scheme not in ["https", "http", "wss", "ws"]:
     raise ValueError(
       f"Only HTTP and WebSocket protocols are supported for api_url (received: {url.scheme})."
@@ -73,6 +73,8 @@ class GladiaClient:
     opts: GladiaClientOptions,
   ) -> None: ...
   def __init__(self, *args, **kwargs) -> None:
+    if "api_key" not in kwargs and "api_key" not in args:
+      kwargs["api_key"] = os.environ.get("GLADIA_API_KEY")
     self.options = args[0] if len(args) > 0 and args[0] else GladiaClientOptions(**kwargs)
 
   @overload
