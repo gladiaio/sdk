@@ -926,9 +926,9 @@ class PreRecordedV2Response(BaseDataClass):
   status: Literal["queued", "processing", "done", "error"]
   # Creation date
   created_at: str
-  # For debugging purposes, send data that could help to identify issues
-  post_session_metadata: dict[str, Any]
   kind: Literal["pre-recorded"]
+  # For debugging purposes, send data that could help to identify issues
+  post_session_metadata: dict[str, Any] | None = None
   # Completion date when status is "done" or "error"
   completed_at: str | None = None
   # Custom metadata given in the initial request

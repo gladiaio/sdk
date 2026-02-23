@@ -836,7 +836,7 @@ export interface PreRecordedV2Response {
   /** HTTP status code of the error if status is "error" */
   error_code?: number | null
   /** For debugging purposes, send data that could help to identify issues */
-  post_session_metadata: object
+  post_session_metadata?: object
   kind: 'pre-recorded'
   /** The file data you uploaded. Can be null if status is "error" */
   file?: PreRecordedV2FileResponse | null

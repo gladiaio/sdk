@@ -48,6 +48,15 @@ type ResolvedType = {
 export class PythonGenerator extends BaseGenerator {
   private maxLineLength: number
 
+  // Field overrides: force specific fields in specific types to be optional
+  // Format: 'TypeName.fieldName' -> true means force optional
+  // This is useful when API behavior doesn't match OpenAPI schema exactly
+  private fieldOverrides: Map<string, boolean> = new Map([
+    // PreRecordedResponse fields that should be optional despite schema
+    // These debug/metadata fields are not always returned by the API
+    ['PreRecordedV2Response.post_session_metadata', true],
+  ])
+
   constructor() {
     super()
 
@@ -195,6 +204,7 @@ export class PythonGenerator extends BaseGenerator {
   ): string {
     const lines: string[] = []
     const orderedProps = this.orderProperties(
+      typeName,
       schema.properties ?? {},
       new Set(schema.required ?? [])
     )
@@ -236,14 +246,25 @@ export class PythonGenerator extends BaseGenerator {
   }
 
   private orderProperties(
+    typeName: string,
     properties: Record<string, SchemaOrReference>,
     required: Set<string>
   ): OrderedProperty[] {
     const result: OrderedProperty[] = []
 
+    // Helper to check if a field should be forced optional via overrides
+    const shouldForceOptional = (fieldName: string): boolean => {
+      const overrideKey = `${typeName}.${fieldName}`
+      return this.fieldOverrides.get(overrideKey) === true
+    }
+
     Object.entries(properties)
       .filter(([name]) => required.has(name))
-      .forEach(([name, schema]) => result.push({ name, schema, required: true }))
+      .forEach(([name, schema]) => {
+        // Check if field should be forced optional despite being in required array
+        const isRequired = !shouldForceOptional(name)
+        result.push({ name, schema, required: isRequired })
+      })
 
     Object.entries(properties)
       .filter(([name]) => !required.has(name))
