@@ -100,6 +100,7 @@ class AsyncHttpClient:
     headers = {**self._default_headers, **dict(init.get("headers") or {})}
     data = init.get("body")
     json_body = init.get("json")
+    files = init.get("files")
 
     overall_start = asyncio.get_event_loop().time()
     attempt_errors: list[BaseException] = []
@@ -120,6 +121,7 @@ class AsyncHttpClient:
           headers=headers,
           content=data,
           json=json_body,
+          files=files,
           timeout=self._timeout,
         )
 
@@ -216,6 +218,7 @@ class HttpClient:
     headers = {**self._default_headers, **dict(init.get("headers") or {})}
     data = init.get("body")
     json_body = init.get("json")
+    files = init.get("files")
 
     overall_start = time.time()
     attempt_errors: list[BaseException] = []
@@ -236,6 +239,7 @@ class HttpClient:
           headers=headers,
           content=data,
           json=json_body,
+          files=files,
           timeout=self._timeout,
         )
 

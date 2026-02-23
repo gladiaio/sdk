@@ -45,6 +45,21 @@ class PreRecordedV2AsyncClient:
       timeout=options.http_timeout,
     )
 
+  async def transcribe(
+    self,
+    file: str | Path | BinaryIO,
+    options: PreRecordedV2InitTranscriptionRequest,
+  ) -> PreRecordedV2Response:
+    """Transcribe a local audio file.
+
+    Args:
+    file: The audio file to transcribe.
+    options: The transcription request parameters.
+    """
+    audio_url = await self.upload_file(file)
+    options = PreRecordedV2InitTranscriptionRequest(**options, audio_url=audio_url)
+    return await self.create_and_poll(options)
+
   async def create(
     self, options: PreRecordedV2InitTranscriptionRequest | dict[str, Any]
   ) -> PreRecordedV2InitTranscriptionResponse:
