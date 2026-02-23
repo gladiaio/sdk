@@ -13,6 +13,7 @@ from gladiaio_sdk.network import HttpClient
 
 from .core import PreRecordedV2Core
 from .generated_types import (
+  PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2InitTranscriptionResponse,
   PreRecordedV2Response,
@@ -55,8 +56,8 @@ class PreRecordedV2Client:
     file: The audio file to transcribe.
     options: The transcription request parameters.
     """
-    audio_url = self.upload_file(file)
-    options = PreRecordedV2InitTranscriptionRequest(**options, audio_url=audio_url)
+    upload_response = self.upload_file(file)
+    options = PreRecordedV2InitTranscriptionRequest(**options, audio_url=upload_response.audio_url)
     return self.create_and_poll(options)
 
   def create(
@@ -75,14 +76,14 @@ class PreRecordedV2Client:
     resp = self._http_client.post("/v2/pre-recorded", json=body)
     return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
 
-  def upload_file(self, file: str | Path | BinaryIO) -> str:
+  def upload_file(self, file: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
     """Upload a local audio/video file and return its Gladia URL.
 
     Args:
       file: A file path (str or Path) or an open binary file object.
 
     Returns:
-      The ``audio_url`` that can be passed to ``create``.
+       The :class:`PreRecordedV2AudioUploadResponse` containing the ``audio_url`` and ``audio_metadata``.
     """
     file_path, file_obj = self._core.validate_file_input(file)
 
@@ -96,8 +97,7 @@ class PreRecordedV2Client:
       files = {"audio": (filename, file_obj, content_type)}
       resp = self._http_client.post("/v2/upload", files=files)
 
-    data = resp.json()
-    return self._core.extract_audio_url_from_upload_response(data)
+    return PreRecordedV2AudioUploadResponse.from_json(resp.content)
 
   def get(self, job_id: str) -> PreRecordedV2Response:
     """Get a pre-recorded transcription job by ID.
