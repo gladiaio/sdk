@@ -64,7 +64,9 @@ class AsyncHttpClient:
     self._retry = retry
     self._timeout = timeout
 
-    self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
+    self._client = httpx.AsyncClient(
+      base_url=self._base_url, timeout=self._timeout, follow_redirects=True
+    )
 
   async def close(self) -> None:
     await self._client.aclose()
@@ -184,7 +186,9 @@ class HttpClient:
     self._retry = retry
     self._timeout = timeout
 
-    self._client = httpx.Client(base_url=self._base_url, timeout=self._timeout)
+    self._client = httpx.Client(
+      base_url=self._base_url, timeout=self._timeout, follow_redirects=True
+    )
 
   def close(self) -> None:
     self._client.close()
