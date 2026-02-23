@@ -76,7 +76,15 @@ class GladiaClient:
 
   def pre_recorded_v2(self, *args, **kwargs) -> PreRecordedV2AsyncClient:
     merged_options = self._merge_options(*args, **kwargs)
+    if "http_timeout" not in kwargs and not args:
+      merged_options = dataclasses.replace(
+        merged_options,
+        http_timeout=300,  # 5 minutes to handle file uploads
+      )
     return PreRecordedV2AsyncClient(merged_options)
+
+  prerecorded = pre_recorded_v2
+  pre_recorded = pre_recorded_v2
 
   @overload
   def live_v2(
