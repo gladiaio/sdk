@@ -13,6 +13,7 @@ from gladiaio_sdk.client_options import (
 )
 from gladiaio_sdk.v2.live.async_client import LiveV2AsyncClient
 from gladiaio_sdk.v2.live.client import LiveV2Client
+from gladiaio_sdk.v2.prerecorded.async_client import PreRecordedV2AsyncClient
 from gladiaio_sdk.version import SDK_VERSION
 
 
@@ -72,6 +73,10 @@ class GladiaClient:
   ) -> None: ...
   def __init__(self, *args, **kwargs) -> None:
     self.options = args[0] if len(args) > 0 and args[0] else GladiaClientOptions(**kwargs)
+
+  def pre_recorded_v2(self, *args, **kwargs) -> PreRecordedV2AsyncClient:
+    merged_options = self._merge_options(*args, **kwargs)
+    return PreRecordedV2AsyncClient(merged_options)
 
   @overload
   def live_v2(
