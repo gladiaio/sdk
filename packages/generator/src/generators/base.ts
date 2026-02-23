@@ -1,7 +1,12 @@
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import { getSdkFolder } from '../helpers.ts'
-import type { LiveV2Schemas, ReferencedSchemaObject, SchemaOrReference } from '../types.ts'
+import type {
+  LiveV2Schemas,
+  PreRecordedV2Schemas,
+  ReferencedSchemaObject,
+  SchemaOrReference,
+} from '../types.ts'
 
 export abstract class BaseGenerator {
   async generateLiveV2(schemas: LiveV2Schemas): Promise<void> {
@@ -10,6 +15,14 @@ export abstract class BaseGenerator {
     await this.generateLiveV2Types(schemas)
 
     console.log(`Generated code for Live V2 SDK (${this.sdkName})`)
+  }
+
+  async generatePreRecordedV2(schemas: PreRecordedV2Schemas): Promise<void> {
+    console.log(`Generating code for Pre-recorded V2 SDK (${this.sdkName})`)
+
+    await this.generatePreRecordedV2Types(schemas)
+
+    console.log(`Generated code for Pre-recorded V2 SDK (${this.sdkName})`)
   }
 
   protected abstract get sdkName(): string
@@ -81,6 +94,32 @@ export abstract class BaseGenerator {
     await this.writeFile(outputPath, allContent)
 
     console.log(`Generated types for Live V2 SDK (${this.sdkName})`)
+  }
+
+  private async generatePreRecordedV2Types(schemas: PreRecordedV2Schemas): Promise<void> {
+    console.log(`Generating types for Pre-recorded V2 SDK (${this.sdkName})`)
+
+    const sharedContent =
+      '\n\n' + (await this.generateTypes(schemas.referencedTypes, 'Shared Types'))
+
+    const uploadContent =
+      '\n\n' + (await this.generateTypes([schemas.uploadRequest, schemas.uploadResponse], 'Upload'))
+
+    const initSessionContent =
+      '\n\n' +
+      (await this.generateTypes([schemas.initRequest, schemas.initResponse], 'Init Session'))
+
+    const resultContent = '\n\n' + (await this.generateTypes([schemas.resultResponse], 'Result'))
+
+    const header = this.getGeneratedFileHeader()
+    const allContent = [header, sharedContent, uploadContent, initSessionContent, resultContent]
+      .filter((content) => content.trim())
+      .join('\n\n')
+
+    const outputPath = `${this.getSdkFolder()}/${this.getSourceFolder()}/v2/pre-recorded/${this.formatFilename('generated-types')}${this.getFileExtension()}`
+    await this.writeFile(outputPath, allContent)
+
+    console.log(`Generated types for Pre-recorded V2 SDK (${this.sdkName})`)
   }
 
   protected abstract resolveUnionTypes(items: SchemaOrReference[]): string[]
