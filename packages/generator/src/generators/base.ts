@@ -116,7 +116,7 @@ export abstract class BaseGenerator {
       .filter((content) => content.trim())
       .join('\n\n')
 
-    const outputPath = `${this.getSdkFolder()}/${this.getSourceFolder()}/v2/pre-recorded/${this.formatFilename('generated-types')}${this.getFileExtension()}`
+    const outputPath = `${this.getSdkFolder()}/${this.getSourceFolder()}/v2/prerecorded/${this.formatFilename('generated-types')}${this.getFileExtension()}`
     await this.writeFile(outputPath, allContent)
 
     console.log(`Generated types for Pre-recorded V2 SDK (${this.sdkName})`)
