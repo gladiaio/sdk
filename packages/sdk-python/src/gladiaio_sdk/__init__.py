@@ -8,15 +8,19 @@ from .client_options import GladiaClientOptions, HttpRetryOptions, WebSocketRetr
 from .network import HttpError, TimeoutError
 from .v2.live.async_client import LiveV2AsyncClient
 from .v2.live.async_session import LiveV2AsyncSession
+from .v2.live.client import LiveV2Client
 from .v2.live.types import (
   LiveV2ConnectedMessage,
   LiveV2ConnectingMessage,
   LiveV2EndedMessage,
   LiveV2EndingMessage,
 )
+from .v2.prerecorded.async_client import PreRecordedV2AsyncClient
+from .v2.prerecorded.client import PreRecordedV2Client
 
 __all__: list[str] = [
   "GladiaClient",
+  "LiveV2Client",
   "LiveV2AsyncClient",
   "LiveV2AsyncSession",
   "LiveV2ConnectingMessage",
@@ -28,6 +32,9 @@ __all__: list[str] = [
   "GladiaClientOptions",
   "HttpRetryOptions",
   "WebSocketRetryOptions",
+  "PreRecordedV2AsyncClient",
+  "PreRecordedV2Client",
 ]
 
 from .v2.live.generated_types import *  # noqa: F403
+from .v2.prerecorded.generated_types import *  # noqa: F403
