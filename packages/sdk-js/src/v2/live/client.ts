@@ -31,6 +31,50 @@ export class LiveV2Client {
     })
   }
 
+  /**
+   * Fetch a live session by ID.
+   *
+   * @param id - The ID of the live session.
+   * @returns The session data.
+   */
+  async get(id: string): Promise<Record<string, unknown>> {
+    return this.httpClient.get<Record<string, unknown>>(`/v2/live/${id}`)
+  }
+
+  /**
+   * List live transcription sessions.
+   *
+   * @param limit - Optional maximum number of sessions to return (e.g. 20).
+   * @returns The response containing the list of sessions.
+   */
+  async listTranscriptions(limit?: number): Promise<Record<string, unknown>> {
+    const path = limit != null ? `/v2/live?limit=${limit}` : '/v2/live'
+    return this.httpClient.get<Record<string, unknown>>(path)
+  }
+
+  /**
+   * Download the file for a live session by ID.
+   *
+   * @param id - The ID of the live session.
+   * @returns The raw file as an `ArrayBuffer`.
+   */
+  async download(id: string): Promise<ArrayBuffer> {
+    const response = await this.httpClient.get<Response>(`/v2/live/${id}/file`)
+    if (response instanceof Response) {
+      return response.arrayBuffer()
+    }
+    throw new Error('Unexpected JSON response from file endpoint')
+  }
+
+  /**
+   * Delete a live session by ID.
+   *
+   * @param id - The ID of the live session to delete.
+   */
+  async delete(id: string): Promise<void> {
+    await this.httpClient.delete(`/v2/live/${id}`)
+  }
+
   startSession(options: LiveV2InitRequest): LiveV2Session {
     return new LiveV2Session({
       options,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, final
+from typing import TYPE_CHECKING, Any, final
 from urllib.parse import urlparse
 
 from gladiaio_sdk.client_options import GladiaClientOptions
@@ -14,6 +14,11 @@ if TYPE_CHECKING:
 
 @final
 class LiveV2AsyncClient:
+  """Async client for the Gladia Live Speech-To-Text API.
+
+  Provides methods to start a session, send audio, and handle events.
+  """
+
   def __init__(self, options: GladiaClientOptions) -> None:
     # Create HTTP client
     base_http_url = urlparse(options.api_url)
@@ -39,6 +44,52 @@ class LiveV2AsyncClient:
       retry=options.ws_retry,
       timeout=options.ws_timeout,
     )
+
+  async def get(self, id: str) -> dict[str, Any]:
+    """Fetch a live session by ID.
+
+    Args:
+      id: The ID of the live session.
+
+    Returns:
+      The session data as a dictionary.
+    """
+    resp = await self._http_client.get(f"v2/live/{id}")
+    return resp.json()
+
+  async def list_transcriptions(self, limit: int = 20) -> dict[str, Any]:
+    """List live transcription sessions.
+
+    Args:
+      limit: Optional maximum number of sessions to return. If not set, the default is 20.
+
+    Returns:
+      The JSON response as a dictionary (typically contains a list of sessions).
+    """
+    endpoint = "v2/live" if limit is None else f"v2/live?limit={limit}"
+    resp = await self._http_client.get(endpoint)
+    return resp.json()
+
+
+  async def download(self, id: str) -> bytes:
+    """Download the file for a live session by ID.
+
+    Args:
+      id: The ID of the live session.
+
+    Returns:
+      The raw file bytes.
+    """
+    resp = await self._http_client.get(f"v2/live/{id}/file")
+    return resp.content
+
+  async def delete(self, id: str) -> None:
+    """Delete a live session by ID.
+
+    Args:
+      id: The ID of the live session to delete.
+    """
+    await self._http_client.delete(f"v2/live/{id}")
 
   def start_session(self, options: LiveV2InitRequest) -> LiveV2AsyncSession:
     return LiveV2AsyncSession(

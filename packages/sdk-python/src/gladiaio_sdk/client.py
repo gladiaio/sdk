@@ -12,6 +12,7 @@ from gladiaio_sdk.client_options import (
   Region,
   WebSocketRetryOptions,
 )
+
 from gladiaio_sdk.v2.live.async_client import LiveV2AsyncClient
 from gladiaio_sdk.v2.live.client import LiveV2Client
 from gladiaio_sdk.v2.prerecorded.async_client import PreRecordedV2AsyncClient
@@ -87,8 +88,6 @@ class GladiaClient:
     http_headers: dict[str, str] | None = None,
     http_retry: HttpRetryOptions | None = None,
     http_timeout: float | None = None,
-    ws_retry: WebSocketRetryOptions | None = None,
-    ws_timeout: float | None = None,
   ) -> PreRecordedV2Client: ...
   @overload
   def pre_recorded_v2(
@@ -118,8 +117,6 @@ class GladiaClient:
     http_headers: dict[str, str] | None = None,
     http_retry: HttpRetryOptions | None = None,
     http_timeout: float | None = None,
-    ws_retry: WebSocketRetryOptions | None = None,
-    ws_timeout: float | None = None,
   ) -> PreRecordedV2AsyncClient: ...
   @overload
   def pre_recorded_v2_async(

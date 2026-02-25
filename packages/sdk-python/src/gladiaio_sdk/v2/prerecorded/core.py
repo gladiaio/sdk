@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol
+from urllib.parse import urlencode, urlparse
+
+# Pattern for upload id (e.g. from audio_metadata.id): UUID with optional hyphens
+_UPLOAD_ID_PATTERN = re.compile(
+  r"^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
+)
 
 
 class HttpClientProtocol(Protocol):
@@ -20,6 +27,20 @@ class PreRecordedV2Core:
 
   This class contains all the pure business logic without any I/O operations.
   """
+
+  @staticmethod
+  def is_web_url(path: str) -> bool:
+    """Return True if path looks like an http(s) URL (e.g. YouTube or any web audio URL)."""
+    try:
+      parsed = urlparse(path)
+      return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+      return False
+
+  @staticmethod
+  def is_upload_id(value: str) -> bool:
+    """Return True if value looks like an upload id (e.g. from audio_metadata.id)."""
+    return bool(value and _UPLOAD_ID_PATTERN.match(value.strip()))
 
   @staticmethod
   def validate_file_input(file: str | Path | BinaryIO) -> tuple[str | None, BinaryIO | None]:
@@ -67,10 +88,10 @@ class PreRecordedV2Core:
     return response_data["audio_url"]
 
   @staticmethod
-  def prepare_create_body(
+  def prepare_initiate_body(
     options: Any,  # PreRecordedV2InitTranscriptionRequest | dict[str, Any]
   ) -> dict[str, Any]:
-    """Prepare the request body for creating a transcription.
+    """Prepare the request body for initiating a transcription.
 
     Args:
       options: The transcription request parameters.
@@ -81,6 +102,21 @@ class PreRecordedV2Core:
     if isinstance(options, dict):
       return options
     return options.to_dict()
+
+  @staticmethod
+  def build_list_endpoint(limit: int | None = None) -> str:
+    """Build the endpoint path for listing pre-recorded jobs.
+
+    Args:
+      limit: Optional maximum number of jobs to return.
+
+    Returns:
+      The endpoint path, with query string if limit is set.
+    """
+    path = "/v2/pre-recorded"
+    if limit is not None:
+      path = f"{path}?{urlencode({'limit': limit})}"
+    return path
 
   @staticmethod
   def build_job_endpoint(job_id: str) -> str:

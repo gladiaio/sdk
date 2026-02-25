@@ -8,11 +8,7 @@ export default defineConfig({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['src/**/*.{test,spec}.{js,ts,mts,cts}', 'tests/**/*.{test,spec}.{js,ts,mts,cts}'],
     reporters: ['default'],
-    coverage: {
-      reportsDirectory: './coverage',
-      provider: 'v8' as const,
-    },
   },
 })

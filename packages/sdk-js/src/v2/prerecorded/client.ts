@@ -52,12 +52,12 @@ export class PreRecordedV2Client {
   }
 
   /**
-   * Create a new pre-recorded transcription job.
+   * Initiate a new pre-recorded transcription job.
    *
    * @param options - The transcription request parameters including `audio_url`.
    * @returns A response containing the job `id` and `result_url` to poll.
    */
-  async create(
+  async initiate(
     options: PreRecordedV2InitTranscriptionRequest
   ): Promise<PreRecordedV2InitTranscriptionResponse> {
     return this.httpClient.post<PreRecordedV2InitTranscriptionResponse>('/v2/pre-recorded', {
@@ -128,27 +128,27 @@ export class PreRecordedV2Client {
   }
 
   /**
-   * Create a pre-recorded transcription job and poll until completion.
+   * Initiate a pre-recorded transcription job and poll until completion.
    *
-   * Convenience method that combines `create` and `poll`.
+   * Convenience method that combines `initiate` and `poll`.
    *
    * @param options - The transcription request parameters including `audio_url`.
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
    * @returns The completed job response.
    */
-  async createAndPoll(
+  async initiateAndPoll(
     options: PreRecordedV2InitTranscriptionRequest,
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
-    const initResponse = await this.create(options)
+    const initResponse = await this.initiate(options)
     return this.poll(initResponse.id, { interval, timeout })
   }
 
   /**
    * Upload a local audio file and transcribe it, polling until completion.
    *
-   * Convenience method that combines `uploadFile`, `create`, and `poll`.
+   * Convenience method that combines `uploadFile`, `initiate`, and `poll`.
    *
    * @param file - A file path (string), `File`, or `Blob` to upload and transcribe.
    * @param options - The transcription request parameters (without `audio_url`).
@@ -162,7 +162,7 @@ export class PreRecordedV2Client {
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
     const uploadResponse = await this.uploadFile(file)
-    return this.createAndPoll(
+    return this.initiateAndPoll(
       { ...options, audio_url: uploadResponse.audio_url },
       { interval, timeout }
     )

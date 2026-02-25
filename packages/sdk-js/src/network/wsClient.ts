@@ -198,7 +198,11 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
     }
 
     if (this.readyState !== WS_STATES.CONNECTING) {
-      ws.close(1001)
+      try {
+        ws.close(1000)
+      } catch {
+        // Some environments (e.g. Node undici) only accept 1000
+      }
       return
     }
 
@@ -209,7 +213,11 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
 
       if (this.readyState !== WS_STATES.CONNECTING) {
         // User closed the connection during the connection attempt
-        ws.close(1001)
+        try {
+          ws.close(1000)
+        } catch {
+          // Some environments (e.g. Node undici) only accept 1000
+        }
         return
       }
 
