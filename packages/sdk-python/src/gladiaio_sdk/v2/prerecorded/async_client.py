@@ -57,7 +57,9 @@ class PreRecordedV2AsyncClient:
     options: The transcription request parameters.
     """
     upload_response = await self.upload_file(file)
-    options = PreRecordedV2InitTranscriptionRequest(**options, audio_url=upload_response.audio_url)
+    options = PreRecordedV2InitTranscriptionRequest(
+      **options.to_dict(), audio_url=upload_response.audio_url
+    )
     return await self.create_and_poll(options)
 
   async def create(
@@ -92,11 +94,12 @@ class PreRecordedV2AsyncClient:
       with open(file_path, "rb") as f:
         files = {"audio": (filename, f, content_type)}
         resp = await self._http_client.post("/v2/upload", files=files)
-    else:
+    elif file_obj:
       filename, content_type = self._core.prepare_file_object_for_upload(file_obj)
       files = {"audio": (filename, file_obj, content_type)}
       resp = await self._http_client.post("/v2/upload", files=files)
-
+    else:
+      raise ValueError("Invalid file input")
     return PreRecordedV2AudioUploadResponse.from_json(resp.content)
 
   async def get(self, job_id: str) -> PreRecordedV2Response:
