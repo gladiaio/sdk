@@ -4,9 +4,7 @@ version = "0.0.1"
 description = "E2E Tests for Gladia Python SDK"
 requires-python = ">=3.10,<4"
 readme = "README.md"
-dependencies = [
- "gladiaio-sdk"
-]
+dependencies = ["gladiaio-sdk"]
 
 [dependency-groups]
 dev = [
@@ -14,19 +12,19 @@ dev = [
   "ruff>=0.8.2",
   "pytest>=8.3.4",
   "pytest-asyncio>=1.2.0",
-  "pytest-sugar>=1.0.0"
+  "pytest-sugar>=1.0.0",
 ]
 
 [tool.ruff]
-exclude = [ ".ruff_cache", ".svn", ".tox", ".venv", "dist" ]
+exclude = [".ruff_cache", ".svn", ".tox", ".venv", "dist"]
 line-length = 100
 indent-width = 2
 
-  [tool.ruff.lint]
-  select = [ "E", "F", "UP", "B", "SIM", "I" ]
-  ignore = [ ]
-  fixable = [ "ALL" ]
-  unfixable = [ ]
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "SIM", "I"]
+ignore = ["E501"]
+fixable = ["ALL"]
+unfixable = []
 
 [tool.pyright]
 venvPath = "."
