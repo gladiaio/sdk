@@ -365,6 +365,100 @@ class PreRecordedV2AudioToLlmListConfig(BaseDataClass):
   prompts: list[list[Any]]
 
 
+PreRecordedV2PiiRedactionEntityType = Literal[
+  "APPI",
+  "APPI_SENSITIVE",
+  "CCI",
+  "CORE_ENTITIES",
+  "CPRA",
+  "GDPR",
+  "GDPR_SENSITIVE",
+  "HEALTH_INFORMATION",
+  "HIPAA_SAFE_HARBOR",
+  "LIDI",
+  "NUMERICAL_EXCL_PCI",
+  "PCI",
+  "QUEBEC_PRIVACY_ACT",
+  "ACCOUNT_NUMBER",
+  "AGE",
+  "DATE",
+  "DATE_INTERVAL",
+  "DOB",
+  "DRIVER_LICENSE",
+  "DURATION",
+  "EMAIL_ADDRESS",
+  "EVENT",
+  "FILENAME",
+  "GENDER",
+  "HEALTHCARE_NUMBER",
+  "IP_ADDRESS",
+  "LANGUAGE",
+  "LOCATION",
+  "LOCATION_ADDRESS",
+  "LOCATION_ADDRESS_STREET",
+  "LOCATION_CITY",
+  "LOCATION_COORDINATE",
+  "LOCATION_COUNTRY",
+  "LOCATION_STATE",
+  "LOCATION_ZIP",
+  "MARITAL_STATUS",
+  "MONEY",
+  "NAME",
+  "NAME_FAMILY",
+  "NAME_GIVEN",
+  "NAME_MEDICAL_PROFESSIONAL",
+  "NUMERICAL_PII",
+  "OCCUPATION",
+  "ORGANIZATION",
+  "ORGANIZATION_MEDICAL_FACILITY",
+  "ORIGIN",
+  "PASSPORT_NUMBER",
+  "PASSWORD",
+  "PHONE_NUMBER",
+  "PHYSICAL_ATTRIBUTE",
+  "POLITICAL_AFFILIATION",
+  "RELIGION",
+  "SEXUALITY",
+  "SSN",
+  "TIME",
+  "URL",
+  "USERNAME",
+  "VEHICLE_ID",
+  "ZODIAC_SIGN",
+  "BLOOD_TYPE",
+  "CONDITION",
+  "DOSE",
+  "DRUG",
+  "INJURY",
+  "MEDICAL_PROCESS",
+  "STATISTICS",
+  "BANK_ACCOUNT",
+  "CREDIT_CARD",
+  "CREDIT_CARD_EXPIRATION",
+  "CVV",
+  "ROUTING_NUMBER",
+  "CORPORATE_ACTION",
+  "DAY",
+  "EFFECT",
+  "FINANCIAL_METRIC",
+  "MEDICAL_CODE",
+  "MONTH",
+  "ORGANIZATION_ID",
+  "PRODUCT",
+  "PROJECT",
+  "TREND",
+  "YEAR",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class PreRecordedV2PiiRedactionConfig(BaseDataClass):
+  # The entity types to redact
+  entity_types: PreRecordedV2PiiRedactionEntityType
+  # The type of processed text to return (marker or mask)
+  processed_text_type: Literal["MARKER", "MASK"]
+
+
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2LanguageConfig(BaseDataClass):
   # If one language is set, it will be used for the transcription. Otherwise, language will be
@@ -456,6 +550,10 @@ class PreRecordedV2RequestParamsResponse(BaseDataClass):
   audio_to_llm: bool | None = None
   # **[Alpha]** Audio to llm configuration, if `audio_to_llm` is enabled
   audio_to_llm_config: PreRecordedV2AudioToLlmListConfig | None = None
+  # Enable PII redaction for this audio
+  pii_redaction: bool | None = None
+  # PII redaction configuration, if `pii_redaction` is enabled
+  pii_redaction_config: PreRecordedV2PiiRedactionConfig | None = None
   # Enable sentences for this audio
   sentences: bool | None = None
   # **[Alpha]** Allows to change the output display_mode for this audio. The output will be
@@ -890,6 +988,10 @@ class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   audio_to_llm: bool | None = None
   # **[Alpha]** Audio to llm configuration, if `audio_to_llm` is enabled
   audio_to_llm_config: PreRecordedV2AudioToLlmListConfig | None = None
+  # Enable PII redaction for this audio
+  pii_redaction: bool | None = None
+  # PII redaction configuration, if `pii_redaction` is enabled
+  pii_redaction_config: PreRecordedV2PiiRedactionConfig | None = None
   # Custom metadata you can attach to this transcription
   custom_metadata: dict[str, Any] | None = None
   # Enable sentences for this audio
