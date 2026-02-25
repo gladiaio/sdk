@@ -123,15 +123,19 @@ export class Generator {
     for (const ref of rootRefs) {
       collectAllReferencedObject({ $ref: ref }, openapi, referencedTypes)
     }
+    const uploadRequestBody = openapi.paths?.['/v2/upload']?.post?.requestBody
 
     const uploadRequestSchema =
-      openapi.paths?.['/v2/upload']?.post?.requestBody?.content?.['application/json']?.schema
+      uploadRequestBody && !('$ref' in uploadRequestBody)
+        ? uploadRequestBody.content?.['application/json']?.schema
+        : undefined
+
     if (uploadRequestSchema && !('$ref' in uploadRequestSchema)) {
       referencedTypes.set(uploadRequestKey, {
         originalName: uploadRequestKey,
         typeName: uploadRequestKey,
         description: 'Upload request body',
-        schema: uploadRequestSchema as any,
+        schema: uploadRequestSchema as ReferencedSchemaObject,
       })
     }
 
