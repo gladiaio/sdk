@@ -9,6 +9,7 @@ dependencies = [
   "httpx>=0.28.0",
   "pyee>=13.0.0",
   "websockets>=15.0.0",
+  "marshmallow>=3.26.2",
 ]
 
 [dependency-groups]
