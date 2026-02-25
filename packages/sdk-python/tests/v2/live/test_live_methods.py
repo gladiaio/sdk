@@ -66,7 +66,7 @@ def test_live_list_transcriptions_calls_http_get(
 
   client = LiveV2Client(options)
   result = client.list_transcriptions()
-  mock_http_client.get.assert_called_once_with("v2/live")
+  mock_http_client.get.assert_called_once_with("v2/live?limit=20")
   assert result == {"data": [], "total": 0}
 
   mock_http_client.reset_mock()

@@ -148,7 +148,7 @@ def test_list_transcriptions_calls_get_with_optional_limit(MockHttpClient, optio
 
   pr = PreRecordedV2Client(options)
   result = pr.list_transcriptions()
-  mock_http_client.get.assert_called_once_with("/v2/pre-recorded")
+  mock_http_client.get.assert_called_once_with("/v2/pre-recorded?limit=20")
   assert result == {"data": [], "total": 0}
 
   mock_http_client.reset_mock()
