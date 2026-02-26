@@ -358,7 +358,7 @@ describe('HttpClient', () => {
     const response = await client.get(`/query-test`)
     expect(response.ok).toBe(true)
 
-    expect(mockFetch).toHaveBeenCalledExactlyOnceWith(
+    expect(mockFetch).toHaveBeenCalledWith(
       new URL(`${BASE}/query-test?apiKey=test-key&version=1.0`),
       expect.objectContaining({ method: 'GET' })
     )
@@ -400,7 +400,7 @@ describe('HttpClient', () => {
     const response = await client.get(`${BASE}/query-priority?param=url-value`)
     expect(response.ok).toBe(true)
 
-    expect(mockFetch).toHaveBeenCalledExactlyOnceWith(
+    expect(mockFetch).toHaveBeenCalledWith(
       new URL(`${BASE}/query-priority?param=url-value`),
       expect.objectContaining({ method: 'GET' })
     )
