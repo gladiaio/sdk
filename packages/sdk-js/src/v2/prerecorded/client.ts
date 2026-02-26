@@ -3,12 +3,14 @@ import { basename } from 'path'
 import { sleep } from '../../helpers.js'
 import type { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
+import { isUploadId, isWebUrl, prepareTranscribeInitBody } from './core.js'
 import type {
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2InitTranscriptionResponse,
   PreRecordedV2Response,
 } from './generated-types.js'
+import type { PreRecordedV2TranscribeOptions, PreRecordedV2TranscribeRequest } from './transcribe-request.js'
 
 /**
  * Client used to interact with Gladia Pre-Recorded Speech-To-Text API.
@@ -30,11 +32,26 @@ export class PreRecordedV2Client {
 
   /**
    * Upload a local audio/video file and return its Gladia URL.
+   * If `file` is a web URL (http/https), returns immediately with that URL (no upload).
    *
-   * @param file - A file path (string), `File`, or `Blob`.
+   * @param file - A file path (string), `File`, `Blob`, or a web URL (string).
    * @returns The upload response containing `audio_url` and `audio_metadata`.
    */
   async uploadFile(file: string | File | Blob): Promise<PreRecordedV2AudioUploadResponse> {
+    if (typeof file === 'string' && isWebUrl(file)) {
+      return {
+        audio_url: file,
+        audio_metadata: {
+          id: '',
+          filename: 'audio_url',
+          extension: '',
+          size: 0,
+          audio_duration: 0,
+          number_of_channels: 0,
+        },
+      }
+    }
+
     const formData = new FormData()
 
     if (typeof file === 'string') {
@@ -146,25 +163,57 @@ export class PreRecordedV2Client {
   }
 
   /**
-   * Upload a local audio file and transcribe it, polling until completion.
+   * End-to-end flow: upload file (if needed), initiate a pre-recorded transcription, and poll until completion.
+   * If `file` is a web URL or an upload id (UUID), no upload is performed.
    *
-   * Convenience method that combines `uploadFile`, `initiate`, and `poll`.
-   *
-   * @param file - A file path (string), `File`, or `Blob` to upload and transcribe.
-   * @param options - The transcription request parameters (without `audio_url`).
-   * @param interval - Milliseconds between polling attempts (default: 3000).
-   * @param timeout - Maximum milliseconds to wait before throwing.
+   * @param fileOrRequest - Either the audio source (path, URL, upload id, File, or Blob) or a single `PreRecordedV2TranscribeRequest` object.
+   * @param options - Optional transcription parameters (without `audio_url`). Ignored when first arg is `PreRecordedV2TranscribeRequest`.
+   * @param pollOptions - Optional `interval` (ms) and `timeout` (ms). Ignored when first arg is `PreRecordedV2TranscribeRequest`.
    * @returns The completed job response.
    */
   async transcribe(
-    file: string | File | Blob,
-    options: Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'>,
-    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+    fileOrRequest:
+      | string
+      | File
+      | Blob
+      | PreRecordedV2TranscribeRequest,
+    options?: PreRecordedV2TranscribeOptions | PreRecordedV2InitTranscriptionRequest | null,
+    pollOptions?: { interval?: number; timeout?: number }
   ): Promise<PreRecordedV2Response> {
-    const uploadResponse = await this.uploadFile(file)
-    return this.initiateAndPoll(
-      { ...options, audio_url: uploadResponse.audio_url },
-      { interval, timeout }
-    )
+    let file: string | File | Blob
+    let opts: PreRecordedV2TranscribeOptions | PreRecordedV2InitTranscriptionRequest | Record<string, unknown> | null | undefined
+    let interval = 3_000
+    let timeout: number | undefined
+
+    if (
+      typeof fileOrRequest === 'object' &&
+      fileOrRequest !== null &&
+      'file' in fileOrRequest &&
+      (typeof (fileOrRequest as PreRecordedV2TranscribeRequest).file === 'string' ||
+        (fileOrRequest as PreRecordedV2TranscribeRequest).file instanceof File ||
+        (fileOrRequest as PreRecordedV2TranscribeRequest).file instanceof Blob)
+    ) {
+      const req = fileOrRequest as PreRecordedV2TranscribeRequest
+      file = req.file
+      opts = req.options ?? undefined
+      interval = req.interval ?? 3_000
+      timeout = req.timeout
+    } else {
+      file = fileOrRequest as string | File | Blob
+      opts = options ?? undefined
+      interval = pollOptions?.interval ?? 3_000
+      timeout = pollOptions?.timeout
+    }
+
+    let audioUrl: string
+    if (typeof file === 'string' && (isWebUrl(file) || isUploadId(file))) {
+      audioUrl = file
+    } else {
+      const uploadResponse = await this.uploadFile(file)
+      audioUrl = uploadResponse.audio_url
+    }
+
+    const body = prepareTranscribeInitBody(opts, audioUrl)
+    return this.initiateAndPoll(body, { interval, timeout })
   }
 }

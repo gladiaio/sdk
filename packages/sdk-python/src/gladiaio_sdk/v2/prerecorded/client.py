@@ -20,6 +20,7 @@ from .generated_types import (
   PreRecordedV2InitTranscriptionResponse,
   PreRecordedV2Response,
 )
+from .transcribe_request import PreRecordedV2TranscribeRequest, PreRecordedV2TranscribeOptions
 
 @final
 class PreRecordedV2Client:
@@ -207,23 +208,43 @@ class PreRecordedV2Client:
     return self.poll(init_response.id, interval=interval, timeout=timeout)
 
   def transcribe(
-      self,
-      file: str | Path | BinaryIO,
-      options: PreRecordedV2InitTranscriptionRequest,
-    ) -> PreRecordedV2Response:
-      """Transcribe an audio source: upload id, local file, or web URL.
+    self,
+    file: str | Path | BinaryIO | PreRecordedV2TranscribeRequest,
+    options: PreRecordedV2TranscribeOptions
+    | PreRecordedV2InitTranscriptionRequest
+    | dict[str, Any]
+    | None = None,
+    *,
+    interval: float = 3.0,
+    timeout: float | None = None,
+  ) -> PreRecordedV2Response:
+    """End-to-end flow: upload file (if needed), initiate a pre-recorded transcription, and poll until completion.
+  
+    Args:
+      file: The audio to transcribe: a file path (str or Path), an open binary file
+        object, a web URL (str), or an upload id (str from ``audio_metadata.id``).
 
-      Args:
-        file: The audio to transcribe: an upload id (audio_metadata.id), file path or URL
-          When an id is passed, no upload is performed. Local files and URLs are uploaded first.
-        options: The transcription request parameters.
-      Returns:
-        The completed job response.
-      """
-      if isinstance(file, str) and self._core.is_upload_id(file):
-        audio_url = file
-      else:
-        upload_response = self.upload_file(file)
-        audio_url = upload_response.audio_url
-      opts = replace(options, audio_url=audio_url)
-      return self.initiate_and_poll(opts)
+      options: Optional transcription parameters (e.g. language, diarization).
+        Can be a :class:`PreRecordedV2TranscribeOptions` or a dict.
+    
+      interval: Seconds between polling attempts (default: 3.0).
+      timeout: Maximum seconds to wait before raising TimeoutError. None = wait indefinitely.
+
+    Returns:
+      The completed job response.
+    """
+    if isinstance(file, PreRecordedV2TranscribeRequest):
+      req = file
+      file = req.file
+      options = req.options
+      interval = req.interval
+      timeout = req.timeout
+    if isinstance(file, str) and (
+      self._core.is_web_url(file) or self._core.is_upload_id(file)
+    ):
+      audio_url = file
+    else:
+      upload_response = self.upload_file(file)
+      audio_url = upload_response.audio_url
+    body = self._core.prepare_transcribe_init_body(options, audio_url)
+    return self.initiate_and_poll(body, interval=interval, timeout=timeout)

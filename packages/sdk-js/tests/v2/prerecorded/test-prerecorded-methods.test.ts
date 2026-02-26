@@ -104,6 +104,17 @@ describe('PreRecordedV2Client methods', () => {
   })
 
   describe('uploadFile', () => {
+    it('returns synthetic response for web URL without calling POST', async () => {
+      const client = new PreRecordedV2Client(defaultOptions())
+      const url = 'https://example.com/audio.wav'
+      const result = await client.uploadFile(url)
+
+      expect(mockPost).not.toHaveBeenCalled()
+      expect(result.audio_url).toBe(url)
+      expect(result.audio_metadata.filename).toBe('audio_url')
+      expect(result.audio_metadata.id).toBe('')
+    })
+
     it('calls POST /v2/upload with FormData when given a file path', async () => {
       const payload = uploadResponseJson()
       mockPost.mockResolvedValue(payload)
@@ -242,7 +253,7 @@ describe('PreRecordedV2Client methods', () => {
   })
 
   describe('transcribe', () => {
-    it('calls uploadFile then initiateAndPoll', async () => {
+    it('calls uploadFile then initiateAndPoll when given file + options', async () => {
       const uploadPayload = uploadResponseJson('https://api.gladia.io/v2/upload/up-1')
       const initResp = initResponseJson('job-t2')
       const jobResp = jobResponseJson('job-t2', 'done')
@@ -258,6 +269,61 @@ describe('PreRecordedV2Client methods', () => {
       expect(mockPost).toHaveBeenCalledTimes(2)
       expect(mockPost.mock.calls[0][0]).toBe('/v2/upload')
       expect(mockPost.mock.calls[1][0]).toBe('/v2/pre-recorded')
+      expect(result.status).toBe('done')
+    })
+
+    it('skips upload when file is a web URL and uses it as audio_url', async () => {
+      const audioUrl = 'https://example.com/speech.wav'
+      const initResp = initResponseJson('job-url')
+      const jobResp = jobResponseJson('job-url', 'done')
+      mockPost.mockResolvedValueOnce(initResp)
+      mockGet.mockResolvedValue(jobResp)
+
+      const client = new PreRecordedV2Client(defaultOptions())
+      const result = await client.transcribe(audioUrl, { language: 'en' }, { interval: 10, timeout: 120_000 })
+
+      expect(mockPost).toHaveBeenCalledTimes(1)
+      expect(mockPost.mock.calls[0][0]).toBe('/v2/pre-recorded')
+      const body = JSON.parse((mockPost.mock.calls[0][1] as any).body)
+      expect(body.audio_url).toBe(audioUrl)
+      expect(result.status).toBe('done')
+    })
+
+    it('skips upload when file is an upload id (UUID) and uses it as audio_url', async () => {
+      const uploadId = '550e8400-e29b-41d4-a716-446655440000'
+      const initResp = initResponseJson('job-uuid')
+      const jobResp = jobResponseJson('job-uuid', 'done')
+      mockPost.mockResolvedValueOnce(initResp)
+      mockGet.mockResolvedValue(jobResp)
+
+      const client = new PreRecordedV2Client(defaultOptions())
+      const result = await client.transcribe(uploadId, { language: 'fr' }, { interval: 10, timeout: 120_000 })
+
+      expect(mockPost).toHaveBeenCalledTimes(1)
+      expect(mockPost.mock.calls[0][0]).toBe('/v2/pre-recorded')
+      const body = JSON.parse((mockPost.mock.calls[0][1] as any).body)
+      expect(body.audio_url).toBe(uploadId)
+      expect(result.status).toBe('done')
+    })
+
+    it('accepts PreRecordedV2TranscribeRequest object and uses file, options, interval, timeout', async () => {
+      const initResp = initResponseJson('job-req')
+      const jobResp = jobResponseJson('job-req', 'done')
+      mockPost.mockResolvedValueOnce(initResp)
+      mockGet.mockResolvedValue(jobResp)
+
+      const client = new PreRecordedV2Client(defaultOptions())
+      const result = await client.transcribe({
+        file: 'https://example.com/audio.mp3',
+        options: { language: 'de' },
+        interval: 50,
+        timeout: 5_000,
+      })
+
+      expect(mockPost).toHaveBeenCalledTimes(1)
+      const body = JSON.parse((mockPost.mock.calls[0][1] as any).body)
+      expect(body.audio_url).toBe('https://example.com/audio.mp3')
+      expect(body.language).toBe('de')
       expect(result.status).toBe('done')
     })
   })

@@ -8,6 +8,7 @@ from .generated_types import (
   PreRecordedV2InitTranscriptionResponse,
   PreRecordedV2Response,
 )
+from .transcribe_request import PreRecordedV2TranscribeOptions, PreRecordedV2TranscribeRequest
 
 __all__ = [
   "PreRecordedV2AsyncClient",
@@ -16,4 +17,6 @@ __all__ = [
   "PreRecordedV2InitTranscriptionRequest",
   "PreRecordedV2InitTranscriptionResponse",
   "PreRecordedV2Response",
+  "PreRecordedV2TranscribeOptions",
+  "PreRecordedV2TranscribeRequest",
 ]

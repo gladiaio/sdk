@@ -104,6 +104,38 @@ class PreRecordedV2Core:
     return options.to_dict()
 
   @staticmethod
+  def prepare_transcribe_init_body(
+    options: Any,  # PreRecordedV2TranscribeOptions | PreRecordedV2InitTranscriptionRequest | dict[str, Any] | None
+    audio_url: str,
+  ) -> dict[str, Any]:
+    """Build the init request body for transcribe(file, options).
+
+    The API expects audio_url; when the user passes a file we resolve audio_url
+    (upload or web URL) and merge it with optional init options. Options may
+    omit audio_url (e.g. dict with only language, diarization). The generated
+    PreRecordedV2InitTranscriptionRequest requires audio_url, so when using that
+    type we overwrite it; when using a dict, audio_url need not be present.
+
+    Args:
+      options: Optional transcription parameters (dict, dataclass, or None).
+        None is allowed; audio_url in options is always overridden by audio_url.
+      audio_url: The resolved audio URL (from upload or from file when URL/id).
+
+    Returns:
+      Dictionary ready for JSON serialization (suitable for initiate).
+    """
+    if options is None:
+      return {"audio_url": audio_url}
+    if isinstance(options, dict):
+      return {**options, "audio_url": audio_url}
+    # PreRecordedV2TranscribeOptions: no audio_url field, convert to dict and add it
+    if hasattr(options, "to_dict") and not hasattr(options, "audio_url"):
+      return {**options.to_dict(), "audio_url": audio_url}
+    # PreRecordedV2InitTranscriptionRequest: overwrite audio_url via replace
+    from dataclasses import replace
+    return PreRecordedV2Core.prepare_initiate_body(replace(options, audio_url=audio_url))
+
+  @staticmethod
   def build_list_endpoint(limit: int | None = None) -> str:
     """Build the endpoint path for listing pre-recorded jobs.
 
