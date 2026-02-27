@@ -13,21 +13,17 @@ export async function initFetch(): Promise<typeof fetch> {
   }
 
   try {
-    // For Node based undici fetch, we disable the timeout
-    // @ts-expect-error undici is an optional dependency
-    const { fetch: uFetch, Agent } = await import('undici')
+    const { Agent, setGlobalDispatcher } = await import('undici')
     const agent = new Agent({
       connectTimeout: MAX_TIMEOUT,
       connect: { timeout: MAX_TIMEOUT },
       headersTimeout: MAX_TIMEOUT,
       bodyTimeout: 0,
     })
-    return (url: string | URL | Request, init?: RequestInit | undefined) => {
-      return uFetch(url, {
-        ...init,
-        dispatcher: agent,
-      })
-    }
+    setGlobalDispatcher(agent)
+    // Return Node.js's built-in fetch (which now uses the agent above),
+    // so its own FormData is recognized and Content-Type is set correctly.
+    return fetch
   } catch {
     return fetch
   }
