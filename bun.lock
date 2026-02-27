@@ -50,6 +50,7 @@
       "devDependencies": {
         "@tsconfig/node22": "^22.0.2",
         "@types/node": "^22.18.8",
+        "vitest": "^3.2.4",
       },
     },
     "e2e/javascript-fixtures": {
