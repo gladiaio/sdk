@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import { basename } from 'path'
 import { sleep } from '../../helpers.js'
 import type { InternalGladiaClientOptions } from '../../internal_types.js'
-import { HttpClient } from '../../network/httpClient.js'
+import { HttpClient, HttpError } from '../../network/httpClient.js'
 import type {
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
@@ -80,9 +80,30 @@ export class PreRecordedV2Client {
    * Delete a pre-recorded transcription job.
    *
    * @param jobId - The UUID of the transcription job to delete.
+   * @returns The deletion status (e.g. `"deleted"` on success).
    */
-  async delete(jobId: string): Promise<void> {
+  async delete(jobId: string): Promise<string> {
     await this.httpClient.delete(`/v2/pre-recorded/${jobId}`)
+    try {
+      const result = await this.get(jobId)
+      if (result.status === 'error') {
+        return 'deleted'
+      }
+      if (result.status === 'done') {
+        throw new Error(`Job ${jobId} was not deleted.`)
+      }
+      if (result.status === 'queued' || result.status === 'processing') {
+        throw new Error(
+          `Job ${jobId} is not in a terminal state. Job ${jobId} was not deleted. Retry deletion later.`
+        )
+      }
+      throw new Error(`Error while getting job ${jobId} status.`)
+    } catch (e) {
+      if (e instanceof HttpError && e.status === 404) {
+        return 'deleted'
+      }
+      throw e
+    }
   }
 
   /**

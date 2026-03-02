@@ -82,7 +82,7 @@ test('get: returns job by id', async () => {
   assert(getResult.result != null)
 })
 
-test('delete: completes without throwing', async () => {
+test('delete: returns "deleted" string on success', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())
   const initResp = await client.create(initOptions(upload.audio_url))
@@ -90,7 +90,8 @@ test('delete: completes without throwing', async () => {
     interval: POLL_INTERVAL_MS,
     timeout: POLL_TIMEOUT_MS,
   })
-  await client.delete(initResp.id)
+  const result = await client.delete(initResp.id)
+  assert.strictEqual(result, 'deleted')
 })
 
 test('getFile: returns audio bytes', async () => {
