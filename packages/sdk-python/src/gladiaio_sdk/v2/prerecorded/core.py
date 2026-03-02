@@ -3,8 +3,21 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol
+
+
+@dataclass(frozen=True)
+class PreRecordedV2DeleteResponse:
+  """Response returned when a pre-recorded job is successfully deleted."""
+
+  deleted: bool
+  """Whether the job was deleted (True on success)."""
+  message: str
+  """Human-readable confirmation message."""
+  job_id: str
+  """The ID of the deleted job."""
 
 
 class HttpClientProtocol(Protocol):
