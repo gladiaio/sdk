@@ -111,6 +111,17 @@ test('getFile: returns audio bytes', async () => {
   assert.strictEqual(String.fromCharCode(...header), 'RIFF')
 })
 
+test('transcribe: file only (no options) → upload + create + poll returns done', async () => {
+  const client = createClient()
+  const result = await client.transcribe(audioPath(), undefined, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+})
+
 test('transcribe: file + options (no audio_url) → upload + create + poll returns done with transcript', async () => {
   const client = createClient()
   const result = await client.transcribe(audioPath(), transcribeOptions(), {

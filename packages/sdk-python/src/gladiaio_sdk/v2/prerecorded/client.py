@@ -48,16 +48,18 @@ class PreRecordedV2Client:
   def transcribe(
     self,
     file: str | Path | BinaryIO,
-    options: PreRecordedV2TranscriptionOptions,
+    options: PreRecordedV2TranscriptionOptions | None = None,
   ) -> PreRecordedV2Response:
     """Transcribe a local audio file.
 
     Args:
     file: The audio file to transcribe.
-    options: The transcription options (no audio_url; the file is the audio source).
+    options: Optional transcription options (no audio_url; the file is the audio source).
+      Defaults to default options if omitted.
     """
+    opts = options if options is not None else PreRecordedV2TranscriptionOptions()
     upload_response = self.upload_file(file)
-    body = {**options.to_dict(), "audio_url": upload_response.audio_url}
+    body = {**opts.to_dict(), "audio_url": upload_response.audio_url}
     return self.create_and_poll(body)
 
   def create(
