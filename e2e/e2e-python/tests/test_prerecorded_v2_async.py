@@ -9,16 +9,8 @@ from gladiaio_sdk import (
   GladiaClient,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2LanguageConfig,
+  PreRecordedV2TranscriptionOptions,
 )
-
-
-class _TranscribeOptions(PreRecordedV2InitTranscriptionRequest):
-  """Options for transcribe() that omit audio_url from to_dict() so the client can set it from the upload."""
-
-  def to_dict(self, encode_json: bool = True):
-    d = super().to_dict(encode_json=encode_json)
-    d.pop("audio_url", None)
-    return d
 
 
 def _data_path(filename: str) -> str:
@@ -126,8 +118,7 @@ async def test_transcribe():
   """Test async pre-recorded transcribe (upload + create + poll) returns done with transcript."""
   audio_path = _data_path("short_split_infinity_16k.wav")
   client = GladiaClient().pre_recorded_v2_async()
-  options = _TranscribeOptions(
-    audio_url="",  # omitted from to_dict(); client sets from upload
+  options = PreRecordedV2TranscriptionOptions(
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
   result = await client.transcribe(file=audio_path, options=options)

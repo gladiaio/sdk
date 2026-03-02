@@ -6,6 +6,7 @@ import {
   GladiaClient,
   type PreRecordedV2InitTranscriptionRequest,
   type PreRecordedV2TranscriptionLanguageCode,
+  type PreRecordedV2TranscriptionOptions,
 } from '@gladiaio/sdk'
 import { getDataFile } from '@gladiaio/sdk-e2e-javascript-fixtures'
 import assert from 'node:assert'
@@ -34,7 +35,7 @@ function initOptions(audioUrl: string): PreRecordedV2InitTranscriptionRequest {
   }
 }
 
-function transcribeOptions(): Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'> {
+function transcribeOptions(): PreRecordedV2TranscriptionOptions {
   return {
     language_config: {
       languages: ['en' as PreRecordedV2TranscriptionLanguageCode],
@@ -110,7 +111,7 @@ test('getFile: returns audio bytes', async () => {
   assert.strictEqual(String.fromCharCode(...header), 'RIFF')
 })
 
-test('transcribe: upload + create + poll returns done with transcript', async () => {
+test('transcribe: file + options (no audio_url) → upload + create + poll returns done with transcript', async () => {
   const client = createClient()
   const result = await client.transcribe(audioPath(), transcribeOptions(), {
     interval: POLL_INTERVAL_MS,

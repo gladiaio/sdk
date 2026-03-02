@@ -102,7 +102,7 @@ test('getFile: returns audio bytes', async () => {
   assert.strictEqual(String.fromCharCode(...header), 'RIFF')
 })
 
-test('transcribe: upload + create + poll returns done with transcript', async () => {
+test('transcribe: file + options (no audio_url) → upload + create + poll returns done with transcript', async () => {
   const client = new GladiaClient().preRecordedV2()
   const options = {
     language_config: { languages: ['en'] },

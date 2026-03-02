@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from gladiaio_sdk.client_options import GladiaClientOptions
 from gladiaio_sdk.network import HttpClient
 
-from .core import PreRecordedV2Core
+from .core import PreRecordedV2Core, PreRecordedV2TranscriptionOptions
 from .generated_types import (
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
@@ -48,19 +48,17 @@ class PreRecordedV2Client:
   def transcribe(
     self,
     file: str | Path | BinaryIO,
-    options: PreRecordedV2InitTranscriptionRequest,
+    options: PreRecordedV2TranscriptionOptions,
   ) -> PreRecordedV2Response:
     """Transcribe a local audio file.
 
     Args:
     file: The audio file to transcribe.
-    options: The transcription request parameters.
+    options: The transcription options (no audio_url; the file is the audio source).
     """
     upload_response = self.upload_file(file)
-    options = PreRecordedV2InitTranscriptionRequest(
-      **options.to_dict(), audio_url=upload_response.audio_url
-    )
-    return self.create_and_poll(options)
+    body = {**options.to_dict(), "audio_url": upload_response.audio_url}
+    return self.create_and_poll(body)
 
   def create(
     self, options: PreRecordedV2InitTranscriptionRequest | dict[str, Any]
@@ -68,8 +66,8 @@ class PreRecordedV2Client:
     """Create a new pre-recorded transcription job.
 
     Args:
-      options: The transcription request parameters including `audio_url`.
-        Can be a :class:`PreRecordedV2InitRequest` or a validated payload dict.
+      options: The transcription request parameters (or a dict including `audio_url`
+        for direct API use). Can be a :class:`PreRecordedV2InitTranscriptionRequest` or a payload dict.
 
     Returns:
       A response containing the job `id` and `result_url` to poll.
@@ -186,8 +184,8 @@ class PreRecordedV2Client:
     Convenience method that combines `create` and `poll`.
 
     Args:
-      options: The transcription request parameters including `audio_url`.
-        Can be a :class:`PreRecordedV2InitRequest` or a validated payload dict.
+      options: The transcription request parameters (or a dict including `audio_url`
+        for direct API use). Can be a :class:`PreRecordedV2InitTranscriptionRequest` or a payload dict.
       interval: Seconds between polling attempts (default: 3.0).
       timeout: Maximum seconds to wait before raising TimeoutError.
 

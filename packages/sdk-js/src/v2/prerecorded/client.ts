@@ -9,6 +9,7 @@ import type {
   PreRecordedV2InitTranscriptionResponse,
   PreRecordedV2Response,
 } from './generated-types.js'
+import type { PreRecordedV2TranscriptionOptions } from './types.js'
 
 /**
  * Client used to interact with Gladia Pre-Recorded Speech-To-Text API.
@@ -151,14 +152,14 @@ export class PreRecordedV2Client {
    * Convenience method that combines `uploadFile`, `create`, and `poll`.
    *
    * @param file - A file path (string), `File`, or `Blob` to upload and transcribe.
-   * @param options - The transcription request parameters (without `audio_url`).
+   * @param options - The transcription options
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
    * @returns The completed job response.
    */
   async transcribe(
     file: string | File | Blob,
-    options: Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'>,
+    options: PreRecordedV2TranscriptionOptions,
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
     const uploadResponse = await this.uploadFile(file)
