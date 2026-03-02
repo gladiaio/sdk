@@ -49,10 +49,10 @@ test('uploadFile: returns audio_url and metadata', async () => {
   assert(upload.audio_metadata.audio_duration >= 0)
 })
 
-test('create: returns job id and result_url', async () => {
+test('initiate: returns job id and result_url', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())
-  const initResp = await client.create(initOptions(upload.audio_url))
+  const initResp = await client.initiate(initOptions(upload.audio_url))
   assert(initResp.id)
   assert(initResp.result_url)
 })
@@ -60,7 +60,7 @@ test('create: returns job id and result_url', async () => {
 test('poll: returns done result', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())
-  const initResp = await client.create(initOptions(upload.audio_url))
+  const initResp = await client.initiate(initOptions(upload.audio_url))
   const result = await client.poll(initResp.id, {
     interval: POLL_INTERVAL_MS,
     timeout: POLL_TIMEOUT_MS,
@@ -72,7 +72,7 @@ test('poll: returns done result', async () => {
 test('get: returns job by id', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())
-  const initResp = await client.create(initOptions(upload.audio_url))
+  const initResp = await client.initiate(initOptions(upload.audio_url))
   await client.poll(initResp.id, {
     interval: POLL_INTERVAL_MS,
     timeout: POLL_TIMEOUT_MS,
@@ -85,7 +85,7 @@ test('get: returns job by id', async () => {
 test('delete: completes without throwing', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())
-  const initResp = await client.create(initOptions(upload.audio_url))
+  const initResp = await client.initiate(initOptions(upload.audio_url))
   await client.poll(initResp.id, {
     interval: POLL_INTERVAL_MS,
     timeout: POLL_TIMEOUT_MS,
@@ -97,7 +97,7 @@ test('getFile: returns audio bytes', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())
   const options = initOptions(upload.audio_url)
-  const initResp = await client.create(options)
+  const initResp = await client.initiate(options)
   const result = await client.poll(initResp.id, {
     interval: POLL_INTERVAL_MS,
     timeout: POLL_TIMEOUT_MS,
@@ -110,7 +110,7 @@ test('getFile: returns audio bytes', async () => {
   assert.strictEqual(String.fromCharCode(...header), 'RIFF')
 })
 
-test('transcribe: upload + create + poll returns done with transcript', async () => {
+test('transcribe: upload + initiate + poll returns done with transcript', async () => {
   const client = createClient()
   const result = await client.transcribe(audioPath(), transcribeOptions(), {
     interval: POLL_INTERVAL_MS,
@@ -123,11 +123,11 @@ test('transcribe: upload + create + poll returns done with transcript', async ()
   assert.match(full, /^\s*split infinity\p{P}*\s*$/iu)
 })
 
-test('createAndPoll: returns done result', async () => {
+test('initiateAndPoll: returns done result', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())
   const options = initOptions(upload.audio_url)
-  const result = await client.createAndPoll(options, {
+  const result = await client.initiateAndPoll(options, {
     interval: POLL_INTERVAL_MS,
     timeout: POLL_TIMEOUT_MS,
   })

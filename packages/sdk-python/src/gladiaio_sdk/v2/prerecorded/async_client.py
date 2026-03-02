@@ -24,7 +24,7 @@ from .generated_types import (
 class PreRecordedV2AsyncClient:
   """Async client for the Gladia Pre-Recorded V2 API.
 
-  Provides methods to create, poll, retrieve, list, and delete
+  Provides methods to initiate, poll, retrieve, list, and delete
   pre-recorded transcription jobs.
   """
 
@@ -60,12 +60,12 @@ class PreRecordedV2AsyncClient:
     options = PreRecordedV2InitTranscriptionRequest(
       **options.to_dict(), audio_url=upload_response.audio_url
     )
-    return await self.create_and_poll(options)
+    return await self.initiate_and_poll(options)
 
-  async def create(
+  async def initiate(
     self, options: PreRecordedV2InitTranscriptionRequest | dict[str, Any]
   ) -> PreRecordedV2InitTranscriptionResponse:
-    """Create a new pre-recorded transcription job.
+    """Initiate a new pre-recorded transcription job.
 
     Args:
       options: The transcription request parameters including `audio_url`.
@@ -175,16 +175,16 @@ class PreRecordedV2AsyncClient:
         raise TimeoutError(timeout_msg)
       await asyncio.sleep(interval)
 
-  async def create_and_poll(
+  async def initiate_and_poll(
     self,
     options: PreRecordedV2InitTranscriptionRequest | dict[str, Any],
     *,
     interval: float = 3.0,
     timeout: float | None = None,
   ) -> PreRecordedV2Response:
-    """Create a pre-recorded transcription job and poll until completion.
+    """Initiate a pre-recorded transcription job and poll until completion.
 
-    Convenience method that combines `create` and `poll`.
+    Convenience method that combines `initiate` and `poll`.
 
     Args:
       options: The transcription request parameters including `audio_url`.
@@ -195,5 +195,5 @@ class PreRecordedV2AsyncClient:
     Returns:
       The completed job response.
     """
-    init_response = await self.create(options)
+    init_response = await self.initiate(options)
     return await self.poll(init_response.id, interval=interval, timeout=timeout)

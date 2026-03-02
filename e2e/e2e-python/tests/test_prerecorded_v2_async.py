@@ -36,8 +36,8 @@ async def test_upload_file():
 
 
 @pytest.mark.asyncio
-async def test_create():
-  """Test async pre-recorded create returns job id and result_url."""
+async def test_initiate():
+  """Test async pre-recorded initiate returns job id and result_url."""
   audio_path = _data_path("short_split_infinity_16k.wav")
   client = GladiaClient().pre_recorded_v2_async()
   upload = await client.upload_file(audio_path)
@@ -45,7 +45,7 @@ async def test_create():
     audio_url=upload.audio_url,
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  init_resp = await client.create(options)
+  init_resp = await client.initiate(options)
   assert init_resp.id
   assert init_resp.result_url
 
@@ -60,7 +60,7 @@ async def test_poll():
     audio_url=upload.audio_url,
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  init_resp = await client.create(options)
+  init_resp = await client.initiate(options)
   result = await client.poll(init_resp.id, interval=2.0, timeout=120.0)
   assert result.status == "done"
   assert result.id == init_resp.id
@@ -76,7 +76,7 @@ async def test_get():
     audio_url=upload.audio_url,
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  init_resp = await client.create(options)
+  init_resp = await client.initiate(options)
   await client.poll(init_resp.id, interval=2.0, timeout=120.0)
   get_result = await client.get(init_resp.id)
   assert get_result.status == "done"
@@ -88,7 +88,7 @@ async def test_delete():
   """Test async pre-recorded delete completes without raising.
 
   The API only allows deletion when the job is in SUCCESS or ERROR;
-  delete immediately after create (QUEUED) returns 403.
+  delete immediately after initiate (QUEUED) returns 403.
   """
   audio_path = _data_path("short_split_infinity_16k.wav")
   client = GladiaClient().pre_recorded_v2_async()
@@ -97,7 +97,7 @@ async def test_delete():
     audio_url=upload.audio_url,
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  init_resp = await client.create(options)
+  init_resp = await client.initiate(options)
   await client.poll(init_resp.id, interval=2.0, timeout=120.0)
   await client.delete(init_resp.id)
 
@@ -112,7 +112,7 @@ async def test_get_file():
     audio_url=upload.audio_url,
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  init_resp = await client.create(options)
+  init_resp = await client.initiate(options)
   result = await client.poll(init_resp.id, interval=2.0, timeout=120.0)
   assert result.status == "done"
   file_bytes = await client.get_file(result.id)
@@ -123,7 +123,7 @@ async def test_get_file():
 
 @pytest.mark.asyncio
 async def test_transcribe():
-  """Test async pre-recorded transcribe (upload + create + poll) returns done with transcript."""
+  """Test async pre-recorded transcribe (upload + initiate + poll) returns done with transcript."""
   audio_path = _data_path("short_split_infinity_16k.wav")
   client = GladiaClient().pre_recorded_v2_async()
   options = _TranscribeOptions(
@@ -143,8 +143,8 @@ async def test_transcribe():
 
 
 @pytest.mark.asyncio
-async def test_create_and_poll():
-  """Test async pre-recorded create_and_poll returns done result."""
+async def test_initiate_and_poll():
+  """Test async pre-recorded initiate_and_poll returns done result."""
   audio_path = _data_path("short_split_infinity_16k.wav")
   client = GladiaClient().pre_recorded_v2_async()
   upload = await client.upload_file(audio_path)
@@ -152,6 +152,6 @@ async def test_create_and_poll():
     audio_url=upload.audio_url,
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  result = await client.create_and_poll(options, interval=2.0, timeout=120.0)
+  result = await client.initiate_and_poll(options, interval=2.0, timeout=120.0)
   assert result.status == "done"
   assert result.result is not None
