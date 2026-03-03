@@ -6,6 +6,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol
+from urllib.parse import urlparse
 
 from .generated_types import (
   BaseDataClass,
@@ -126,6 +127,15 @@ class PreRecordedV2Core:
 
   This class contains all the pure business logic without any I/O operations.
   """
+
+  @staticmethod
+  def is_url(path: str) -> bool:
+    """Return True if path looks like an absolute URL (e.g. http, https)."""
+    try:
+      parsed = urlparse(path)
+      return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+      return False
 
   @staticmethod
   def validate_file_input(file: str | Path | BinaryIO) -> tuple[str | None, BinaryIO | None]:

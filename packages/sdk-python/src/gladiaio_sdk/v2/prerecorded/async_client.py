@@ -13,6 +13,7 @@ from gladiaio_sdk.network import AsyncHttpClient
 
 from .core import PreRecordedV2Core, PreRecordedV2TranscriptionOptions
 from .generated_types import (
+  PreRecordedV2AudioUploadMetadata,
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2InitTranscriptionResponse,
@@ -50,11 +51,12 @@ class PreRecordedV2AsyncClient:
     file: str | Path | BinaryIO,
     options: PreRecordedV2TranscriptionOptions | None = None,
   ) -> PreRecordedV2Response:
-    """Transcribe a local audio file.
+    """Transcribe an audio source: local file or URL (e.g. YouTube, S3).
 
     Args:
-    file: The audio file to transcribe.
-    options: Optional transcription options (no audio_url; the file is the audio source).
+    file: A local file path (str or Path), an open binary file object, or a URL
+      (e.g. https://..., YouTube, S3). URLs are passed through to the API without upload.
+    options: Optional transcription options (no audio_url; the source is the file/URL).
       Defaults to default options if omitted.
     """
     opts = options if options is not None else PreRecordedV2TranscriptionOptions()
@@ -79,15 +81,29 @@ class PreRecordedV2AsyncClient:
     return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
 
   async def upload_file(self, file: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
-    """Upload a local audio/video file and return its Gladia URL.
+    """Upload a local file or use a URL (YouTube, S3, etc.) and return an audio URL for transcription.
 
     Args:
-      file: A file path (str or Path) or an open binary file object.
+      file: A file path (str or Path), an open binary file object, or a URL (http/https).
+        For URLs, no upload is performed; the URL is passed through to the API.
 
     Returns:
       The :class:`PreRecordedV2AudioUploadResponse` containing the ``audio_url`` and ``audio_metadata``.
     """
     file_path, file_obj = self._core.validate_file_input(file)
+
+    if file_path and self._core.is_url(file_path):
+      return PreRecordedV2AudioUploadResponse(
+        audio_url=file_path,
+        audio_metadata=PreRecordedV2AudioUploadMetadata(
+          id="url",
+          filename="audio",
+          extension="",
+          size=0,
+          audio_duration=0.0,
+          number_of_channels=0,
+        ),
+      )
 
     if file_path:
       filename, content_type = self._core.prepare_file_for_upload(file_path)

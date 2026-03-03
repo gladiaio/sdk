@@ -17,6 +17,10 @@ def _data_path(filename: str) -> str:
   return os.path.join(os.path.dirname(__file__), "../../../data", filename)
 
 
+YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v=DYyY8Nh3TQE"
+POLL_TIMEOUT_S = 180.0
+
+
 @pytest.mark.asyncio
 async def test_upload_file():
   """Test async pre-recorded upload_file returns audio_url and metadata."""
@@ -25,6 +29,15 @@ async def test_upload_file():
   upload = await client.upload_file(audio_path)
   assert upload.audio_url
   assert upload.audio_metadata.audio_duration >= 0
+
+
+@pytest.mark.asyncio
+async def test_upload_file_youtube_url():
+  """Test async pre-recorded upload_file with YouTube URL returns same URL (no upload)."""
+  client = GladiaClient().pre_recorded_v2_async()
+  upload = await client.upload_file(YOUTUBE_VIDEO_URL)
+  assert upload.audio_url == YOUTUBE_VIDEO_URL
+  assert upload.audio_metadata is not None
 
 
 @pytest.mark.asyncio
@@ -53,7 +66,7 @@ async def test_poll():
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
   init_resp = await client.create(options)
-  result = await client.poll(init_resp.id, interval=2.0, timeout=120.0)
+  result = await client.poll(init_resp.id, interval=2.0, timeout=POLL_TIMEOUT_S)
   assert result.status == "done"
   assert result.id == init_resp.id
 
@@ -69,7 +82,7 @@ async def test_get():
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
   init_resp = await client.create(options)
-  await client.poll(init_resp.id, interval=2.0, timeout=120.0)
+  await client.poll(init_resp.id, interval=2.0, timeout=POLL_TIMEOUT_S)
   get_result = await client.get(init_resp.id)
   assert get_result.status == "done"
   assert get_result.result is not None
@@ -90,7 +103,7 @@ async def test_delete():
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
   init_resp = await client.create(options)
-  await client.poll(init_resp.id, interval=2.0, timeout=120.0)
+  await client.poll(init_resp.id, interval=2.0, timeout=POLL_TIMEOUT_S)
   await client.delete(init_resp.id)
 
 
@@ -105,7 +118,7 @@ async def test_get_file():
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
   init_resp = await client.create(options)
-  result = await client.poll(init_resp.id, interval=2.0, timeout=120.0)
+  result = await client.poll(init_resp.id, interval=2.0, timeout=POLL_TIMEOUT_S)
   assert result.status == "done"
   file_bytes = await client.get_file(result.id)
   assert isinstance(file_bytes, bytes)
@@ -134,6 +147,21 @@ async def test_transcribe():
 
 
 @pytest.mark.asyncio
+async def test_transcribe_youtube_url():
+  """Test async pre-recorded transcribe with YouTube URL returns done with transcript."""
+  client = GladiaClient().pre_recorded_v2_async()
+  options = PreRecordedV2TranscriptionOptions(
+    language_config=PreRecordedV2LanguageConfig(languages=["en"]),
+  )
+  result = await client.transcribe(file=YOUTUBE_VIDEO_URL, options=options)
+  assert result.status == "done"
+  assert result.result is not None
+  assert result.result.transcription is not None
+  full = result.result.transcription.full_transcript
+  assert full is not None and len(full.strip()) > 0
+
+
+@pytest.mark.asyncio
 async def test_create_and_poll():
   """Test async pre-recorded create_and_poll returns done result."""
   audio_path = _data_path("short_split_infinity_16k.wav")
@@ -143,6 +171,6 @@ async def test_create_and_poll():
     audio_url=upload.audio_url,
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  result = await client.create_and_poll(options, interval=2.0, timeout=120.0)
+  result = await client.create_and_poll(options, interval=2.0, timeout=POLL_TIMEOUT_S)
   assert result.status == "done"
   assert result.result is not None

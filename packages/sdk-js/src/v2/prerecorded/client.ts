@@ -1,6 +1,15 @@
 import { readFileSync } from 'fs'
 import { basename } from 'path'
 import { sleep } from '../../helpers.js'
+
+function isUrl(s: string): boolean {
+  try {
+    const u = new URL(s)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
 import type { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import type {
@@ -30,12 +39,26 @@ export class PreRecordedV2Client {
   }
 
   /**
-   * Upload a local audio/video file and return its Gladia URL.
+   * Upload a local file or use a URL (YouTube, S3, etc.) and return an audio URL for transcription.
    *
-   * @param file - A file path (string), `File`, or `Blob`.
+   * @param file - A file path (string), `File`, `Blob`, or a URL (http/https). For URLs, no upload is performed; the URL is passed through to the API.
    * @returns The upload response containing `audio_url` and `audio_metadata`.
    */
   async uploadFile(file: string | File | Blob): Promise<PreRecordedV2AudioUploadResponse> {
+    if (typeof file === 'string' && isUrl(file)) {
+      return {
+        audio_url: file,
+        audio_metadata: {
+          id: 'url',
+          filename: 'audio',
+          extension: '',
+          size: 0,
+          audio_duration: 0,
+          number_of_channels: 0,
+        },
+      }
+    }
+
     const formData = new FormData()
 
     if (typeof file === 'string') {
@@ -147,11 +170,11 @@ export class PreRecordedV2Client {
   }
 
   /**
-   * Upload a local audio file and transcribe it, polling until completion.
+   * Upload a local file or use a URL (YouTube, S3, etc.) and transcribe it, polling until completion.
    *
    * Convenience method that combines `uploadFile`, `create`, and `poll`.
    *
-   * @param file - A file path (string), `File`, or `Blob` to upload and transcribe.
+   * @param file - A file path (string), `File`, `Blob`, or a URL (e.g. YouTube, S3). URLs are passed through without upload.
    * @param options - Optional transcription options. Defaults to none if omitted.
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
