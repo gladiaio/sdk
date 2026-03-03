@@ -9,7 +9,7 @@ from typing import Any, BinaryIO, final
 from urllib.parse import urlparse
 
 from gladiaio_sdk.client_options import GladiaClientOptions
-from gladiaio_sdk.network import AsyncHttpClient, HttpError
+from gladiaio_sdk.network import AsyncHttpClient
 
 from .core import PreRecordedV2Core
 from .generated_types import (
@@ -115,33 +115,18 @@ class PreRecordedV2AsyncClient:
     resp = await self._http_client.get(endpoint)
     return PreRecordedV2Response.from_dict(resp.json())
 
-  async def delete(self, job_id: str) -> str:
+  async def delete(self, job_id: str) -> bool:
     """Delete a pre-recorded transcription job.
 
     Args:
       job_id: The UUID of the transcription job to delete.
 
     Returns:
-      The deletion status (e.g. "deleted" on success).
+      True if the job was deleted successfully (HTTP 202), False otherwise.
     """
     endpoint = self._core.build_job_endpoint(job_id)
-    await self._http_client.delete(endpoint)
-    try:
-      result = await self.get(job_id)
-    except HttpError as e:
-      if e.status == 404:
-        return "deleted"
-      raise
-    if result.status == "error":
-      return "deleted"
-    elif result.status == "done":
-      raise Exception(f"Job {job_id} was not deleted.")
-    elif result.status == "queued" or result.status == "processing":
-      raise Exception(
-        f"Job {job_id} is not in a terminal state. Job {job_id} was not deleted. Retry deletion later."
-      )
-    else:
-      raise Exception(f"Error while getting job {job_id} status.")
+    resp = await self._http_client.delete(endpoint)
+    return resp.status_code == 202
 
   async def get_file(self, job_id: str) -> bytes:
     """Download the audio file for a pre-recorded transcription job.

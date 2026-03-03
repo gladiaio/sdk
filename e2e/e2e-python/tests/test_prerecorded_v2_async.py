@@ -85,7 +85,7 @@ async def test_get():
 
 @pytest.mark.asyncio
 async def test_delete():
-  """Test async pre-recorded delete returns 'deleted' when job is correctly removed.
+  """Test async pre-recorded delete returns True when job is correctly removed (HTTP 202).
 
   The API only allows deletion when the job is in SUCCESS or ERROR;
   delete immediately after create (QUEUED) returns 403.
@@ -99,8 +99,8 @@ async def test_delete():
   )
   init_resp = await client.create(options)
   await client.poll(init_resp.id, interval=2.0, timeout=120.0)
-  status = await client.delete(init_resp.id)
-  assert status == "deleted"
+  deleted = await client.delete(init_resp.id)
+  assert deleted is True
 
 
 @pytest.mark.asyncio
