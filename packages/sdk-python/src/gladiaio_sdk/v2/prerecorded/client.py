@@ -49,7 +49,7 @@ class PreRecordedV2Client:
   def transcribe(
     self,
     file: str | Path | BinaryIO,
-    options: PreRecordedV2TranscriptionOptions | None = None,
+    options: PreRecordedV2TranscriptionOptions | dict[str, Any] | None = None,
   ) -> PreRecordedV2Response:
     """Transcribe an audio source: local file or URL (e.g. YouTube, S3).
 
@@ -57,11 +57,15 @@ class PreRecordedV2Client:
     file: A local file path (str or Path), an open binary file object, or a URL
       (e.g. https://..., YouTube, S3). URLs are passed through to the API without upload.
     options: Optional transcription options (no audio_url; the source is the file/URL).
-      Defaults to default options if omitted.
+      Can be a :class:`PreRecordedV2TranscriptionOptions` instance or a dict (e.g.
+      ``{"sentiment_analysis": True}``). Defaults to default options if omitted.
     """
-    opts = options if options is not None else PreRecordedV2TranscriptionOptions()
     upload_response = self.upload_file(file)
-    body = {**opts.to_dict(), "audio_url": upload_response.audio_url}
+    if isinstance(options, dict):
+      body = {**options, "audio_url": upload_response.audio_url}
+    else:
+      opts = options if options is not None else PreRecordedV2TranscriptionOptions()
+      body = {**opts.to_dict(), "audio_url": upload_response.audio_url}
     return self.create_and_poll(body)
 
   def create(

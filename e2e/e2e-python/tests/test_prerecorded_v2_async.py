@@ -147,6 +147,21 @@ async def test_transcribe():
 
 
 @pytest.mark.asyncio
+async def test_transcribe_with_options_dict():
+  """Test async pre-recorded transcribe with options as dict (e.g. sentiment_analysis) returns done."""
+  audio_path = _data_path("short_split_infinity_16k.wav")
+  client = GladiaClient().pre_recorded_v2_async()
+  options = {
+    "language_config": {"languages": ["en"]},
+    "sentiment_analysis": True,
+  }
+  result = await client.transcribe(file=audio_path, options=options)
+  assert result.status == "done"
+  assert result.result is not None
+  assert result.result.transcription is not None
+
+
+@pytest.mark.asyncio
 async def test_transcribe_youtube_url():
   """Test async pre-recorded transcribe with YouTube URL returns done with transcript."""
   client = GladiaClient().pre_recorded_v2_async()

@@ -145,6 +145,21 @@ test('transcribe: file + options (no audio_url) → upload + create + poll retur
   assert.match(full, /^\s*split infinity\p{P}*\s*$/iu)
 })
 
+test('transcribe: file + options as plain object (e.g. sentiment_analysis) → returns done', async () => {
+  const client = createClient()
+  const options = {
+    language_config: { languages: ['en' as PreRecordedV2TranscriptionLanguageCode] },
+    sentiment_analysis: true,
+  }
+  const result = await client.transcribe(audioPath(), options, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+})
+
 test('transcribe: YouTube URL → returns done with non-empty transcript', async () => {
   const client = createClient()
   const result = await client.transcribe(YOUTUBE_VIDEO_URL, transcribeOptions(), {

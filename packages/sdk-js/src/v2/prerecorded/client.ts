@@ -175,14 +175,14 @@ export class PreRecordedV2Client {
    * Convenience method that combines `uploadFile`, `create`, and `poll`.
    *
    * @param file - A file path (string), `File`, `Blob`, or a URL (e.g. YouTube, S3). URLs are passed through without upload.
-   * @param options - Optional transcription options. Defaults to none if omitted.
+   * @param options - Optional transcription options. Can be a `PreRecordedV2TranscriptionOptions` object or a plain object (e.g. `{ sentiment_analysis: true }`). Defaults to none if omitted.
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
    * @returns The completed job response.
    */
   async transcribe(
     file: string | File | Blob,
-    options?: PreRecordedV2TranscriptionOptions,
+    options?: PreRecordedV2TranscriptionOptions | Record<string, unknown>,
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
     const uploadResponse = await this.uploadFile(file)
