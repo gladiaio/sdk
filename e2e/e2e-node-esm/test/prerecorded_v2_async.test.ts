@@ -94,6 +94,15 @@ test('delete: returns true on success (HTTP 202)', async () => {
   assert.strictEqual(deleted, true)
 })
 
+test('delete: throws with status 404 when job does not exist', async () => {
+  const client = createClient()
+  const nonexistentId = '00000000-0000-0000-0000-000000000000'
+  await assert.rejects(
+    async () => client.delete(nonexistentId),
+    (err: unknown) => (err as { status?: number }).status === 404
+  )
+})
+
 test('getFile: returns audio bytes', async () => {
   const client = createClient()
   const upload = await client.uploadFile(audioPath())

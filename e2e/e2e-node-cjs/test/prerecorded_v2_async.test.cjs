@@ -83,6 +83,15 @@ test('delete: returns true on success (HTTP 202)', async () => {
   assert.strictEqual(deleted, true)
 })
 
+test('delete: throws with status 404 when job does not exist', async () => {
+  const client = new GladiaClient().preRecordedV2()
+  const nonexistentId = '00000000-0000-0000-0000-000000000000'
+  await assert.rejects(
+    async () => client.delete(nonexistentId),
+    (err) => err.status === 404
+  )
+})
+
 test('getFile: returns audio bytes', async () => {
   const client = new GladiaClient().preRecordedV2()
   const upload = await client.uploadFile(audioPath())

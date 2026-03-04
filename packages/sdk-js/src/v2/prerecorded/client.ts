@@ -84,7 +84,7 @@ export class PreRecordedV2Client {
    */
   async delete(jobId: string): Promise<boolean> {
     const response = await this.httpClient.delete<Response>(`/v2/pre-recorded/${jobId}`)
-    return response instanceof Response ? response.status === 202 : false
+    return response.status === 202
   }
 
   /**

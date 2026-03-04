@@ -7,6 +7,7 @@ import string
 import pytest
 from gladiaio_sdk import (
   GladiaClient,
+  HttpError,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2LanguageConfig,
 )
@@ -101,6 +102,16 @@ async def test_delete():
   await client.poll(init_resp.id, interval=2.0, timeout=120.0)
   deleted = await client.delete(init_resp.id)
   assert deleted is True
+
+
+@pytest.mark.asyncio
+async def test_delete_nonexistent():
+  """Test async pre-recorded delete raises HttpError (e.g. 404) when job does not exist."""
+  client = GladiaClient().pre_recorded_v2_async()
+  nonexistent_id = "00000000-0000-0000-0000-000000000000"
+  with pytest.raises(HttpError) as exc_info:
+    await client.delete(nonexistent_id)
+  assert exc_info.value.status == 404
 
 
 @pytest.mark.asyncio
