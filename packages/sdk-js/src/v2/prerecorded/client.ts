@@ -1,6 +1,14 @@
 import { readFileSync } from 'fs'
 import { basename } from 'path'
 import { sleep } from '../../helpers.js'
+import type { InternalGladiaClientOptions } from '../../internal_types.js'
+import { HttpClient } from '../../network/httpClient.js'
+import type {
+  PreRecordedV2AudioUploadResponse,
+  PreRecordedV2InitTranscriptionRequest,
+  PreRecordedV2InitTranscriptionResponse,
+  PreRecordedV2Response,
+} from './generated-types.js'
 
 function isUrl(s: string): boolean {
   try {
@@ -10,15 +18,6 @@ function isUrl(s: string): boolean {
     return false
   }
 }
-import type { InternalGladiaClientOptions } from '../../internal_types.js'
-import { HttpClient } from '../../network/httpClient.js'
-import type {
-  PreRecordedV2AudioUploadResponse,
-  PreRecordedV2InitTranscriptionRequest,
-  PreRecordedV2InitTranscriptionResponse,
-  PreRecordedV2Response,
-} from './generated-types.js'
-import type { PreRecordedV2TranscriptionOptions } from './types.js'
 
 /**
  * Client used to interact with Gladia Pre-Recorded Speech-To-Text API.
@@ -39,24 +38,17 @@ export class PreRecordedV2Client {
   }
 
   /**
-   * Upload a local file or use a URL (YouTube, S3, etc.) and return an audio URL for transcription.
+   * Upload a local file and return an audio URL for transcription.
    *
-   * @param file - A file path (string), `File`, `Blob`, or a URL (http/https). For URLs, no upload is performed; the URL is passed through to the API.
+   * @param file - A file path (string), `File`, or `Blob`. When a string, it must be a local file path; URLs are not accepted.
    * @returns The upload response containing `audio_url` and `audio_metadata`.
+   * @throws Error if `file` is a string that is a URL (use a local file path, File, or Blob instead).
    */
   async uploadFile(file: string | File | Blob): Promise<PreRecordedV2AudioUploadResponse> {
     if (typeof file === 'string' && isUrl(file)) {
-      return {
-        audio_url: file,
-        audio_metadata: {
-          id: 'url',
-          filename: 'audio',
-          extension: '',
-          size: 0,
-          audio_duration: 0,
-          number_of_channels: 0,
-        },
-      }
+      throw new Error(
+        'Expected a file path; URLs are not accepted by uploadFile. Use a local file path, File, or Blob.'
+      )
     }
 
     const formData = new FormData()
@@ -78,11 +70,11 @@ export class PreRecordedV2Client {
   /**
    * Create a new pre-recorded transcription job.
    *
-   * @param options - The transcription request parameters including `audio_url`.
+   * @param options - The transcription request parameters including `audio_url`. Can be a typed request or a plain object (e.g. from JSON).
    * @returns A response containing the job `id` and `result_url` to poll.
    */
   async create(
-    options: PreRecordedV2InitTranscriptionRequest
+    options: PreRecordedV2InitTranscriptionRequest | Record<string, unknown>
   ): Promise<PreRecordedV2InitTranscriptionResponse> {
     return this.httpClient.post<PreRecordedV2InitTranscriptionResponse>('/v2/pre-recorded', {
       body: JSON.stringify(options),
@@ -156,13 +148,13 @@ export class PreRecordedV2Client {
    *
    * Convenience method that combines `create` and `poll`.
    *
-   * @param options - The transcription request parameters including `audio_url`.
+   * @param options - The transcription request parameters including `audio_url`. Can be a typed request or a plain object (e.g. `Record<string, unknown>`).
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
    * @returns The completed job response.
    */
   async createAndPoll(
-    options: PreRecordedV2InitTranscriptionRequest,
+    options: PreRecordedV2InitTranscriptionRequest | Record<string, unknown>,
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
     const initResponse = await this.create(options)
@@ -172,23 +164,23 @@ export class PreRecordedV2Client {
   /**
    * Upload a local file or use a URL (YouTube, S3, etc.) and transcribe it, polling until completion.
    *
-   * Convenience method that combines `uploadFile`, `create`, and `poll`.
+   * Convenience method that combines `uploadFile` (when audio is a path or File/Blob), `create`, and `poll`.
+   * When `audio` is a string URL, skips upload and calls create with that URL directly.
    *
-   * @param file - A file path (string), `File`, `Blob`, or a URL (e.g. YouTube, S3). URLs are passed through without upload.
+   * @param audio - A file path (string), URL (string), `File`, or `Blob`. When a string, can be either a local file path or an http(s) URL.
    * @param options - Optional transcription options. Can be a `PreRecordedV2TranscriptionOptions` object or a plain object (e.g. `{ sentiment_analysis: true }`). Defaults to none if omitted.
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
    * @returns The completed job response.
    */
   async transcribe(
-    file: string | File | Blob,
-    options?: PreRecordedV2TranscriptionOptions | Record<string, unknown>,
+    audio: string | File | Blob,
+    options?: Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'> | Record<string, unknown>,
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
-    const uploadResponse = await this.uploadFile(file)
-    return this.createAndPoll(
-      { ...(options ?? {}), audio_url: uploadResponse.audio_url },
-      { interval, timeout }
-    )
+    const uploadResponse =
+      typeof audio === 'string' && isUrl(audio) ? audio : await this.uploadFile(audio)
+    const audioUrl = typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
+    return this.createAndPoll({ ...(options ?? {}), audio_url: audioUrl }, { interval, timeout })
   }
 }

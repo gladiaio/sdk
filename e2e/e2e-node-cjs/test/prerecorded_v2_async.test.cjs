@@ -24,11 +24,16 @@ test('uploadFile: returns audio_url and metadata', async () => {
   assert(upload.audio_metadata.audio_duration >= 0)
 })
 
-test('uploadFile: YouTube URL returns same URL (no upload)', async () => {
+test('uploadFile: URL throws (expected file path)', async () => {
   const client = new GladiaClient().preRecordedV2()
-  const upload = await client.uploadFile(YOUTUBE_VIDEO_URL)
-  assert.strictEqual(upload.audio_url, YOUTUBE_VIDEO_URL)
-  assert(upload.audio_metadata != null)
+  await assert.rejects(
+    async () => client.uploadFile(YOUTUBE_VIDEO_URL),
+    (err) => {
+      assert(err instanceof Error)
+      assert(err.message.includes('file path') && err.message.includes('URL'))
+      return true
+    }
+  )
 })
 
 test('create: returns job id and result_url', async () => {
@@ -111,7 +116,7 @@ test('getFile: returns audio bytes', async () => {
   assert.strictEqual(String.fromCharCode(...header), 'RIFF')
 })
 
-test('transcribe: file only (no options) → upload + create + poll returns done', async () => {
+test('transcribe: local file only (no options) → upload + create + poll returns done', async () => {
   const client = new GladiaClient().preRecordedV2()
   const result = await client.transcribe(audioPath(), undefined, {
     interval: POLL_INTERVAL_MS,
@@ -122,7 +127,7 @@ test('transcribe: file only (no options) → upload + create + poll returns done
   assert(result.result.transcription != null)
 })
 
-test('transcribe: file + options (no audio_url) → upload + create + poll returns done with transcript', async () => {
+test('transcribe: local file + options → upload + create + poll returns done with transcript', async () => {
   const client = new GladiaClient().preRecordedV2()
   const options = {
     language_config: { languages: ['en'] },
@@ -153,7 +158,7 @@ test('transcribe: file + options as plain object (e.g. sentiment_analysis) → r
   assert(result.result.transcription != null)
 })
 
-test('transcribe: YouTube URL → returns done with non-empty transcript', async () => {
+test('transcribe: URL → direct create + poll (no upload) returns done with non-empty transcript', async () => {
   const client = new GladiaClient().preRecordedV2()
   const options = {
     language_config: { languages: ['en'] },

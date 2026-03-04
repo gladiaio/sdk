@@ -19,6 +19,7 @@ def _data_path(filename: str) -> str:
 
 YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v=DYyY8Nh3TQE"
 POLL_TIMEOUT_S = 180.0
+YOUTUBE_POLL_TIMEOUT_S = 600.0
 
 
 @pytest.mark.asyncio
@@ -32,12 +33,12 @@ async def test_upload_file():
 
 
 @pytest.mark.asyncio
-async def test_upload_file_youtube_url():
-  """Test async pre-recorded upload_file with YouTube URL returns same URL (no upload)."""
+async def test_upload_file_youtube_url_raises():
+  """Test async pre-recorded upload_file with URL raises (expected file path)."""
   client = GladiaClient().pre_recorded_v2_async()
-  upload = await client.upload_file(YOUTUBE_VIDEO_URL)
-  assert upload.audio_url == YOUTUBE_VIDEO_URL
-  assert upload.audio_metadata is not None
+  with pytest.raises(ValueError) as exc_info:
+    await client.upload_file(YOUTUBE_VIDEO_URL)
+  assert "local file" in str(exc_info.value) or "URL" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -127,14 +128,14 @@ async def test_get_file():
 
 
 @pytest.mark.asyncio
-async def test_transcribe():
-  """Test async pre-recorded transcribe (upload + create + poll) returns done with transcript."""
+async def test_transcribe_local_file():
+  """Test async pre-recorded transcribe with local file (upload + create + poll) returns done with transcript."""
   audio_path = _data_path("short_split_infinity_16k.wav")
   client = GladiaClient().pre_recorded_v2_async()
   options = PreRecordedV2TranscriptionOptions(
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  result = await client.transcribe(file=audio_path, options=options)
+  result = await client.transcribe(audio=audio_path, options=options, timeout=POLL_TIMEOUT_S)
   assert result.status == "done"
   assert result.result is not None
   assert result.result.transcription is not None
@@ -155,25 +156,29 @@ async def test_transcribe_with_options_dict():
     "language_config": {"languages": ["en"]},
     "sentiment_analysis": True,
   }
-  result = await client.transcribe(file=audio_path, options=options)
+  result = await client.transcribe(audio=audio_path, options=options)
   assert result.status == "done"
   assert result.result is not None
   assert result.result.transcription is not None
 
 
 @pytest.mark.asyncio
-async def test_transcribe_youtube_url():
-  """Test async pre-recorded transcribe with YouTube URL returns done with transcript."""
+async def test_transcribe_url():
+  """Test async pre-recorded transcribe with URL (direct create + poll, no upload) returns done."""
   client = GladiaClient().pre_recorded_v2_async()
   options = PreRecordedV2TranscriptionOptions(
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  result = await client.transcribe(file=YOUTUBE_VIDEO_URL, options=options)
+  result = await client.transcribe(
+    audio=YOUTUBE_VIDEO_URL,
+    options=options,
+    timeout=YOUTUBE_POLL_TIMEOUT_S,
+  )
   assert result.status == "done"
   assert result.result is not None
   assert result.result.transcription is not None
-  full = result.result.transcription.full_transcript
-  assert full is not None and len(full.strip()) > 0
+  full = (result.result.transcription.full_transcript or "").strip()
+  assert len(full) > 0, "expected non-empty full_transcript"
 
 
 @pytest.mark.asyncio
