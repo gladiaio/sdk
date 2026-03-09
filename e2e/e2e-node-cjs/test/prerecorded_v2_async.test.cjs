@@ -10,6 +10,8 @@ const { test } = require('node:test')
 const AUDIO_FILE = 'short_split_infinity_16k.wav'
 const POLL_INTERVAL_MS = 2_000
 const POLL_TIMEOUT_MS = 180_000
+const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v=DYyY8Nh3TQE'
+const YOUTUBE_POLL_TIMEOUT_MS = 600_000
 
 function audioPath() {
   return getDataFile(AUDIO_FILE)
@@ -20,6 +22,18 @@ test('uploadFile: returns audio_url and metadata', async () => {
   const upload = await client.uploadFile(audioPath())
   assert(upload.audio_url)
   assert(upload.audio_metadata.audio_duration >= 0)
+})
+
+test('uploadFile: URL throws (expected file path)', async () => {
+  const client = new GladiaClient().preRecordedV2()
+  await assert.rejects(
+    async () => client.uploadFile(YOUTUBE_VIDEO_URL),
+    (err) => {
+      assert(err instanceof Error)
+      assert(err.message.includes('file path') && err.message.includes('URL'))
+      return true
+    }
+  )
 })
 
 test('create: returns job id and result_url', async () => {
@@ -112,7 +126,18 @@ test('getFile: returns audio bytes', async () => {
   assert.strictEqual(String.fromCharCode(...header), 'RIFF')
 })
 
-test('transcribe: upload + create + poll returns done with transcript', async () => {
+test('transcribe: local file only (no options) → upload + create + poll returns done', async () => {
+  const client = new GladiaClient().preRecordedV2()
+  const result = await client.transcribe(audioPath(), undefined, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+})
+
+test('transcribe: local file + options → upload + create + poll returns done with transcript', async () => {
   const client = new GladiaClient().preRecordedV2()
   const options = {
     language_config: { languages: ['en'] },
@@ -126,6 +151,37 @@ test('transcribe: upload + create + poll returns done with transcript', async ()
   assert(result.result.transcription != null)
   const full = result.result.transcription.full_transcript.trim()
   assert.match(full, /^\s*split infinity\p{P}*\s*$/iu)
+})
+
+test('transcribe: file + options as plain object (e.g. sentiment_analysis) → returns done', async () => {
+  const client = new GladiaClient().preRecordedV2()
+  const options = {
+    language_config: { languages: ['en'] },
+    sentiment_analysis: true,
+  }
+  const result = await client.transcribe(audioPath(), options, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+})
+
+test('transcribe: URL → direct create + poll (no upload) returns done with non-empty transcript', async () => {
+  const client = new GladiaClient().preRecordedV2()
+  const options = {
+    language_config: { languages: ['en'] },
+  }
+  const result = await client.transcribe(YOUTUBE_VIDEO_URL, options, {
+    interval: POLL_INTERVAL_MS,
+    timeout: YOUTUBE_POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+  const full = (result.result.transcription.full_transcript || '').trim()
+  assert(full.length > 0, 'expected non-empty full_transcript')
 })
 
 test('createAndPoll: returns done result', async () => {

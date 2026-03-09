@@ -7,7 +7,7 @@ export default defineConfig({
     name: 'e2e-node-esm',
     watch: false,
     environment: 'node',
-    testTimeout: 15_000,
+    testTimeout: 300_000, // 5 min — E2E upload + poll can be slow
     include: ['test/**/*.test.{ts,mts,js,mjs}'],
     reporters: ['default'],
   },
