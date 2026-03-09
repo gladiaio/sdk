@@ -14,6 +14,9 @@ import { test } from 'vitest'
 const AUDIO_FILE = 'short_split_infinity_16k.wav'
 const POLL_INTERVAL_MS = 2_000
 const POLL_TIMEOUT_MS = 180_000
+const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/watch?v=DYyY8Nh3TQE'
+/** Longer timeout for YouTube/video processing. */
+const YOUTUBE_POLL_TIMEOUT_MS = 600_000
 /** E2E: upload/API calls can be slow; use a longer HTTP timeout than default (10s). */
 const E2E_HTTP_TIMEOUT_MS = 90_000
 
@@ -34,7 +37,9 @@ function initOptions(audioUrl: string): PreRecordedV2InitTranscriptionRequest {
   }
 }
 
-function transcribeOptions(): Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'> {
+function transcribeOptions(): {
+  language_config: { languages: PreRecordedV2TranscriptionLanguageCode[] }
+} {
   return {
     language_config: {
       languages: ['en' as PreRecordedV2TranscriptionLanguageCode],
@@ -47,6 +52,18 @@ test('uploadFile: returns audio_url and metadata', async () => {
   const upload = await client.uploadFile(audioPath())
   assert(upload.audio_url)
   assert(upload.audio_metadata.audio_duration >= 0)
+})
+
+test('uploadFile: URL throws (expected file path)', async () => {
+  const client = createClient()
+  await assert.rejects(
+    async () => client.uploadFile(YOUTUBE_VIDEO_URL),
+    (err: unknown) => {
+      assert(err instanceof Error)
+      assert((err as Error).message.includes('file path') && (err as Error).message.includes('URL'))
+      return true
+    }
+  )
 })
 
 test('create: returns job id and result_url', async () => {
@@ -110,7 +127,18 @@ test('getFile: returns audio bytes', async () => {
   assert.strictEqual(String.fromCharCode(...header), 'RIFF')
 })
 
-test('transcribe: upload + create + poll returns done with transcript', async () => {
+test('transcribe: local file only (no options) → upload + create + poll returns done', async () => {
+  const client = createClient()
+  const result = await client.transcribe(audioPath(), undefined, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+})
+
+test('transcribe: local file + options → upload + create + poll returns done with transcript', async () => {
   const client = createClient()
   const result = await client.transcribe(audioPath(), transcribeOptions(), {
     interval: POLL_INTERVAL_MS,
@@ -121,6 +149,34 @@ test('transcribe: upload + create + poll returns done with transcript', async ()
   assert(result.result.transcription != null)
   const full = result.result.transcription.full_transcript.trim()
   assert.match(full, /^\s*split infinity\p{P}*\s*$/iu)
+})
+
+test('transcribe: file + options as plain object (e.g. sentiment_analysis) → returns done', async () => {
+  const client = createClient()
+  const options = {
+    language_config: { languages: ['en' as PreRecordedV2TranscriptionLanguageCode] },
+    sentiment_analysis: true,
+  }
+  const result = await client.transcribe(audioPath(), options, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+})
+
+test('transcribe: URL → direct create + poll (no upload) returns done with non-empty transcript', async () => {
+  const client = createClient()
+  const result = await client.transcribe(YOUTUBE_VIDEO_URL, transcribeOptions(), {
+    interval: POLL_INTERVAL_MS,
+    timeout: YOUTUBE_POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  assert(result.result.transcription != null)
+  const full = (result.result.transcription.full_transcript || '').trim()
+  assert(full.length > 0, 'expected non-empty full_transcript')
 })
 
 test('createAndPoll: returns done result', async () => {
