@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from gladiaio_sdk.client_options import GladiaClientOptions
 from gladiaio_sdk.network import HttpClient
 
-from .core import PreRecordedV2Core, PreRecordedV2TranscriptionOptions
+from .core import PreRecordedV2Core
 from .generated_types import (
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
@@ -47,41 +47,20 @@ class PreRecordedV2Client:
 
   def transcribe(
     self,
-    audio: str | Path | BinaryIO,
-    options: PreRecordedV2TranscriptionOptions | dict[str, Any] | None = None,
-    *,
-    interval: float = 3.0,
-    timeout: float | None = None,
+    file: str | Path | BinaryIO,
+    options: PreRecordedV2InitTranscriptionRequest,
   ) -> PreRecordedV2Response:
-    """Transcribe from a local file, URL, or bytes (file-like).
-
-    If ``audio`` is a local file (path or file-like), it is uploaded first; then
-    create and poll is called. If ``audio`` is a URL (http/https), create and poll
-    is used directly with that URL.
+    """Transcribe a local audio file.
 
     Args:
-      audio: A local file path (str or Path), an open binary file object, or a URL (str).
-      options: Optional transcription options (no audio_url). Can be a
-        :class:`PreRecordedV2TranscriptionOptions` instance or a dict.
-      interval: Seconds between polling attempts.
-      timeout: Maximum seconds to wait; None means wait indefinitely.
-
-    Returns:
-      The completed job response.
+    file: The audio file to transcribe.
+    options: The transcription request parameters.
     """
-    if isinstance(options, dict):
-      base = dict(options)
-    else:
-      opts = options if options is not None else PreRecordedV2TranscriptionOptions()
-      base = opts.to_dict()
-
-    if isinstance(audio, (str, Path)) and self._core.is_url(str(audio)):
-      audio_url = str(audio)
-    else:
-      audio_url = self.upload_file(audio).audio_url
-
-    body = {**base, "audio_url": audio_url}
-    return self.create_and_poll(body, interval=interval, timeout=timeout)
+    upload_response = self.upload_file(file)
+    options = PreRecordedV2InitTranscriptionRequest(
+      **options.to_dict(), audio_url=upload_response.audio_url
+    )
+    return self.create_and_poll(options)
 
   def create(
     self, options: PreRecordedV2InitTranscriptionRequest | dict[str, Any]
@@ -89,8 +68,8 @@ class PreRecordedV2Client:
     """Create a new pre-recorded transcription job.
 
     Args:
-      options: The transcription request parameters (or a dict including `audio_url`
-        for direct API use). Can be a :class:`PreRecordedV2InitTranscriptionRequest` or a payload dict.
+      options: The transcription request parameters including `audio_url`.
+        Can be a :class:`PreRecordedV2InitRequest` or a validated payload dict.
 
     Returns:
       A response containing the job `id` and `result_url` to poll.
@@ -100,25 +79,15 @@ class PreRecordedV2Client:
     return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
 
   def upload_file(self, file: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
-    """Upload a local file and return an audio URL for transcription.
+    """Upload a local audio/video file and return its Gladia URL.
 
     Args:
-      file: A local file path (str or Path) or an open binary file object.
-        URLs are not accepted; use :meth:`create` with ``audio_url`` for URL-based transcription.
+      file: A file path (str or Path) or an open binary file object.
 
     Returns:
        The :class:`PreRecordedV2AudioUploadResponse` containing the ``audio_url`` and ``audio_metadata``.
-
-    Raises:
-      ValueError: If ``file`` is a URL or otherwise not a valid local file input.
     """
     file_path, file_obj = self._core.validate_file_input(file)
-
-    if file_path and self._core.is_url(file_path):
-      raise ValueError(
-        "upload_file only accepts a local file (path or file object). "
-        "URLs are not supported; use create() with audio_url for URL-based transcription."
-      )
 
     if file_path:
       filename, content_type = self._core.prepare_file_for_upload(file_path)
@@ -217,8 +186,8 @@ class PreRecordedV2Client:
     Convenience method that combines `create` and `poll`.
 
     Args:
-      options: The transcription request parameters (or a dict including `audio_url`
-        for direct API use). Can be a :class:`PreRecordedV2InitTranscriptionRequest` or a payload dict.
+      options: The transcription request parameters including `audio_url`.
+        Can be a :class:`PreRecordedV2InitRequest` or a validated payload dict.
       interval: Seconds between polling attempts (default: 3.0).
       timeout: Maximum seconds to wait before raising TimeoutError.
 

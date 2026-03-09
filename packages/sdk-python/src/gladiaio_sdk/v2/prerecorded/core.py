@@ -3,115 +3,8 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol
-from urllib.parse import urlparse
-
-from .generated_types import (
-  BaseDataClass,
-  PreRecordedV2AudioToLlmListConfig,
-  PreRecordedV2CallbackConfig,
-  PreRecordedV2CodeSwitchingConfig,
-  PreRecordedV2CustomSpellingConfig,
-  PreRecordedV2CustomVocabularyConfig,
-  PreRecordedV2DiarizationConfig,
-  PreRecordedV2LanguageConfig,
-  PreRecordedV2PiiRedactionConfig,
-  PreRecordedV2StructuredDataExtractionConfig,
-  PreRecordedV2SubtitlesConfig,
-  PreRecordedV2SummarizationConfig,
-  PreRecordedV2TranscriptionLanguageCode,
-  PreRecordedV2TranslationConfig,
-)
-
-
-@dataclass(frozen=True, slots=True)
-class PreRecordedV2TranscriptionOptions(BaseDataClass):
-  """Transcription options for :meth:`PreRecordedV2Client.transcribe` and :meth:`PreRecordedV2AsyncClient.transcribe`.
-
-  Same as :class:`PreRecordedV2InitTranscriptionRequest` but without ``audio_url``; the audio is
-  provided via the ``file`` argument to ``transcribe()``.
-  """
-
-  # **[Deprecated]** Context to feed the transcription model with for possible better accuracy
-  context_prompt: str | None = None
-  # **[Beta]** Can be either boolean to enable custom_vocabulary for this audio or an array with
-  # specific vocabulary list to feed the transcription model with
-  custom_vocabulary: bool | None = None
-  # **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled
-  custom_vocabulary_config: PreRecordedV2CustomVocabularyConfig | None = None
-  # **[Deprecated]** Use `language_config` instead. Detect the language from the given audio
-  detect_language: bool | None = None
-  # **[Deprecated]** Use `language_config` instead.Detect multiple languages in the given audio
-  enable_code_switching: bool | None = None
-  # **[Deprecated]** Use `language_config` instead. Specify the configuration for code switching
-  code_switching_config: PreRecordedV2CodeSwitchingConfig | None = None
-  # **[Deprecated]** Use `language_config` instead. Set the spoken language for the given audio
-  # (ISO 639 standard)
-  language: PreRecordedV2TranscriptionLanguageCode | None = None
-  # **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST`
-  # request to with the result of the transcription
-  callback_url: str | None = None
-  # Enable callback for this transcription. If true, the `callback_config` property will be used
-  # to customize the callback behaviour
-  callback: bool | None = None
-  # Customize the callback behaviour (url and http method)
-  callback_config: PreRecordedV2CallbackConfig | None = None
-  # Enable subtitles generation for this transcription
-  subtitles: bool | None = None
-  # Configuration for subtitles generation if `subtitles` is enabled
-  subtitles_config: PreRecordedV2SubtitlesConfig | None = None
-  # Enable speaker recognition (diarization) for this audio
-  diarization: bool | None = None
-  # Speaker recognition configuration, if `diarization` is enabled
-  diarization_config: PreRecordedV2DiarizationConfig | None = None
-  # **[Beta]** Enable translation for this audio
-  translation: bool | None = None
-  # **[Beta]** Translation configuration, if `translation` is enabled
-  translation_config: PreRecordedV2TranslationConfig | None = None
-  # **[Beta]** Enable summarization for this audio
-  summarization: bool | None = None
-  # **[Beta]** Summarization configuration, if `summarization` is enabled
-  summarization_config: PreRecordedV2SummarizationConfig | None = None
-  # **[Alpha]** Enable moderation for this audio
-  moderation: bool | None = None
-  # **[Alpha]** Enable named entity recognition for this audio
-  named_entity_recognition: bool | None = None
-  # **[Alpha]** Enable chapterization for this audio
-  chapterization: bool | None = None
-  # **[Alpha]** Enable names consistency for this audio
-  name_consistency: bool | None = None
-  # **[Alpha]** Enable custom spelling for this audio
-  custom_spelling: bool | None = None
-  # **[Alpha]** Custom spelling configuration, if `custom_spelling` is enabled
-  custom_spelling_config: PreRecordedV2CustomSpellingConfig | None = None
-  # **[Alpha]** Enable structured data extraction for this audio
-  structured_data_extraction: bool | None = None
-  # **[Alpha]** Structured data extraction configuration, if `structured_data_extraction` is
-  # enabled
-  structured_data_extraction_config: PreRecordedV2StructuredDataExtractionConfig | None = None
-  # Enable sentiment analysis for this audio
-  sentiment_analysis: bool | None = None
-  # **[Alpha]** Enable audio to llm processing for this audio
-  audio_to_llm: bool | None = None
-  # **[Alpha]** Audio to llm configuration, if `audio_to_llm` is enabled
-  audio_to_llm_config: PreRecordedV2AudioToLlmListConfig | None = None
-  # Enable PII redaction for this audio
-  pii_redaction: bool | None = None
-  # PII redaction configuration, if `pii_redaction` is enabled
-  pii_redaction_config: PreRecordedV2PiiRedactionConfig | None = None
-  # Custom metadata you can attach to this transcription
-  custom_metadata: dict[str, Any] | None = None
-  # Enable sentences for this audio
-  sentences: bool | None = None
-  # **[Alpha]** Allows to change the output display_mode for this audio. The output will be
-  # reordered, creating new utterances when speakers overlapped
-  display_mode: bool | None = None
-  # **[Alpha]** Use enhanced punctuation for this audio
-  punctuation_enhanced: bool | None = None
-  # Specify the language configuration
-  language_config: PreRecordedV2LanguageConfig | None = None
 
 
 class HttpClientProtocol(Protocol):
@@ -127,15 +20,6 @@ class PreRecordedV2Core:
 
   This class contains all the pure business logic without any I/O operations.
   """
-
-  @staticmethod
-  def is_url(path: str) -> bool:
-    """Return True if path looks like an absolute URL (e.g. http, https)."""
-    try:
-      parsed = urlparse(path)
-      return parsed.scheme in ("http", "https") and bool(parsed.netloc)
-    except Exception:
-      return False
 
   @staticmethod
   def validate_file_input(file: str | Path | BinaryIO) -> tuple[str | None, BinaryIO | None]:
