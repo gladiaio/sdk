@@ -2,7 +2,7 @@
 
 from .async_client import PreRecordedV2AsyncClient
 from .client import PreRecordedV2Client
-from .core import PreRecordedV2TranscriptionOptions
+from .core import OptionsValidationError, PreRecordedV2TranscriptionOptions
 from .generated_types import (
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2InitTranscriptionResponse,
@@ -10,6 +10,7 @@ from .generated_types import (
 )
 
 __all__ = [
+  "OptionsValidationError",
   "PreRecordedV2AsyncClient",
   "PreRecordedV2Client",
   "PreRecordedV2InitTranscriptionRequest",

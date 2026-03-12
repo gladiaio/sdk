@@ -17,7 +17,7 @@ from .v2.live.types import (
 )
 from .v2.prerecorded.async_client import PreRecordedV2AsyncClient
 from .v2.prerecorded.client import PreRecordedV2Client
-from .v2.prerecorded.core import PreRecordedV2TranscriptionOptions
+from .v2.prerecorded.core import OptionsValidationError, PreRecordedV2TranscriptionOptions
 
 __all__: list[str] = [
   "GladiaClient",
@@ -33,6 +33,7 @@ __all__: list[str] = [
   "GladiaClientOptions",
   "HttpRetryOptions",
   "WebSocketRetryOptions",
+  "OptionsValidationError",
   "PreRecordedV2AsyncClient",
   "PreRecordedV2Client",
   "PreRecordedV2TranscriptionOptions",

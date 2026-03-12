@@ -9,7 +9,7 @@ from typing import Any, BinaryIO, final
 from urllib.parse import urlparse
 
 from gladiaio_sdk.client_options import GladiaClientOptions
-from gladiaio_sdk.network import HttpClient
+from gladiaio_sdk.network import HttpClient, HttpError
 
 from .core import PreRecordedV2Core, PreRecordedV2TranscriptionOptions
 from .generated_types import (
@@ -94,10 +94,21 @@ class PreRecordedV2Client:
 
     Returns:
       A response containing the job `id` and `result_url` to poll.
+
+    Raises:
+      OptionsValidationError: If options contain invalid parameter names (includes
+        which parameter is wrong and a suggested correct name, e.g. "languages" instead of "language").
+      HttpError: For other HTTP errors (see :attr:`HttpError.invalid_parameters` for validation errors).
     """
-    body = self._core.prepare_create_body(options)
-    resp = self._http_client.post("/v2/pre-recorded", json=body)
-    return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
+    try:
+      body = self._core.prepare_create_body(options)
+      resp = self._http_client.post("/v2/pre-recorded", json=body)
+      return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
+    except HttpError as e:
+      opt_err = self._core.options_validation_error_from_http_error(e)
+      if opt_err is not None:
+        raise opt_err from e
+      raise
 
   def upload_file(self, file: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
     """Upload a local file and return an audio URL for transcription.

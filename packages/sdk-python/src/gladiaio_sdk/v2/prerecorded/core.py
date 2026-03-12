@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import difflib
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol
 from urllib.parse import urlparse
@@ -16,6 +17,7 @@ from .generated_types import (
   PreRecordedV2CustomSpellingConfig,
   PreRecordedV2CustomVocabularyConfig,
   PreRecordedV2DiarizationConfig,
+  PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2LanguageConfig,
   PreRecordedV2PiiRedactionConfig,
   PreRecordedV2StructuredDataExtractionConfig,
@@ -24,6 +26,29 @@ from .generated_types import (
   PreRecordedV2TranscriptionLanguageCode,
   PreRecordedV2TranslationConfig,
 )
+
+
+class OptionsValidationError(ValueError):
+  """Raised when options (e.g. transcription parameters) contain invalid keys or values.
+
+  Attributes:
+    message: Human-readable error description.
+    invalid_parameters: List of parameter names that are invalid or unknown.
+    suggestions: Mapping from invalid parameter name to suggested correct name(s).
+      For example: {"language": "languages"} or {"lang": "language"} when the API
+      expects "language" or "language_config".
+  """
+
+  def __init__(
+    self,
+    message: str,
+    *,
+    invalid_parameters: list[str] | None = None,
+    suggestions: dict[str, str] | None = None,
+  ) -> None:
+    super().__init__(message)
+    self.invalid_parameters = list(invalid_parameters or [])
+    self.suggestions = dict(suggestions or {})
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,6 +207,65 @@ class PreRecordedV2Core:
     """
     return response_data["audio_url"]
 
+  _VALID_INIT_KEYS: frozenset[str] = frozenset(
+    f.name for f in fields(PreRecordedV2InitTranscriptionRequest)
+  )
+
+  @staticmethod
+  def _suggest_parameter_name(invalid_key: str, valid_keys: frozenset[str]) -> str | None:
+    """Return the closest valid parameter name for a given invalid key, or None."""
+    matches = difflib.get_close_matches(invalid_key, list(valid_keys), n=1, cutoff=0.5)
+    return matches[0] if matches else None
+
+  @classmethod
+  def options_validation_error_from_http_error(
+    cls, http_error: Any
+  ) -> OptionsValidationError | None:
+    """Build an OptionsValidationError from an HttpError when it carries invalid parameters.
+
+    Adds suggestions (e.g. "did you mean 'languages'?") for each invalid parameter.
+    Returns None if the HTTP error has no invalid_parameters (caller should re-raise the original).
+    """
+    if type(http_error).__name__ != "HttpError" or not getattr(
+      http_error, "invalid_parameters", None
+    ):
+      return None
+    invalid = list(http_error.invalid_parameters)
+    if not invalid:
+      return None
+    suggestions = {k: cls._suggest_parameter_name(k, cls._VALID_INIT_KEYS) or "" for k in invalid}
+    suggestions = {k: v for k, v in suggestions.items() if v}
+    parts = [f"Invalid option parameter(s): {', '.join(repr(p) for p in invalid)}."]
+    if suggestions:
+      parts.append(" ".join(f"{repr(k)} did you mean {repr(v)}?" for k, v in suggestions.items()))
+    return OptionsValidationError(
+      " ".join(parts),
+      invalid_parameters=invalid,
+      suggestions=suggestions,
+    )
+
+  @classmethod
+  def validate_options_keys(cls, options_dict: dict[str, Any]) -> None:
+    """Validate that all keys in options_dict are valid init request parameters.
+
+    Raises:
+      OptionsValidationError: If any key is not valid, with invalid keys and suggestions.
+    """
+    invalid = [k for k in options_dict if k not in cls._VALID_INIT_KEYS]
+    if not invalid:
+      return
+    suggestions = {k: cls._suggest_parameter_name(k, cls._VALID_INIT_KEYS) or "" for k in invalid}
+    suggestions = {k: v for k, v in suggestions.items() if v}
+    parts = [f"Invalid option parameter(s): {', '.join(repr(p) for p in invalid)}."]
+    if suggestions:
+      hint = "; ".join(f"{repr(k)} did you mean {repr(v)}?" for k, v in suggestions.items())
+      parts.append(hint)
+    raise OptionsValidationError(
+      " ".join(parts),
+      invalid_parameters=invalid,
+      suggestions=suggestions,
+    )
+
   @staticmethod
   def prepare_create_body(
     options: Any,  # PreRecordedV2InitTranscriptionRequest | dict[str, Any]
@@ -193,8 +277,12 @@ class PreRecordedV2Core:
 
     Returns:
       Dictionary ready for JSON serialization.
+
+    Raises:
+      OptionsValidationError: If options is a dict with unknown keys (includes suggestions).
     """
     if isinstance(options, dict):
+      PreRecordedV2Core.validate_options_keys(options)
       return options
     return options.to_dict()
 

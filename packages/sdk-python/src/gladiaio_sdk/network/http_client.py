@@ -10,8 +10,40 @@ from gladiaio_sdk.client_options import HttpRetryOptions
 from gladiaio_sdk.network.helper import matches_status
 
 
+def _parse_invalid_parameters_from_body(body: dict[str, Any]) -> list[str]:
+  """Extract invalid parameter/field names from common API error response shapes."""
+  params: list[str] = []
+  # e.g. {"details": [{"field": "language", "msg": "..."}, ...]} or {"details": [{"loc": ["body", "language"]}, ...]}
+  for detail in body.get("details") or body.get("errors") or []:
+    if isinstance(detail, dict):
+      field = detail.get("field") or detail.get("param") or detail.get("loc")
+      if isinstance(field, str):
+        params.append(field)
+      elif isinstance(field, list) and len(field) >= 2:
+        params.append(str(field[-1]))
+  # e.g. {"errors": {"language": "Unknown field", ...}}
+  errors = body.get("errors")
+  if isinstance(errors, dict):
+    for k in errors:
+      if isinstance(k, str):
+        params.append(k)
+  return list(dict.fromkeys(params))  # preserve order, dedupe
+
+
 @final
 class HttpError(Exception):
+  """HTTP request error with optional validation details from the API.
+
+  Attributes:
+    message: Human-readable error message.
+    method, url, status: Request method, URL, and HTTP status code.
+    response_body: Raw response body (str or parsed dict).
+    invalid_parameters: When the API returns a validation error (e.g. 400/422),
+      this may contain the parameter names that were rejected (e.g. ["language"]).
+      Use together with :class:`OptionsValidationError` or suggestion logic to show
+      "did you mean 'languages'?".
+  """
+
   def __init__(
     self,
     *,
@@ -23,6 +55,7 @@ class HttpError(Exception):
     request_id: str | None = None,
     response_body: str | dict[str, Any] | None = None,
     response_headers: dict[str, str] | None = None,
+    invalid_parameters: list[str] | None = None,
     cause: BaseException | None = None,
   ) -> None:
     super().__init__(message)
@@ -36,6 +69,7 @@ class HttpError(Exception):
     self.request_id = request_id
     self.response_body = response_body
     self.response_headers = dict(response_headers or {})
+    self.invalid_parameters = list(invalid_parameters or [])
 
 
 @final
@@ -296,6 +330,7 @@ def _create_http_error(method: str, url: str, response: httpx.Response) -> HttpE
   call_id: str | None = None
   response_body: str | dict[str, Any] | None = None
   headers: dict[str, str] | None = None
+  invalid_params: list[str] = []
   try:
     headers = {k.lower(): v for k, v in response.headers.items()}
     call_id = response.headers.get("x-aipi-call-id") or None
@@ -306,6 +341,8 @@ def _create_http_error(method: str, url: str, response: httpx.Response) -> HttpE
       response_body = data
       request_id = data.get("request_id")
       message = data.get("message")
+      if isinstance(data, dict) and response.status_code in (400, 422):
+        invalid_params = _parse_invalid_parameters_from_body(data)
     except Exception:
       pass
   except Exception:
@@ -317,6 +354,8 @@ def _create_http_error(method: str, url: str, response: httpx.Response) -> HttpE
     str(response.status_code),
     f"{method} {httpx.URL(url).path}",
   ]
+  if invalid_params:
+    parts.append(f"Invalid parameter(s): {', '.join(repr(p) for p in invalid_params)}")
   return HttpError(
     message=" | ".join([p for p in parts if p]),
     method=method,
@@ -326,4 +365,5 @@ def _create_http_error(method: str, url: str, response: httpx.Response) -> HttpE
     request_id=request_id,
     response_body=response_body,
     response_headers=headers or {},
+    invalid_parameters=invalid_params or None,
   )

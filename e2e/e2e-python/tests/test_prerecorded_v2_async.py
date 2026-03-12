@@ -8,6 +8,7 @@ import pytest
 from gladiaio_sdk import (
   GladiaClient,
   HttpError,
+  OptionsValidationError,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2LanguageConfig,
   PreRecordedV2TranscriptionOptions,
@@ -206,3 +207,60 @@ async def test_create_and_poll():
   result = await client.create_and_poll(options, interval=2.0, timeout=POLL_TIMEOUT_S)
   assert result.status == "done"
   assert result.result is not None
+
+
+# --- Options parsing and suggestions (invalid keys → suggested correct names) ---
+
+
+@pytest.mark.asyncio
+async def test_create_with_invalid_options_raises_and_suggests_lang_to_language():
+  """Passing invalid option 'lang' raises OptionsValidationError and suggests 'language'."""
+  audio_path = _data_path("short_split_infinity_16k.wav")
+  client = GladiaClient().pre_recorded_v2_async()
+  upload = await client.upload_file(audio_path)
+  options = {
+    "audio_url": upload.audio_url,
+    "lang": "en",
+  }
+  with pytest.raises(OptionsValidationError) as exc_info:
+    await client.create(options)
+  err = exc_info.value
+  assert "lang" in err.invalid_parameters
+  assert err.suggestions.get("lang") == "language"
+
+
+@pytest.mark.asyncio
+async def test_create_with_invalid_options_raises_and_suggests_audio_enhancer():
+  """Passing invalid option 'audio_enhancer' raises and suggests 'punctuation_enhanced' (or similar)."""
+  audio_path = _data_path("short_split_infinity_16k.wav")
+  client = GladiaClient().pre_recorded_v2_async()
+  upload = await client.upload_file(audio_path)
+  options = {
+    "audio_url": upload.audio_url,
+    "audio_enhancer": True,
+  }
+  with pytest.raises(OptionsValidationError) as exc_info:
+    await client.create(options)
+  err = exc_info.value
+  assert "audio_enhancer" in err.invalid_parameters
+  assert "audio_enhancer" in err.suggestions
+  assert err.suggestions["audio_enhancer"] == "punctuation_enhanced"
+
+
+@pytest.mark.asyncio
+async def test_create_with_multiple_invalid_options_raises_with_suggestions():
+  """Multiple invalid keys yield invalid_parameters and suggestions for each."""
+  audio_path = _data_path("short_split_infinity_16k.wav")
+  client = GladiaClient().pre_recorded_v2_async()
+  upload = await client.upload_file(audio_path)
+  options = {
+    "audio_url": upload.audio_url,
+    "lang": "en",
+    "sentiment_anlaysis": True,
+  }
+  with pytest.raises(OptionsValidationError) as exc_info:
+    await client.create(options)
+  err = exc_info.value
+  assert set(err.invalid_parameters) == {"lang", "sentiment_anlaysis"}
+  assert err.suggestions.get("lang") == "language"
+  assert err.suggestions.get("sentiment_anlaysis") == "sentiment_analysis"
