@@ -40,6 +40,7 @@ export class PreRecordedV2Client {
   /**
    * Upload a local file and return an audio URL for transcription.
    *
+   * @see https://docs.gladia.io/api-reference/v2/upload/audio-file
    * @param file - A file path (string), `File`, or `Blob`. When a string, it must be a local file path; URLs are not accepted.
    * @returns The upload response containing `audio_url` and `audio_metadata`.
    * @throws Error if `file` is a string that is a URL (use a local file path, File, or Blob instead).
@@ -70,6 +71,7 @@ export class PreRecordedV2Client {
   /**
    * Create a new pre-recorded transcription job.
    *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
    * @param options - The transcription request parameters including `audio_url`. Can be a typed request or a plain object (e.g. from JSON).
    * @returns A response containing the job `id` and `result_url` to poll.
    */
@@ -85,6 +87,7 @@ export class PreRecordedV2Client {
   /**
    * Get a pre-recorded transcription job by ID.
    *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param jobId - The UUID of the transcription job.
    * @returns The full job response including status and result if done.
    */
@@ -95,6 +98,7 @@ export class PreRecordedV2Client {
   /**
    * Delete a pre-recorded transcription job.
    *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param jobId - The UUID of the transcription job to delete.
    * @returns `true` if the job was deleted successfully (HTTP 202), `false` otherwise.
    */
@@ -106,6 +110,7 @@ export class PreRecordedV2Client {
   /**
    * Download the audio file for a pre-recorded transcription job.
    *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param jobId - The UUID of the transcription job.
    * @returns The raw audio file as an `ArrayBuffer`.
    */
@@ -119,6 +124,7 @@ export class PreRecordedV2Client {
    *
    * Repeatedly fetches the job status until it reaches `"done"` or `"error"`.
    *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param jobId - The UUID of the transcription job.
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing. `undefined` means wait indefinitely.
@@ -150,6 +156,8 @@ export class PreRecordedV2Client {
    *
    * Convenience method that combines `create` and `poll`.
    *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param options - The transcription request parameters including `audio_url`. Can be a typed request or a plain object (e.g. `Record<string, unknown>`).
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
@@ -169,6 +177,9 @@ export class PreRecordedV2Client {
    * Convenience method that combines `uploadFile` (when audio is a path or File/Blob), `create`, and `poll`.
    * When `audio` is a string URL, skips upload and calls create with that URL directly.
    *
+   * @see https://docs.gladia.io/api-reference/v2/upload/audio-file
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param audio - A file path (string), URL (string), `File`, or `Blob`. When a string, can be either a local file path or an http(s) URL.
    * @param options - Optional transcription options. Can be a `PreRecordedV2TranscriptionOptions` object or a plain object (e.g. `{ sentiment_analysis: true }`). Defaults to none if omitted.
    * @param interval - Milliseconds between polling attempts (default: 3000).

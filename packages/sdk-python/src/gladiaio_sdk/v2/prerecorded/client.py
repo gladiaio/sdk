@@ -59,6 +59,10 @@ class PreRecordedV2Client:
     create and poll is called. If ``audio`` is a URL (http/https), create and poll
     is used directly with that URL.
 
+    API reference: https://docs.gladia.io/api-reference/v2/upload/audio-file,
+    https://docs.gladia.io/api-reference/v2/pre-recorded/init,
+    https://docs.gladia.io/api-reference/v2/pre-recorded/get
+
     Args:
       audio: A local file path (str or Path), an open binary file object, or a URL (str).
       options: Optional transcription options (no audio_url). Can be a
@@ -88,6 +92,8 @@ class PreRecordedV2Client:
   ) -> PreRecordedV2InitTranscriptionResponse:
     """Create a new pre-recorded transcription job.
 
+    API reference: https://docs.gladia.io/api-reference/v2/pre-recorded/init
+
     Args:
       options: The transcription request parameters (or a dict including `audio_url`
         for direct API use). Can be a :class:`PreRecordedV2InitTranscriptionRequest` or a payload dict.
@@ -112,6 +118,8 @@ class PreRecordedV2Client:
 
   def upload_file(self, file: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
     """Upload a local file and return an audio URL for transcription.
+
+    API reference: https://docs.gladia.io/api-reference/v2/upload/audio-file
 
     Args:
       file: A local file path (str or Path) or an open binary file object.
@@ -147,6 +155,8 @@ class PreRecordedV2Client:
   def get(self, job_id: str) -> PreRecordedV2Response:
     """Get a pre-recorded transcription job by ID.
 
+    API reference: https://docs.gladia.io/api-reference/v2/pre-recorded/get
+
     Args:
       job_id: The UUID of the transcription job.
 
@@ -160,6 +170,8 @@ class PreRecordedV2Client:
   def delete(self, job_id: str) -> bool:
     """Delete a pre-recorded transcription job.
 
+    API reference: https://docs.gladia.io/api-reference/v2/pre-recorded/get
+
     Args:
       job_id: The UUID of the transcription job to delete.
 
@@ -172,6 +184,8 @@ class PreRecordedV2Client:
 
   def get_file(self, job_id: str) -> bytes:
     """Download the audio file for a pre-recorded transcription job.
+
+    API reference: https://docs.gladia.io/api-reference/v2/pre-recorded/get
 
     Args:
       job_id: The UUID of the transcription job.
@@ -193,6 +207,8 @@ class PreRecordedV2Client:
     """Poll a pre-recorded transcription job until it completes.
 
     Repeatedly fetches the job status until it reaches "done" or "error".
+
+    API reference: https://docs.gladia.io/api-reference/v2/pre-recorded/get
 
     Args:
       job_id: The UUID of the transcription job.
@@ -229,7 +245,10 @@ class PreRecordedV2Client:
   ) -> PreRecordedV2Response:
     """Create a pre-recorded transcription job and poll until completion.
 
-    Convenience method that combines `create` and `poll`.
+    Convenience method that combines :meth:`create` and :meth:`poll`.
+
+    API reference: https://docs.gladia.io/api-reference/v2/pre-recorded/init,
+    https://docs.gladia.io/api-reference/v2/pre-recorded/get
 
     Args:
       options: The transcription request parameters (or a dict including `audio_url`

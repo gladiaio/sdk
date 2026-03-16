@@ -135,7 +135,9 @@ class PreRecordedV2TranscriptionOptions(BaseDataClass):
   display_mode: bool | None = None
   # **[Alpha]** Use enhanced punctuation for this audio
   punctuation_enhanced: bool | None = None
-  # Specify the language configuration
+  # Specify the language configuration. Use ``language_config.languages`` with ISO 639-1 language
+  # codes (e.g. "en", "fr", "es"); see :class:`PreRecordedV2TranscriptionLanguageCode` for all
+  # allowed values.
   language_config: PreRecordedV2LanguageConfig | None = None
 
 
