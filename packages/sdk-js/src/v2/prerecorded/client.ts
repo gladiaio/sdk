@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs'
-import { basename } from 'path'
 import { sleep } from '../../helpers.js'
 import type { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
@@ -54,6 +52,13 @@ export class PreRecordedV2Client {
     const formData = new FormData()
 
     if (typeof file === 'string') {
+      if (typeof process === 'undefined' || !process.versions?.node) {
+        throw new Error(
+          'Upload by file path is only supported in Node.js. In the browser, use a File or Blob.'
+        )
+      }
+      const { readFileSync } = await import('fs')
+      const { basename } = await import('path')
       const fileBuffer = readFileSync(file)
       const filename = basename(file)
       const blob = new Blob([fileBuffer], { type: 'application/octet-stream' })
@@ -70,11 +75,29 @@ export class PreRecordedV2Client {
   /**
    * Create a new pre-recorded transcription job.
    *
-   * @param options - The transcription request parameters including `audio_url`. Can be a typed request or a plain object (e.g. from JSON).
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
+   * @param options - The transcription request parameters including `audio_url`.
    * @returns A response containing the job `id` and `result_url` to poll.
    */
   async create(
-    options: PreRecordedV2InitTranscriptionRequest | Record<string, unknown>
+    options: PreRecordedV2InitTranscriptionRequest
+  ): Promise<PreRecordedV2InitTranscriptionResponse> {
+    return this.httpClient.post<PreRecordedV2InitTranscriptionResponse>('/v2/pre-recorded', {
+      body: JSON.stringify(options),
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
+  /**
+   * Create a new pre-recorded transcription job with an untyped request (e.g. raw JSON).
+   * Prefer {@link create} for type-safe requests.
+   *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
+   * @param options - Raw request object (must include `audio_url` at runtime).
+   * @returns A response containing the job `id` and `result_url` to poll.
+   */
+  async createUntyped(
+    options: Record<string, unknown>
   ): Promise<PreRecordedV2InitTranscriptionResponse> {
     return this.httpClient.post<PreRecordedV2InitTranscriptionResponse>('/v2/pre-recorded', {
       body: JSON.stringify(options),
@@ -150,16 +173,37 @@ export class PreRecordedV2Client {
    *
    * Convenience method that combines `create` and `poll`.
    *
-   * @param options - The transcription request parameters including `audio_url`. Can be a typed request or a plain object (e.g. `Record<string, unknown>`).
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
+   * @param options - The transcription request parameters including `audio_url`.
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
    * @returns The completed job response.
    */
   async createAndPoll(
-    options: PreRecordedV2InitTranscriptionRequest | Record<string, unknown>,
+    options: PreRecordedV2InitTranscriptionRequest,
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
     const initResponse = await this.create(options)
+    return this.poll(initResponse.id, { interval, timeout })
+  }
+
+  /**
+   * Create a pre-recorded transcription job with an untyped request and poll until completion.
+   * Prefer {@link createAndPoll} for type-safe requests.
+   *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
+   * @param options - Raw request object (must include `audio_url` at runtime).
+   * @param interval - Milliseconds between polling attempts (default: 3000).
+   * @param timeout - Maximum milliseconds to wait before throwing.
+   * @returns The completed job response.
+   */
+  async createAndPollUntyped(
+    options: Record<string, unknown>,
+    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+  ): Promise<PreRecordedV2Response> {
+    const initResponse = await this.createUntyped(options)
     return this.poll(initResponse.id, { interval, timeout })
   }
 
@@ -170,19 +214,45 @@ export class PreRecordedV2Client {
    * When `audio` is a string URL, skips upload and calls create with that URL directly.
    *
    * @param audio - A file path (string), URL (string), `File`, or `Blob`. When a string, can be either a local file path or an http(s) URL.
-   * @param options - Optional transcription options. Can be a `PreRecordedV2TranscriptionOptions` object or a plain object (e.g. `{ sentiment_analysis: true }`). Defaults to none if omitted.
+   * @param options - Optional transcription options (typed; `audio_url` is set from the uploaded/URL audio).
    * @param interval - Milliseconds between polling attempts (default: 3000).
    * @param timeout - Maximum milliseconds to wait before throwing.
    * @returns The completed job response.
    */
   async transcribe(
     audio: string | File | Blob,
-    options?: Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'> | Record<string, unknown>,
+    options?: Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'>,
     { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
   ): Promise<PreRecordedV2Response> {
     const uploadResponse =
       typeof audio === 'string' && isUrl(audio) ? audio : await this.uploadFile(audio)
     const audioUrl = typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
     return this.createAndPoll({ ...(options ?? {}), audio_url: audioUrl }, { interval, timeout })
+  }
+
+  /**
+   * Transcribe audio with untyped options (e.g. raw JSON). Prefer {@link transcribe} for type-safe options.
+   *
+   * @see https://docs.gladia.io/api-reference/v2/upload/audio-file
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/init
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
+   * @param audio - A file path (string), URL (string), `File`, or `Blob`.
+   * @param options - Optional raw request options (merged with `audio_url` from upload/URL).
+   * @param interval - Milliseconds between polling attempts (default: 3000).
+   * @param timeout - Maximum milliseconds to wait before throwing.
+   * @returns The completed job response.
+   */
+  async transcribeUntyped(
+    audio: string | File | Blob,
+    options?: Record<string, unknown>,
+    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+  ): Promise<PreRecordedV2Response> {
+    const uploadResponse =
+      typeof audio === 'string' && isUrl(audio) ? audio : await this.uploadFile(audio)
+    const audioUrl = typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
+    return this.createAndPollUntyped(
+      { ...(options ?? {}), audio_url: audioUrl },
+      { interval, timeout }
+    )
   }
 }

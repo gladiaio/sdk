@@ -37,11 +37,15 @@ OpenAPI schema (api.gladia.io/openapi.json)
         │
         ▼
    generator
-    ├──▶ packages/sdk-js/src/v2/live/generated-types.ts
-    └──▶ packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py
+    ├── Live V2
+    │   ├──▶ packages/sdk-js/src/v2/live/generated-types.ts
+    │   └──▶ packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py
+    └── PreRecorded V2
+        ├──▶ packages/sdk-js/src/v2/prerecorded/generated-types.ts
+        └──▶ packages/sdk-python/src/gladiaio_sdk/v2/prerecorded/generated_types.py
 ```
 
-The generator extracts Live V2-related schemas (`StreamingRequest`, `InitStreamingResponse`, `CallbackLive*Message`, `WebhookLive*Payload`) and produces language-specific type definitions. Each language has its own generator class that extends `BaseGenerator` (`packages/generator/src/generators/base.ts`).
+The generator extracts **Live V2** schemas (`StreamingRequest`, `InitStreamingResponse`, `CallbackLive*Message`, `WebhookLive*Payload`) and **PreRecorded V2** schemas (e.g. `PreRecordedV2InitTranscriptionRequest`, `PreRecordedV2Response`, upload/init types) and produces language-specific type definitions. Each language has its own generator class that extends `BaseGenerator` (`packages/generator/src/generators/base.ts`).
 
 ## Getting started
 
@@ -94,7 +98,7 @@ Every pull request runs:
 
 ## How to add a feature to an existing SDK
 
-### 1. If the feature involves generated types (Live V2)
+### 1. If the feature involves generated types (Live V2 or PreRecorded V2)
 
 Generated type files are **auto-generated** — do not edit them manually. Instead:
 
@@ -104,26 +108,28 @@ Generated type files are **auto-generated** — do not edit them manually. Inste
    bun nx run generator:generate
    ```
 
-   This fetches the latest OpenAPI schema from `https://api.gladia.io/openapi.json`, runs the generator, and auto-formats the output.
+   This fetches the latest OpenAPI schema from `https://api.gladia.io/openapi.json`, runs the generator for both Live V2 and PreRecorded V2, and auto-formats the output.
 
-2. Review the changes in the generated files:
-   - `packages/sdk-js/src/v2/live/generated-types.ts`
-   - `packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py`
+2. Review the changes in the generated files for the surface you care about:
+   - **Live V2:** `packages/sdk-js/src/v2/live/generated-types.ts`, `packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py`
+   - **PreRecorded V2:** `packages/sdk-js/src/v2/prerecorded/generated-types.ts`, `packages/sdk-python/src/gladiaio_sdk/v2/prerecorded/generated_types.py`
 
-3. If the generator itself needs updating (e.g. to support a new schema pattern), edit the relevant generator in `packages/generator/src/generators/`.
+3. If the generator itself needs updating (e.g. to support a new schema pattern), edit the relevant generator in `packages/generator/src/generators/` and the shared logic in `packages/generator/src/generator.ts` (e.g. `preProcessSchemaForLiveV2`, `preProcessSchemaForPreRecordedV2`).
 
 ### 2. If the feature is SDK-specific logic
 
 Each SDK follows a similar structure:
 
-| Component        | JavaScript (`packages/sdk-js`)    | Python (`packages/sdk-python`)                 |
-| ---------------- | --------------------------------- | ---------------------------------------------- |
-| Entry point      | `src/index.ts`                    | `src/gladiaio_sdk/__init__.py`                 |
-| Client           | `src/client.ts`                   | `src/gladiaio_sdk/client.py`                   |
-| HTTP client      | `src/network/http-client.ts`      | `src/gladiaio_sdk/network/http_client.py`      |
-| WebSocket client | `src/network/websocket-client.ts` | `src/gladiaio_sdk/network/websocket_client.py` |
-| Live V2 session  | `src/v2/live/live-session.ts`     | `src/gladiaio_sdk/v2/live/live_session.py`     |
-| Generated types  | `src/v2/live/generated-types.ts`  | `src/gladiaio_sdk/v2/live/generated_types.py`  |
+| Component           | JavaScript (`packages/sdk-js`)       | Python (`packages/sdk-python`)                      |
+| ------------------- | ----------------------------------- | --------------------------------------------------- |
+| Entry point         | `src/index.ts`                     | `src/gladiaio_sdk/__init__.py`                      |
+| Client              | `src/client.ts`                    | `src/gladiaio_sdk/client.py`                        |
+| HTTP client         | `src/network/httpClient.ts`       | `src/gladiaio_sdk/network/http_client.py`          |
+| WebSocket client    | `src/network/wsClient.ts`          | `src/gladiaio_sdk/network/websocket_client.py`     |
+| Live V2 session     | `src/v2/live/`                     | `src/gladiaio_sdk/v2/live/`                         |
+| Live V2 generated   | `src/v2/live/generated-types.ts`   | `src/gladiaio_sdk/v2/live/generated_types.py`      |
+| PreRecorded V2 client | `src/v2/prerecorded/client.ts`  | `src/gladiaio_sdk/v2/prerecorded/client.py` (sync), `async_client.py` |
+| PreRecorded V2 generated | `src/v2/prerecorded/generated-types.ts` | `src/gladiaio_sdk/v2/prerecorded/generated_types.py` |
 
 Steps:
 
