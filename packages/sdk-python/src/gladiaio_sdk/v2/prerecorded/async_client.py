@@ -47,7 +47,7 @@ class PreRecordedV2AsyncClient:
 
   async def transcribe(
     self,
-    audio: str | Path | BinaryIO,
+    audio_url: str | Path | BinaryIO,
     options: PreRecordedV2TranscriptionOptions | dict[str, Any] | None = None,
     *,
     interval: float = 3.0,
@@ -55,12 +55,12 @@ class PreRecordedV2AsyncClient:
   ) -> PreRecordedV2Response:
     """Transcribe from a local file, URL, or bytes (file-like).
 
-    If ``audio`` is a local file (path or file-like), it is uploaded first; then
-    create and poll is called. If ``audio`` is a URL (http/https), create and poll
+    If ``audio_url`` is a local file (path or file-like), it is uploaded first; then
+    create and poll is called. If ``audio_url`` is a URL (http/https), create and poll
     is used directly with that URL.
 
     Args:
-      audio: A local file path (str or Path), an open binary file object, or a URL (str).
+      audio_url: A local file path (str or Path), an open binary file object, or a URL (str).
       options: Request fields for the pre-recorded job, as
         :class:`~gladiaio_sdk.v2.prerecorded.core.PreRecordedV2TranscriptionOptions` or a JSON-serializable
         dict (same keys as the API). Omitted keys use API defaults. Commonly used blocks:
@@ -129,12 +129,12 @@ class PreRecordedV2AsyncClient:
       opts = options if options is not None else PreRecordedV2TranscriptionOptions()
       base = opts.to_dict()
 
-    if isinstance(audio, (str, Path)) and self._core.is_url(str(audio)):
-      audio_url = str(audio)
+    if isinstance(audio_url, (str, Path)) and self._core.is_url(str(audio_url)):
+      job_audio_url = str(audio_url)
     else:
-      audio_url = (await self.upload_file(audio)).audio_url
+      job_audio_url = (await self.upload_file(audio_url)).audio_url
 
-    body = {**base, "audio_url": audio_url}
+    body = {**base, "audio_url": job_audio_url}
     return await self.create_and_poll(body, interval=interval, timeout=timeout)
 
   async def create(
@@ -153,20 +153,20 @@ class PreRecordedV2AsyncClient:
     resp = await self._http_client.post("/v2/pre-recorded", json=body)
     return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
 
-  async def upload_file(self, file: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
+  async def upload_file(self, audio_url: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
     """Upload a local file and return an audio URL for transcription.
 
     Args:
-      file: A local file path (str or Path) or an open binary file object.
+      audio_url: A local file path (str or Path) or an open binary file object.
         URLs are not accepted; use :meth:`create` with ``audio_url`` for URL-based transcription.
 
     Returns:
       The :class:`PreRecordedV2AudioUploadResponse` containing the ``audio_url`` and ``audio_metadata``.
 
     Raises:
-      ValueError: If ``file`` is a URL or otherwise not a valid local file input.
+      ValueError: If ``audio_url`` is a URL or otherwise not a valid local file input.
     """
-    file_path, file_obj = self._core.validate_file_input(file)
+    file_path, file_obj = self._core.validate_file_input(audio_url)
 
     if file_path and self._core.is_url(file_path):
       raise ValueError(

@@ -152,20 +152,20 @@ class PreRecordedV2Client:
     resp = self._http_client.post("/v2/pre-recorded", json=body)
     return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
 
-  def upload_file(self, file: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
+  def upload_file(self, audio_url: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
     """Upload a local file and return an audio URL for transcription.
 
     Args:
-      file: A local file path (str or Path) or an open binary file object.
+      audio_url: A local file path (str or Path) or an open binary file object.
         URLs are not accepted; use :meth:`create` with ``audio_url`` for URL-based transcription.
 
     Returns:
        The :class:`PreRecordedV2AudioUploadResponse` containing the ``audio_url`` and ``audio_metadata``.
 
     Raises:
-      ValueError: If ``file`` is a URL or otherwise not a valid local file input.
+      ValueError: If ``audio_url`` is a URL or otherwise not a valid local file input.
     """
-    file_path, file_obj = self._core.validate_file_input(file)
+    file_path, file_obj = self._core.validate_file_input(audio_url)
 
     if file_path and self._core.is_url(file_path):
       raise ValueError(

@@ -147,7 +147,7 @@ async def test_transcribe_local_file():
   options = PreRecordedV2TranscriptionOptions(
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
-  result = await client.transcribe(audio=audio_path, options=options, timeout=POLL_TIMEOUT_S)
+  result = await client.transcribe(audio_url=audio_path, options=options, timeout=POLL_TIMEOUT_S)
   assert result.status == "done"
   assert result.result is not None
   assert result.result.transcription is not None
@@ -168,7 +168,7 @@ async def test_transcribe_with_options_dict():
     "language_config": {"languages": ["en"]},
     "sentiment_analysis": True,
   }
-  result = await client.transcribe(audio=audio_path, options=options)
+  result = await client.transcribe(audio_url=audio_path, options=options)
   assert result.status == "done"
   assert result.result is not None
   assert result.result.transcription is not None
@@ -182,7 +182,7 @@ async def test_transcribe_url():
     language_config=PreRecordedV2LanguageConfig(languages=["en"]),
   )
   result = await client.transcribe(
-    audio=YOUTUBE_VIDEO_URL,
+    audio_url=YOUTUBE_VIDEO_URL,
     options=options,
     timeout=YOUTUBE_POLL_TIMEOUT_S,
   )
