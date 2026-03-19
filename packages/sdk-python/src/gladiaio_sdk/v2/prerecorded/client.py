@@ -47,7 +47,7 @@ class PreRecordedV2Client:
 
   def transcribe(
     self,
-    audio: str | Path | BinaryIO,
+    audio_url: str | Path | BinaryIO,
     options: PreRecordedV2TranscriptionOptions | dict[str, Any] | None = None,
     *,
     interval: float = 3.0,
@@ -55,15 +55,68 @@ class PreRecordedV2Client:
   ) -> PreRecordedV2Response:
     """Transcribe from a local file, URL, or bytes (file-like).
 
-    If ``audio`` is a local file (path or file-like), it is uploaded first; then
-    create and poll is called. If ``audio`` is a URL (http/https), create and poll
+    If ``audio_url`` is a local file (path or file-like), it is uploaded first; then
+    create and poll is called. If ``audio_url`` is a URL (http/https), create and poll
     is used directly with that URL.
 
     Args:
-      audio: A local file path (str or Path), an open binary file object, or a URL (str).
-      options: Optional transcription options (no audio_url). Can be a
-        :class:`PreRecordedV2TranscriptionOptions` instance or a dict.
-      interval: Seconds between polling attempts.
+      audio_url: A local file path (str or Path), an open binary file object, or a URL (str).
+      options: Request fields for the pre-recorded job, as
+        :class:`~gladiaio_sdk.v2.prerecorded.core.PreRecordedV2TranscriptionOptions` or a JSON-serializable
+        dict (same keys as the API). Omitted keys use API defaults. Commonly used blocks:
+
+        ``language_config`` — How the source language is chosen (replaces deprecated ``language``,
+        ``detect_language``, ``enable_code_switching``, ``code_switching_config``):
+
+        - ``languages`` (``list[str]``, optional): ISO 639-1 language codes to transcribe in. If you pass
+          exactly one code, that language is fixed for the whole file. If empty or omitted, the model
+          auto-detects the language. If you pass multiple codes, behavior follows the API’s multi-language
+          rules (constrain detection to those languages). Valid codes are those accepted by
+          ``PreRecordedV2TranscriptionLanguageCode`` in ``generated_types`` (e.g. ``"en"``, ``"fr"``, ``"zh"``).
+        - ``code_switching`` (``bool``, optional): When ``languages`` does **not** pin a single language:
+          if ``True``, language is re-estimated per utterance; if ``False`` (or omitted), detection runs on
+          the first utterance and that language is used for the rest. Ignored when a single language is set
+          in ``languages``.
+
+        ``diarization`` (``bool``): When ``True``, speaker diarization runs so segments include speaker labels.
+
+        ``diarization_config`` (used when ``diarization`` is enabled):
+
+        - ``number_of_speakers`` (``int``, optional): Treat the recording as having exactly this many
+          speakers (helps stability when count is known).
+        - ``min_speakers`` (``int``, optional): Lower bound on the number of distinct speakers.
+        - ``max_speakers`` (``int``, optional): Upper bound on the number of distinct speakers.
+
+        ``translation`` (**beta**, ``bool``): When ``True``, translated text is produced per
+        ``translation_config``.
+
+        ``translation_config`` (required fields when ``translation`` is ``True``):
+
+        - ``target_languages`` (``list[str]``, required): ISO 639-1 codes for output languages (e.g.
+          ``["fr", "en"]``). Allowed codes are ``PreRecordedV2TranslationLanguageCode`` (same broad set as
+          transcription, plus e.g. ``"wo"`` where the schema allows it).
+        - ``model`` (``str``, optional): ``"base"`` or ``"enhanced"`` — trade-off between speed/cost and
+          quality for the translation model.
+        - ``match_original_utterances`` (``bool``, optional): Align translated chunks with original
+          utterance boundaries.
+        - ``lipsync`` (``bool``, optional): Request lipsync-oriented translation output when supported.
+        - ``context_adaptation`` (``bool``, optional): Use domain/context signals to steer terminology and phrasing.
+        - ``context`` (``str``, optional): Free-text scene description or domain notes (e.g. *“Business meeting
+          discussing quarterly results”*) consumed when context adaptation is enabled.
+        - ``informal`` (``bool``, optional): Prefer informal/register forms in the target language when available.
+
+        ``subtitles`` (``bool``): When ``True``, subtitle artifacts are generated according to ``subtitles_config``.
+
+        ``subtitles_config``:
+
+        - ``formats`` (``list[str]``, optional): Output formats; each entry is ``"srt"`` or ``"vtt"``.
+        - ``minimum_duration`` / ``maximum_duration`` (``float``, optional): Per-cue duration bounds in seconds.
+        - ``maximum_characters_per_row`` (``int``, optional): Line length limit for captions.
+        - ``maximum_rows_per_caption`` (``int``, optional): Max lines stacked per cue.
+        - ``style`` (``str``, optional): ``"default"`` or ``"compliance"`` (compliance-oriented SRT layout;
+          see API docs / Library of Congress FDD reference in schema comments).
+
+      interval: Seconds between polling attempts (default: 3.0).
       timeout: Maximum seconds to wait; None means wait indefinitely.
 
     Returns:
@@ -75,12 +128,12 @@ class PreRecordedV2Client:
       opts = options if options is not None else PreRecordedV2TranscriptionOptions()
       base = opts.to_dict()
 
-    if isinstance(audio, (str, Path)) and self._core.is_url(str(audio)):
-      audio_url = str(audio)
+    if isinstance(audio_url, (str, Path)) and self._core.is_url(str(audio_url)):
+      job_audio_url = str(audio_url)
     else:
-      audio_url = self.upload_file(audio).audio_url
+      job_audio_url = self.upload_file(audio_url).audio_url
 
-    body = {**base, "audio_url": audio_url}
+    body = {**base, "audio_url": job_audio_url}
     return self.create_and_poll(body, interval=interval, timeout=timeout)
 
   def create(
