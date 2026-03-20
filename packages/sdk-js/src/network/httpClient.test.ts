@@ -231,6 +231,28 @@ describe('HttpClient', () => {
     }
   })
 
+  it('returns raw Response when rawResponse is true, even for JSON bodies', async () => {
+    mockFetch.mockImplementation(() => {
+      return Promise.resolve(
+        new Response(JSON.stringify({ hello: 'world' }), {
+          status: 202,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    })
+
+    const client = new HttpClient({
+      baseUrl: BASE,
+      retry: { maxAttempts: 1, statusCodes: [[500, 599]], delay: () => 0 },
+      timeout: 2_000,
+    })
+
+    const res = await client.delete(`${BASE}/job`, { rawResponse: true })
+    expect(res).toBeInstanceOf(Response)
+    expect(res.status).toBe(202)
+    expect(await res.clone().text()).toContain('hello')
+  })
+
   it('does not retry with limit 1 (only initial call)', async () => {
     let calls = 0
     mockFetch.mockImplementation(() => {

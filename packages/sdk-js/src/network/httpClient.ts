@@ -104,7 +104,11 @@ export class TimeoutError extends Error {
   }
 }
 
-type RequestOptions = Omit<RequestInit, 'method' | 'headers'> & { headers?: Headers }
+type RequestOptions = Omit<RequestInit, 'method' | 'headers'> & {
+  headers?: Headers
+  /** When true, the successful response is the raw `fetch` `Response` (no JSON parsing). */
+  rawResponse?: boolean
+}
 
 export type HttpClientOptions = {
   baseUrl: string | URL
@@ -210,7 +214,7 @@ export class HttpClient {
       }
     }
 
-    const { signal: userSignal, headers, ...rest } = init
+    const { signal: userSignal, headers, rawResponse, ...rest } = init
 
     const overallStart = Date.now()
     const attemptErrors: Error[] = []
@@ -276,6 +280,10 @@ export class HttpClient {
 
           // Not retryable or attempts exhausted -> throw and handle in catch
           throw httpErr
+        }
+
+        if (rawResponse) {
+          return response as ResponseType
         }
 
         if (response.headers.get('content-type')?.includes('application/json')) {

@@ -119,10 +119,13 @@ export class PreRecordedV2Client {
    * Delete a pre-recorded transcription job.
    *
    * @param jobId - The UUID of the transcription job to delete.
-   * @returns `true` if the job was deleted successfully (HTTP 202), `false` otherwise.
+   * @returns `true` if the job was deleted successfully (HTTP 202), `false` if the server responded with another 2xx status.
+   * @throws When the server responds with an error HTTP status (e.g. 404).
    */
   async delete(jobId: string): Promise<boolean> {
-    const response = await this.httpClient.delete<Response>(`/v2/pre-recorded/${jobId}`)
+    const response = await this.httpClient.delete<Response>(`/v2/pre-recorded/${jobId}`, {
+      rawResponse: true,
+    })
     return response.status === 202
   }
 
