@@ -228,7 +228,8 @@ export class PreRecordedV2Client {
       typeof audio_url === 'string' && isUrl(audio_url)
         ? audio_url
         : await this.uploadFile(audio_url)
-    const jobAudioUrl = typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
+    const jobAudioUrl =
+      typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
     return this.createAndPoll({ ...(options ?? {}), audio_url: jobAudioUrl }, { interval, timeout })
   }
 
@@ -253,7 +254,8 @@ export class PreRecordedV2Client {
       typeof audio_url === 'string' && isUrl(audio_url)
         ? audio_url
         : await this.uploadFile(audio_url)
-    const jobAudioUrl = typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
+    const jobAudioUrl =
+      typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
     return this.createAndPollUntyped(
       { ...(options ?? {}), audio_url: jobAudioUrl },
       { interval, timeout }
