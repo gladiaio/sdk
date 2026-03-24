@@ -65,18 +65,14 @@ class PreRecordedV2AsyncClient:
         :class:`~gladiaio_sdk.v2.prerecorded.core.PreRecordedV2TranscriptionOptions` or a JSON-serializable
         dict (same keys as the API). Omitted keys use API defaults. Commonly used blocks:
 
-        ``language_config`` — How the source language is chosen (replaces deprecated ``language``,
-        ``detect_language``, ``enable_code_switching``, ``code_switching_config``):
+        ``language_config`` — Source language selection (see :class:`~gladiaio_sdk.v2.prerecorded.generated_types.PreRecordedV2LanguageConfig`):
 
-        - ``languages`` (``list[str]``, optional): ISO 639-1 language codes to transcribe in. If you pass
-          exactly one code, that language is fixed for the whole file. If empty or omitted, the model
-          auto-detects the language. If you pass multiple codes, behavior follows the API’s multi-language
-          rules (constrain detection to those languages). Valid codes are those accepted by
+        - ``languages`` (``list[str]``, optional): ISO 639-1 language codes. One code fixes the language
+          for the whole file; omit or pass multiple codes per the API’s detection rules. Valid values are
           ``PreRecordedV2TranscriptionLanguageCode`` in ``generated_types`` (e.g. ``"en"``, ``"fr"``, ``"zh"``).
         - ``code_switching`` (``bool``, optional): When ``languages`` does **not** pin a single language:
-          if ``True``, language is re-estimated per utterance; if ``False`` (or omitted), detection runs on
-          the first utterance and that language is used for the rest. Ignored when a single language is set
-          in ``languages``.
+          if ``True``, language is re-estimated per utterance; if ``False`` (or omitted), detection uses the
+          first utterance for the rest. Ignored when a single language is set in ``languages``.
 
         ``diarization`` (``bool``): When ``True``, speaker diarization runs so segments include speaker labels.
 

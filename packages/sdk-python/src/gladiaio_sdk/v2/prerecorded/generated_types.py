@@ -164,12 +164,6 @@ class PreRecordedV2CustomVocabularyConfig(BaseDataClass):
   default_intensity: float | None = None
 
 
-@dataclass(frozen=True, slots=True)
-class PreRecordedV2CodeSwitchingConfig(BaseDataClass):
-  # Specify the languages you want to use when detecting multiple languages
-  languages: list[PreRecordedV2TranscriptionLanguageCode] | None = None
-
-
 PreRecordedV2CallbackMethod = Literal["POST", "PUT"]
 
 
@@ -354,12 +348,6 @@ class PreRecordedV2CustomSpellingConfig(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class PreRecordedV2StructuredDataExtractionConfig(BaseDataClass):
-  # The list of classes to extract from the audio transcription
-  classes: list[list[Any]]
-
-
-@dataclass(frozen=True, slots=True)
 class PreRecordedV2AudioToLlmListConfig(BaseDataClass):
   # The list of prompts applied on the audio transcription
   prompts: list[list[Any]]
@@ -487,22 +475,11 @@ class PreRecordedV2FileResponse(BaseDataClass):
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2RequestParamsResponse(BaseDataClass):
   audio_url: str | None = None
-  # **[Deprecated]** Context to feed the transcription model with for possible better accuracy
-  context_prompt: str | None = None
   # **[Beta]** Can be either boolean to enable custom_vocabulary for this audio or an array with
   # specific vocabulary list to feed the transcription model with
   custom_vocabulary: bool | None = None
   # **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled
   custom_vocabulary_config: PreRecordedV2CustomVocabularyConfig | None = None
-  # **[Deprecated]** Use `language_config` instead. Detect the language from the given audio
-  detect_language: bool | None = None
-  # **[Deprecated]** Use `language_config` instead.Detect multiple languages in the given audio
-  enable_code_switching: bool | None = None
-  # **[Deprecated]** Use `language_config` instead. Specify the configuration for code switching
-  code_switching_config: PreRecordedV2CodeSwitchingConfig | None = None
-  # **[Deprecated]** Use `language_config` instead. Set the spoken language for the given audio
-  # (ISO 639 standard)
-  language: PreRecordedV2TranscriptionLanguageCode | None = None
   # **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST`
   # request to with the result of the transcription
   callback_url: str | None = None
@@ -527,23 +504,12 @@ class PreRecordedV2RequestParamsResponse(BaseDataClass):
   summarization: bool | None = None
   # **[Beta]** Summarization configuration, if `summarization` is enabled
   summarization_config: PreRecordedV2SummarizationConfig | None = None
-  # **[Alpha]** Enable moderation for this audio
-  moderation: bool | None = None
   # **[Alpha]** Enable named entity recognition for this audio
   named_entity_recognition: bool | None = None
-  # **[Alpha]** Enable chapterization for this audio
-  chapterization: bool | None = None
-  # **[Alpha]** Enable names consistency for this audio
-  name_consistency: bool | None = None
   # **[Alpha]** Enable custom spelling for this audio
   custom_spelling: bool | None = None
   # **[Alpha]** Custom spelling configuration, if `custom_spelling` is enabled
   custom_spelling_config: PreRecordedV2CustomSpellingConfig | None = None
-  # **[Alpha]** Enable structured data extraction for this audio
-  structured_data_extraction: bool | None = None
-  # **[Alpha]** Structured data extraction configuration, if `structured_data_extraction` is
-  # enabled
-  structured_data_extraction_config: PreRecordedV2StructuredDataExtractionConfig | None = None
   # Enable sentiment analysis for this audio
   sentiment_analysis: bool | None = None
   # **[Alpha]** Enable audio to llm processing for this audio
@@ -556,9 +522,6 @@ class PreRecordedV2RequestParamsResponse(BaseDataClass):
   pii_redaction_config: PreRecordedV2PiiRedactionConfig | None = None
   # Enable sentences for this audio
   sentences: bool | None = None
-  # **[Alpha]** Allows to change the output display_mode for this audio. The output will be
-  # reordered, creating new utterances when speakers overlapped
-  display_mode: bool | None = None
   # **[Alpha]** Use enhanced punctuation for this audio
   punctuation_enhanced: bool | None = None
   # Specify the language configuration
@@ -925,22 +888,11 @@ class PreRecordedV2AudioUploadResponse(BaseDataClass):
 class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   # URL to a Gladia file or to an external audio or video file
   audio_url: str
-  # **[Deprecated]** Context to feed the transcription model with for possible better accuracy
-  context_prompt: str | None = None
   # **[Beta]** Can be either boolean to enable custom_vocabulary for this audio or an array with
   # specific vocabulary list to feed the transcription model with
   custom_vocabulary: bool | None = None
   # **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled
   custom_vocabulary_config: PreRecordedV2CustomVocabularyConfig | None = None
-  # **[Deprecated]** Use `language_config` instead. Detect the language from the given audio
-  detect_language: bool | None = None
-  # **[Deprecated]** Use `language_config` instead.Detect multiple languages in the given audio
-  enable_code_switching: bool | None = None
-  # **[Deprecated]** Use `language_config` instead. Specify the configuration for code switching
-  code_switching_config: PreRecordedV2CodeSwitchingConfig | None = None
-  # **[Deprecated]** Use `language_config` instead. Set the spoken language for the given audio
-  # (ISO 639 standard)
-  language: PreRecordedV2TranscriptionLanguageCode | None = None
   # **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST`
   # request to with the result of the transcription
   callback_url: str | None = None
@@ -965,23 +917,12 @@ class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   summarization: bool | None = None
   # **[Beta]** Summarization configuration, if `summarization` is enabled
   summarization_config: PreRecordedV2SummarizationConfig | None = None
-  # **[Alpha]** Enable moderation for this audio
-  moderation: bool | None = None
   # **[Alpha]** Enable named entity recognition for this audio
   named_entity_recognition: bool | None = None
-  # **[Alpha]** Enable chapterization for this audio
-  chapterization: bool | None = None
-  # **[Alpha]** Enable names consistency for this audio
-  name_consistency: bool | None = None
   # **[Alpha]** Enable custom spelling for this audio
   custom_spelling: bool | None = None
   # **[Alpha]** Custom spelling configuration, if `custom_spelling` is enabled
   custom_spelling_config: PreRecordedV2CustomSpellingConfig | None = None
-  # **[Alpha]** Enable structured data extraction for this audio
-  structured_data_extraction: bool | None = None
-  # **[Alpha]** Structured data extraction configuration, if `structured_data_extraction` is
-  # enabled
-  structured_data_extraction_config: PreRecordedV2StructuredDataExtractionConfig | None = None
   # Enable sentiment analysis for this audio
   sentiment_analysis: bool | None = None
   # **[Alpha]** Enable audio to llm processing for this audio
@@ -996,9 +937,6 @@ class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   custom_metadata: dict[str, Any] | None = None
   # Enable sentences for this audio
   sentences: bool | None = None
-  # **[Alpha]** Allows to change the output display_mode for this audio. The output will be
-  # reordered, creating new utterances when speakers overlapped
-  display_mode: bool | None = None
   # **[Alpha]** Use enhanced punctuation for this audio
   punctuation_enhanced: bool | None = None
   # Specify the language configuration

@@ -140,11 +140,6 @@ export interface PreRecordedV2CustomVocabularyConfig {
   default_intensity?: number
 }
 
-export interface PreRecordedV2CodeSwitchingConfig {
-  /** Specify the languages you want to use when detecting multiple languages */
-  languages?: Array<PreRecordedV2TranscriptionLanguageCode>
-}
-
 export type PreRecordedV2CallbackMethod = 'POST' | 'PUT'
 
 export interface PreRecordedV2CallbackConfig {
@@ -169,7 +164,7 @@ export interface PreRecordedV2SubtitlesConfig {
   maximum_characters_per_row?: number
   /** Maximum number of rows per caption */
   maximum_rows_per_caption?: number
-  /** Style of the subtitles. Compliance mode refers to : https://loc.gov/preservation/digital/formats//fdd/fdd000569.shtml#:~:text=SRT%20files%20are%20basic%20text,alongside%2C%20example%3A%20%22MyVideo123  */
+  /** Style of the subtitles. Compliance mode refers to : https://loc.gov/preservation/digital/formats//fdd/fdd000569.shtml#:~:text=SRT%20files%20are%20basic%20text,alongside%2C%20example%3A%20%22MyVideo123 */
   style?: PreRecordedV2SubtitlesStyle
 }
 
@@ -315,11 +310,6 @@ export interface PreRecordedV2CustomSpellingConfig {
   spelling_dictionary: Record<string, Array<string>>
 }
 
-export interface PreRecordedV2StructuredDataExtractionConfig {
-  /** The list of classes to extract from the audio transcription */
-  classes: Array<Array<any>>
-}
-
 export interface PreRecordedV2AudioToLlmListConfig {
   /** The list of prompts applied on the audio transcription */
   prompts: Array<Array<any>>
@@ -437,20 +427,10 @@ export interface PreRecordedV2FileResponse {
 }
 
 export interface PreRecordedV2RequestParamsResponse {
-  /** **[Deprecated]** Context to feed the transcription model with for possible better accuracy */
-  context_prompt?: string
   /** **[Beta]** Can be either boolean to enable custom_vocabulary for this audio or an array with specific vocabulary list to feed the transcription model with */
   custom_vocabulary?: boolean
   /** **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled */
   custom_vocabulary_config?: PreRecordedV2CustomVocabularyConfig
-  /** **[Deprecated]** Use `language_config` instead. Detect the language from the given audio */
-  detect_language?: boolean
-  /** **[Deprecated]** Use `language_config` instead.Detect multiple languages in the given audio */
-  enable_code_switching?: boolean
-  /** **[Deprecated]** Use `language_config` instead. Specify the configuration for code switching */
-  code_switching_config?: PreRecordedV2CodeSwitchingConfig
-  /** **[Deprecated]** Use `language_config` instead. Set the spoken language for the given audio (ISO 639 standard) */
-  language?: PreRecordedV2TranscriptionLanguageCode
   /** **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST` request to with the result of the transcription */
   callback_url?: string
   /** Enable callback for this transcription. If true, the `callback_config` property will be used to customize the callback behaviour */
@@ -473,22 +453,12 @@ export interface PreRecordedV2RequestParamsResponse {
   summarization?: boolean
   /** **[Beta]** Summarization configuration, if `summarization` is enabled */
   summarization_config?: PreRecordedV2SummarizationConfig
-  /** **[Alpha]** Enable moderation for this audio */
-  moderation?: boolean
   /** **[Alpha]** Enable named entity recognition for this audio */
   named_entity_recognition?: boolean
-  /** **[Alpha]** Enable chapterization for this audio */
-  chapterization?: boolean
-  /** **[Alpha]** Enable names consistency for this audio */
-  name_consistency?: boolean
   /** **[Alpha]** Enable custom spelling for this audio */
   custom_spelling?: boolean
   /** **[Alpha]** Custom spelling configuration, if `custom_spelling` is enabled */
   custom_spelling_config?: PreRecordedV2CustomSpellingConfig
-  /** **[Alpha]** Enable structured data extraction for this audio */
-  structured_data_extraction?: boolean
-  /** **[Alpha]** Structured data extraction configuration, if `structured_data_extraction` is enabled */
-  structured_data_extraction_config?: PreRecordedV2StructuredDataExtractionConfig
   /** Enable sentiment analysis for this audio */
   sentiment_analysis?: boolean
   /** **[Alpha]** Enable audio to llm processing for this audio */
@@ -501,8 +471,6 @@ export interface PreRecordedV2RequestParamsResponse {
   pii_redaction_config?: PreRecordedV2PiiRedactionConfig
   /** Enable sentences for this audio */
   sentences?: boolean
-  /** **[Alpha]** Allows to change the output display_mode for this audio. The output will be reordered, creating new utterances when speakers overlapped */
-  display_mode?: boolean
   /** **[Alpha]** Use enhanced punctuation for this audio */
   punctuation_enhanced?: boolean
   /** Specify the language configuration */
@@ -833,20 +801,10 @@ export interface PreRecordedV2AudioUploadResponse {
 
 // Init Session Types
 export interface PreRecordedV2InitTranscriptionRequest {
-  /** **[Deprecated]** Context to feed the transcription model with for possible better accuracy */
-  context_prompt?: string
   /** **[Beta]** Can be either boolean to enable custom_vocabulary for this audio or an array with specific vocabulary list to feed the transcription model with */
   custom_vocabulary?: boolean
   /** **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled */
   custom_vocabulary_config?: PreRecordedV2CustomVocabularyConfig
-  /** **[Deprecated]** Use `language_config` instead. Detect the language from the given audio */
-  detect_language?: boolean
-  /** **[Deprecated]** Use `language_config` instead.Detect multiple languages in the given audio */
-  enable_code_switching?: boolean
-  /** **[Deprecated]** Use `language_config` instead. Specify the configuration for code switching */
-  code_switching_config?: PreRecordedV2CodeSwitchingConfig
-  /** **[Deprecated]** Use `language_config` instead. Set the spoken language for the given audio (ISO 639 standard) */
-  language?: PreRecordedV2TranscriptionLanguageCode
   /** **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST` request to with the result of the transcription */
   callback_url?: string
   /** Enable callback for this transcription. If true, the `callback_config` property will be used to customize the callback behaviour */
@@ -869,22 +827,12 @@ export interface PreRecordedV2InitTranscriptionRequest {
   summarization?: boolean
   /** **[Beta]** Summarization configuration, if `summarization` is enabled */
   summarization_config?: PreRecordedV2SummarizationConfig
-  /** **[Alpha]** Enable moderation for this audio */
-  moderation?: boolean
   /** **[Alpha]** Enable named entity recognition for this audio */
   named_entity_recognition?: boolean
-  /** **[Alpha]** Enable chapterization for this audio */
-  chapterization?: boolean
-  /** **[Alpha]** Enable names consistency for this audio */
-  name_consistency?: boolean
   /** **[Alpha]** Enable custom spelling for this audio */
   custom_spelling?: boolean
   /** **[Alpha]** Custom spelling configuration, if `custom_spelling` is enabled */
   custom_spelling_config?: PreRecordedV2CustomSpellingConfig
-  /** **[Alpha]** Enable structured data extraction for this audio */
-  structured_data_extraction?: boolean
-  /** **[Alpha]** Structured data extraction configuration, if `structured_data_extraction` is enabled */
-  structured_data_extraction_config?: PreRecordedV2StructuredDataExtractionConfig
   /** Enable sentiment analysis for this audio */
   sentiment_analysis?: boolean
   /** **[Alpha]** Enable audio to llm processing for this audio */
@@ -899,8 +847,6 @@ export interface PreRecordedV2InitTranscriptionRequest {
   custom_metadata?: Record<string, any>
   /** Enable sentences for this audio */
   sentences?: boolean
-  /** **[Alpha]** Allows to change the output display_mode for this audio. The output will be reordered, creating new utterances when speakers overlapped */
-  display_mode?: boolean
   /** **[Alpha]** Use enhanced punctuation for this audio */
   punctuation_enhanced?: boolean
   /** Specify the language configuration */
