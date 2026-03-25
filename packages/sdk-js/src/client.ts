@@ -66,6 +66,16 @@ const defaultOptions: InternalGladiaClientOptions = {
     maxConnections: 0,
   },
   wsTimeout: 10_000,
+  prerecordedTimeouts: {
+    transcribe: 7_200_000,
+    poll: 7_200_000,
+    createAndPoll: 7_200_000,
+    uploadFile: 300_000,
+    getFile: 300_000,
+    create: 30_000,
+    delete: 30_000,
+    get: 10_000,
+  },
 }
 
 /**

@@ -17,15 +17,26 @@ function isUrl(s: string): boolean {
   }
 }
 
+function resolveFlowDeadlineMs(
+  timeout: number | null | undefined,
+  configuredMs: number
+): number | null {
+  if (timeout === null) return null
+  if (timeout !== undefined) return timeout
+  return configuredMs
+}
+
 /**
  * Client used to interact with Gladia Pre-Recorded Speech-To-Text API.
  */
 export class PreRecordedV2Client {
   private httpClient: HttpClient
+  private readonly prerecordedTimeouts: InternalGladiaClientOptions['prerecordedTimeouts']
 
   constructor(options: InternalGladiaClientOptions) {
     const httpBaseUrl = new URL(options.apiUrl)
     httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
+    this.prerecordedTimeouts = options.prerecordedTimeouts
     this.httpClient = new HttpClient({
       baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
@@ -69,6 +80,7 @@ export class PreRecordedV2Client {
 
     return this.httpClient.post<PreRecordedV2AudioUploadResponse>('/v2/upload', {
       body: formData,
+      requestTimeout: this.prerecordedTimeouts.uploadFile,
     })
   }
 
@@ -85,6 +97,7 @@ export class PreRecordedV2Client {
     return this.httpClient.post<PreRecordedV2InitTranscriptionResponse>('/v2/pre-recorded', {
       body: JSON.stringify(options),
       headers: { 'content-type': 'application/json' },
+      requestTimeout: this.prerecordedTimeouts.create,
     })
   }
 
@@ -102,6 +115,7 @@ export class PreRecordedV2Client {
     return this.httpClient.post<PreRecordedV2InitTranscriptionResponse>('/v2/pre-recorded', {
       body: JSON.stringify(options),
       headers: { 'content-type': 'application/json' },
+      requestTimeout: this.prerecordedTimeouts.create,
     })
   }
 
@@ -112,7 +126,9 @@ export class PreRecordedV2Client {
    * @returns The full job response including status and result if done.
    */
   async get(jobId: string): Promise<PreRecordedV2Response> {
-    return this.httpClient.get<PreRecordedV2Response>(`/v2/pre-recorded/${jobId}`)
+    return this.httpClient.get<PreRecordedV2Response>(`/v2/pre-recorded/${jobId}`, {
+      requestTimeout: this.prerecordedTimeouts.get,
+    })
   }
 
   /**
@@ -125,6 +141,7 @@ export class PreRecordedV2Client {
   async delete(jobId: string): Promise<boolean> {
     const response = await this.httpClient.delete<Response>(`/v2/pre-recorded/${jobId}`, {
       rawResponse: true,
+      requestTimeout: this.prerecordedTimeouts.delete,
     })
     return response.status === 202
   }
@@ -136,7 +153,9 @@ export class PreRecordedV2Client {
    * @returns The raw audio file as an `ArrayBuffer`.
    */
   async getFile(jobId: string): Promise<ArrayBuffer> {
-    const response = await this.httpClient.get<Response>(`/v2/pre-recorded/${jobId}/file`)
+    const response = await this.httpClient.get<Response>(`/v2/pre-recorded/${jobId}/file`, {
+      requestTimeout: this.prerecordedTimeouts.getFile,
+    })
     return response.arrayBuffer()
   }
 
@@ -147,15 +166,17 @@ export class PreRecordedV2Client {
    *
    * @param jobId - The UUID of the transcription job.
    * @param interval - Milliseconds between polling attempts (default: 3000).
-   * @param timeout - Maximum milliseconds to wait before throwing. `undefined` means wait indefinitely.
+   * @param timeout - Maximum milliseconds to wait before throwing. Omitted uses
+   *   `GladiaClientOptions.prerecordedTimeouts.poll`. `null` means no deadline.
    * @returns The completed job response.
    * @throws If the job status is `"error"` or the timeout is exceeded.
    */
   async poll(
     jobId: string,
-    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+    { interval = 3_000, timeout }: { interval?: number; timeout?: number | null } = {}
   ): Promise<PreRecordedV2Response> {
     const start = Date.now()
+    const deadlineMs = resolveFlowDeadlineMs(timeout, this.prerecordedTimeouts.poll)
     while (true) {
       const result = await this.get(jobId)
       if (result.status === 'done') {
@@ -164,8 +185,8 @@ export class PreRecordedV2Client {
       if (result.status === 'error') {
         throw new Error(`Pre-recorded job ${jobId} failed with error code: ${result.error_code}`)
       }
-      if (timeout !== undefined && Date.now() - start >= timeout) {
-        throw new Error(`Pre-recorded job ${jobId} did not complete within ${timeout}ms`)
+      if (deadlineMs !== null && Date.now() - start >= deadlineMs) {
+        throw new Error(`Pre-recorded job ${jobId} did not complete within ${deadlineMs}ms`)
       }
       await sleep(interval)
     }
@@ -180,15 +201,19 @@ export class PreRecordedV2Client {
    * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param options - The transcription request parameters including `audio_url`.
    * @param interval - Milliseconds between polling attempts (default: 3000).
-   * @param timeout - Maximum milliseconds to wait before throwing.
+   * @param timeout - Maximum milliseconds to wait before throwing. Omitted uses
+   *   `GladiaClientOptions.prerecordedTimeouts.createAndPoll`. `null` means no deadline.
    * @returns The completed job response.
    */
   async createAndPoll(
     options: PreRecordedV2InitTranscriptionRequest,
-    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+    { interval = 3_000, timeout }: { interval?: number; timeout?: number | null } = {}
   ): Promise<PreRecordedV2Response> {
     const initResponse = await this.create(options)
-    return this.poll(initResponse.id, { interval, timeout })
+    return this.poll(initResponse.id, {
+      interval,
+      timeout: resolveFlowDeadlineMs(timeout, this.prerecordedTimeouts.createAndPoll),
+    })
   }
 
   /**
@@ -199,15 +224,19 @@ export class PreRecordedV2Client {
    * @see https://docs.gladia.io/api-reference/v2/pre-recorded/get
    * @param options - Raw request object (must include `audio_url` at runtime).
    * @param interval - Milliseconds between polling attempts (default: 3000).
-   * @param timeout - Maximum milliseconds to wait before throwing.
+   * @param timeout - Maximum milliseconds to wait before throwing. Omitted uses
+   *   `GladiaClientOptions.prerecordedTimeouts.createAndPoll`. `null` means no deadline.
    * @returns The completed job response.
    */
   async createAndPollUntyped(
     options: Record<string, unknown>,
-    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+    { interval = 3_000, timeout }: { interval?: number; timeout?: number | null } = {}
   ): Promise<PreRecordedV2Response> {
     const initResponse = await this.createUntyped(options)
-    return this.poll(initResponse.id, { interval, timeout })
+    return this.poll(initResponse.id, {
+      interval,
+      timeout: resolveFlowDeadlineMs(timeout, this.prerecordedTimeouts.createAndPoll),
+    })
   }
 
   /**
@@ -219,13 +248,14 @@ export class PreRecordedV2Client {
    * @param audio_url - A file path (string), URL (string), `File`, or `Blob`. When a string, can be either a local file path or an http(s) URL.
    * @param options - Optional transcription options (typed; `audio_url` is set from the uploaded/URL audio).
    * @param interval - Milliseconds between polling attempts (default: 3000).
-   * @param timeout - Maximum milliseconds to wait before throwing.
+   * @param timeout - Maximum milliseconds for polling after the job is submitted. Omitted uses
+   *   `GladiaClientOptions.prerecordedTimeouts.transcribe`. `null` means no deadline.
    * @returns The completed job response.
    */
   async transcribe(
     audio_url: string | File | Blob,
     options?: Omit<PreRecordedV2InitTranscriptionRequest, 'audio_url'>,
-    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+    { interval = 3_000, timeout }: { interval?: number; timeout?: number | null } = {}
   ): Promise<PreRecordedV2Response> {
     const uploadResponse =
       typeof audio_url === 'string' && isUrl(audio_url)
@@ -233,7 +263,13 @@ export class PreRecordedV2Client {
         : await this.uploadFile(audio_url)
     const jobAudioUrl =
       typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
-    return this.createAndPoll({ ...(options ?? {}), audio_url: jobAudioUrl }, { interval, timeout })
+    return this.createAndPoll(
+      { ...(options ?? {}), audio_url: jobAudioUrl },
+      {
+        interval,
+        timeout: resolveFlowDeadlineMs(timeout, this.prerecordedTimeouts.transcribe),
+      }
+    )
   }
 
   /**
@@ -245,13 +281,14 @@ export class PreRecordedV2Client {
    * @param audio_url - A file path (string), URL (string), `File`, or `Blob`.
    * @param options - Optional raw request options (merged with `audio_url` from upload/URL).
    * @param interval - Milliseconds between polling attempts (default: 3000).
-   * @param timeout - Maximum milliseconds to wait before throwing.
+   * @param timeout - Maximum milliseconds for polling after the job is submitted. Omitted uses
+   *   `GladiaClientOptions.prerecordedTimeouts.transcribe`. `null` means no deadline.
    * @returns The completed job response.
    */
   async transcribeUntyped(
     audio_url: string | File | Blob,
     options?: Record<string, unknown>,
-    { interval = 3_000, timeout }: { interval?: number; timeout?: number } = {}
+    { interval = 3_000, timeout }: { interval?: number; timeout?: number | null } = {}
   ): Promise<PreRecordedV2Response> {
     const uploadResponse =
       typeof audio_url === 'string' && isUrl(audio_url)
@@ -261,7 +298,10 @@ export class PreRecordedV2Client {
       typeof uploadResponse === 'string' ? uploadResponse : uploadResponse.audio_url
     return this.createAndPollUntyped(
       { ...(options ?? {}), audio_url: jobAudioUrl },
-      { interval, timeout }
+      {
+        interval,
+        timeout: resolveFlowDeadlineMs(timeout, this.prerecordedTimeouts.transcribe),
+      }
     )
   }
 }

@@ -362,6 +362,8 @@ class AsyncHttpClient:
     data = init.get("body")
     json_body = init.get("json")
     files = init.get("files")
+    req_timeout = init.get("request_timeout")
+    effective_timeout = self._timeout if req_timeout is None else float(req_timeout)
 
     overall_start = asyncio.get_event_loop().time()
     attempt_errors: list[BaseException] = []
@@ -383,7 +385,7 @@ class AsyncHttpClient:
           content=data,
           json=json_body,
           files=files,
-          timeout=self._timeout,
+          timeout=effective_timeout,
         )
 
         if 200 <= response.status_code < 300:
@@ -406,9 +408,9 @@ class AsyncHttpClient:
         # Do not retry on timeout
         elapsed = round((asyncio.get_event_loop().time() - overall_start), 3)
         raise TimeoutError(
-          f"Request timed out after {self._timeout}s on attempt {attempt}"
+          f"Request timed out after {effective_timeout}s on attempt {attempt}"
           f" (duration={elapsed}s) for {method} {request_url}",
-          self._timeout,
+          effective_timeout,
         ) from err
       except HttpError as err:
         # Already constructed HttpError from previous branch
@@ -487,6 +489,8 @@ class HttpClient:
     data = init.get("body")
     json_body = init.get("json")
     files = init.get("files")
+    req_timeout = init.get("request_timeout")
+    effective_timeout = self._timeout if req_timeout is None else float(req_timeout)
 
     overall_start = time.time()
     attempt_errors: list[BaseException] = []
@@ -508,7 +512,7 @@ class HttpClient:
           content=data,
           json=json_body,
           files=files,
-          timeout=self._timeout,
+          timeout=effective_timeout,
         )
 
         if 200 <= response.status_code < 300:
@@ -531,9 +535,9 @@ class HttpClient:
         # Do not retry on timeout
         elapsed = round((time.time() - overall_start), 3)
         raise TimeoutError(
-          f"Request timed out after {self._timeout}s on attempt {attempt}"
+          f"Request timed out after {effective_timeout}s on attempt {attempt}"
           f" (duration={elapsed}s) for {method} {request_url}",
-          self._timeout,
+          effective_timeout,
         ) from err
       except HttpError as err:
         # Already constructed HttpError from previous branch

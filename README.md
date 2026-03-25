@@ -120,16 +120,16 @@ Generated type files are **auto-generated** — do not edit them manually. Inste
 
 Each SDK follows a similar structure:
 
-| Component           | JavaScript (`packages/sdk-js`)       | Python (`packages/sdk-python`)                      |
-| ------------------- | ----------------------------------- | --------------------------------------------------- |
-| Entry point         | `src/index.ts`                     | `src/gladiaio_sdk/__init__.py`                      |
-| Client              | `src/client.ts`                    | `src/gladiaio_sdk/client.py`                        |
-| HTTP client         | `src/network/httpClient.ts`       | `src/gladiaio_sdk/network/http_client.py`          |
-| WebSocket client    | `src/network/wsClient.ts`          | `src/gladiaio_sdk/network/websocket_client.py`     |
-| Live V2 session     | `src/v2/live/`                     | `src/gladiaio_sdk/v2/live/`                         |
-| Live V2 generated   | `src/v2/live/generated-types.ts`   | `src/gladiaio_sdk/v2/live/generated_types.py`      |
-| PreRecorded V2 client | `src/v2/prerecorded/client.ts`  | `src/gladiaio_sdk/v2/prerecorded/client.py` (sync), `async_client.py` |
-| PreRecorded V2 generated | `src/v2/prerecorded/generated-types.ts` | `src/gladiaio_sdk/v2/prerecorded/generated_types.py` |
+| Component                | JavaScript (`packages/sdk-js`)          | Python (`packages/sdk-python`)                                        |
+| ------------------------ | --------------------------------------- | --------------------------------------------------------------------- |
+| Entry point              | `src/index.ts`                          | `src/gladiaio_sdk/__init__.py`                                        |
+| Client                   | `src/client.ts`                         | `src/gladiaio_sdk/client.py`                                          |
+| HTTP client              | `src/network/httpClient.ts`             | `src/gladiaio_sdk/network/http_client.py`                             |
+| WebSocket client         | `src/network/wsClient.ts`               | `src/gladiaio_sdk/network/websocket_client.py`                        |
+| Live V2 session          | `src/v2/live/`                          | `src/gladiaio_sdk/v2/live/`                                           |
+| Live V2 generated        | `src/v2/live/generated-types.ts`        | `src/gladiaio_sdk/v2/live/generated_types.py`                         |
+| PreRecorded V2 client    | `src/v2/prerecorded/client.ts`          | `src/gladiaio_sdk/v2/prerecorded/client.py` (sync), `async_client.py` |
+| PreRecorded V2 generated | `src/v2/prerecorded/generated-types.ts` | `src/gladiaio_sdk/v2/prerecorded/generated_types.py`                  |
 
 Steps:
 

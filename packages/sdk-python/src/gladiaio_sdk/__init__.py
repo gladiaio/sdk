@@ -4,7 +4,12 @@ Import GladiaClient and start using Gladia API.
 """
 
 from .client import GladiaClient
-from .client_options import GladiaClientOptions, HttpRetryOptions, WebSocketRetryOptions
+from .client_options import (
+  GladiaClientOptions,
+  HttpRetryOptions,
+  PreRecordedV2Timeouts,
+  WebSocketRetryOptions,
+)
 from .network import HttpError, TimeoutError
 from .v2.live.async_client import LiveV2AsyncClient
 from .v2.live.async_session import LiveV2AsyncSession
@@ -32,6 +37,7 @@ __all__: list[str] = [
   "TimeoutError",
   "GladiaClientOptions",
   "HttpRetryOptions",
+  "PreRecordedV2Timeouts",
   "WebSocketRetryOptions",
   "PreRecordedV2AsyncClient",
   "PreRecordedV2Client",

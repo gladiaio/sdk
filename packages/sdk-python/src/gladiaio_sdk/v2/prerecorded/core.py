@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, BinaryIO, Protocol
+from typing import Any, BinaryIO, Protocol, cast
 from urllib.parse import urlparse
 
 from .generated_types import (
@@ -22,13 +22,30 @@ from .generated_types import (
   PreRecordedV2TranslationConfig,
 )
 
+#: Omit ``timeout`` on transcribe / poll / create_and_poll to use
+#: ``GladiaClientOptions.prerecorded_timeouts``; pass ``timeout=None`` for no deadline.
+UNSET_PRERECORDED_FLOW_TIMEOUT = object()
+
+
+def resolve_prerecorded_flow_timeout(
+  timeout: float | None | Any,
+  *,
+  configured: float,
+) -> float | None:
+  """Return the polling/transcribe deadline, or None for unlimited wait."""
+  if timeout is UNSET_PRERECORDED_FLOW_TIMEOUT:
+    return configured
+  return cast(float | None, timeout)
+
 
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2TranscriptionOptions(BaseDataClass):
   """Transcription options for :meth:`PreRecordedV2Client.transcribe` and :meth:`PreRecordedV2AsyncClient.transcribe`.
 
-  Same as :class:`PreRecordedV2InitTranscriptionRequest` but without ``audio_url``; the audio is
-  provided via the ``file`` argument to ``transcribe()``.
+  Mirrors the pre-recorded create JSON body used after a file upload: same fields as
+  :class:`PreRecordedV2InitTranscriptionRequest` except ``audio_url`` (filled after upload from the
+  ``audio_url`` argument to ``transcribe()``), and without deprecated ``callback_url`` — use
+  ``callback`` with ``callback_config`` instead.
   """
 
   # **[Beta]** Can be either boolean to enable custom_vocabulary for this audio or an array with
@@ -36,9 +53,6 @@ class PreRecordedV2TranscriptionOptions(BaseDataClass):
   custom_vocabulary: bool | None = None
   # **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled
   custom_vocabulary_config: PreRecordedV2CustomVocabularyConfig | None = None
-  # **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST`
-  # request to with the result of the transcription
-  callback_url: str | None = None
   # Enable callback for this transcription. If true, the `callback_config` property will be used
   # to customize the callback behaviour
   callback: bool | None = None

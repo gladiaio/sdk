@@ -108,6 +108,8 @@ type RequestOptions = Omit<RequestInit, 'method' | 'headers'> & {
   headers?: Headers
   /** When true, the successful response is the raw `fetch` `Response` (no JSON parsing). */
   rawResponse?: boolean
+  /** Override the client default HTTP timeout for this request (milliseconds). */
+  requestTimeout?: number
 }
 
 export type HttpClientOptions = {
@@ -214,7 +216,9 @@ export class HttpClient {
       }
     }
 
-    const { signal: userSignal, headers, rawResponse, ...rest } = init
+    const { signal: userSignal, headers, rawResponse, requestTimeout, ...rest } = init
+    const effectiveTimeout =
+      requestTimeout !== undefined ? Math.max(0, Math.floor(requestTimeout)) : this.timeout
 
     const overallStart = Date.now()
     const attemptErrors: Error[] = []
@@ -242,13 +246,13 @@ export class HttpClient {
           userSignal.addEventListener('abort', onUserAbort, { once: true })
         }
 
-        if (this.timeout > 0) {
+        if (effectiveTimeout > 0) {
           timeoutId = setTimeout(() => {
             timedOut = true
             controller.abort(
-              new TimeoutError(`Request timed out after ${this.timeout}ms`, this.timeout)
+              new TimeoutError(`Request timed out after ${effectiveTimeout}ms`, effectiveTimeout)
             )
-          }, this.timeout)
+          }, effectiveTimeout)
         }
 
         const selectedFetch = await this.fetchPromise
@@ -299,8 +303,8 @@ export class HttpClient {
           // No retry after timeout
           const elapsed = Date.now() - overallStart
           const timeoutError = new TimeoutError(
-            `Request timed out after ${this.timeout}ms on attempt ${attempt} (duration=${elapsed}ms) for ${method} ${url}`,
-            this.timeout,
+            `Request timed out after ${effectiveTimeout}ms on attempt ${attempt} (duration=${elapsed}ms) for ${method} ${url}`,
+            effectiveTimeout,
             { cause: err }
           )
           throw timeoutError

@@ -11,7 +11,12 @@ from urllib.parse import urlparse
 from gladiaio_sdk.client_options import GladiaClientOptions
 from gladiaio_sdk.network import AsyncHttpClient
 
-from .core import PreRecordedV2Core, PreRecordedV2TranscriptionOptions
+from .core import (
+  UNSET_PRERECORDED_FLOW_TIMEOUT,
+  PreRecordedV2Core,
+  PreRecordedV2TranscriptionOptions,
+  resolve_prerecorded_flow_timeout,
+)
 from .generated_types import (
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
@@ -43,6 +48,7 @@ class PreRecordedV2AsyncClient:
       retry=options.http_retry,
       timeout=options.http_timeout,
     )
+    self._options = options
     self._core = PreRecordedV2Core()
 
   async def transcribe(
@@ -51,7 +57,7 @@ class PreRecordedV2AsyncClient:
     options: PreRecordedV2TranscriptionOptions | dict[str, Any] | None = None,
     *,
     interval: float = 3.0,
-    timeout: float | None = None,
+    timeout: float | None | object = UNSET_PRERECORDED_FLOW_TIMEOUT,
   ) -> PreRecordedV2Response:
     """Transcribe from a local file, URL, or bytes (file-like).
 
@@ -113,8 +119,9 @@ class PreRecordedV2AsyncClient:
           see API docs / Library of Congress FDD reference in schema comments).
 
       interval: Seconds between polling attempts (default: 3.0).
-      timeout: Maximum seconds to wait before raising TimeoutError.
-        None means wait indefinitely.
+      timeout: Maximum seconds to wait while polling for job completion after the job is
+        submitted. If omitted, uses ``GladiaClientOptions.prerecorded_timeouts.transcribe``.
+        ``None`` means no deadline. Upload and create use ``prerecorded_timeouts`` HTTP limits.
 
     Returns:
       The completed job response.
@@ -131,7 +138,11 @@ class PreRecordedV2AsyncClient:
       job_audio_url = (await self.upload_file(audio_url)).audio_url
 
     body = {**base, "audio_url": job_audio_url}
-    return await self.create_and_poll(body, interval=interval, timeout=timeout)
+    flow_timeout = resolve_prerecorded_flow_timeout(
+      timeout,
+      configured=self._options.prerecorded_timeouts.transcribe,
+    )
+    return await self.create_and_poll(body, interval=interval, timeout=flow_timeout)
 
   async def create(
     self, options: PreRecordedV2InitTranscriptionRequest | dict[str, Any]
@@ -146,7 +157,11 @@ class PreRecordedV2AsyncClient:
       A response containing the job `id` and `result_url` to poll.
     """
     body = self._core.prepare_create_body(options)
-    resp = await self._http_client.post("/v2/pre-recorded", json=body)
+    resp = await self._http_client.post(
+      "/v2/pre-recorded",
+      json=body,
+      request_timeout=self._options.prerecorded_timeouts.create,
+    )
     return PreRecordedV2InitTranscriptionResponse.from_json(resp.content)
 
   async def upload_file(self, audio_url: str | Path | BinaryIO) -> PreRecordedV2AudioUploadResponse:
@@ -174,11 +189,19 @@ class PreRecordedV2AsyncClient:
       filename, content_type = self._core.prepare_file_for_upload(file_path)
       with open(file_path, "rb") as f:
         files = {"audio": (filename, f, content_type)}
-        resp = await self._http_client.post("/v2/upload", files=files)
+        resp = await self._http_client.post(
+          "/v2/upload",
+          files=files,
+          request_timeout=self._options.prerecorded_timeouts.upload_file,
+        )
     elif file_obj:
       filename, content_type = self._core.prepare_file_object_for_upload(file_obj)
       files = {"audio": (filename, file_obj, content_type)}
-      resp = await self._http_client.post("/v2/upload", files=files)
+      resp = await self._http_client.post(
+        "/v2/upload",
+        files=files,
+        request_timeout=self._options.prerecorded_timeouts.upload_file,
+      )
     else:
       raise ValueError("Invalid file input")
     return PreRecordedV2AudioUploadResponse.from_json(resp.content)
@@ -193,7 +216,10 @@ class PreRecordedV2AsyncClient:
       The full job response including status and result if done.
     """
     endpoint = self._core.build_job_endpoint(job_id)
-    resp = await self._http_client.get(endpoint)
+    resp = await self._http_client.get(
+      endpoint,
+      {"request_timeout": self._options.prerecorded_timeouts.get},
+    )
     return PreRecordedV2Response.from_dict(resp.json())
 
   async def delete(self, job_id: str) -> bool:
@@ -206,7 +232,10 @@ class PreRecordedV2AsyncClient:
       True if the job was deleted successfully (HTTP 202), False otherwise.
     """
     endpoint = self._core.build_job_endpoint(job_id)
-    resp = await self._http_client.delete(endpoint)
+    resp = await self._http_client.delete(
+      endpoint,
+      {"request_timeout": self._options.prerecorded_timeouts.delete},
+    )
     return resp.status_code == 202
 
   async def get_file(self, job_id: str) -> bytes:
@@ -219,7 +248,10 @@ class PreRecordedV2AsyncClient:
       The raw audio file bytes.
     """
     endpoint = self._core.build_job_file_endpoint(job_id)
-    resp = await self._http_client.get(endpoint)
+    resp = await self._http_client.get(
+      endpoint,
+      {"request_timeout": self._options.prerecorded_timeouts.get},
+    )
     return resp.content
 
   async def poll(
@@ -227,7 +259,7 @@ class PreRecordedV2AsyncClient:
     job_id: str,
     *,
     interval: float = 3.0,
-    timeout: float | None = None,
+    timeout: float | None | object = UNSET_PRERECORDED_FLOW_TIMEOUT,
   ) -> PreRecordedV2Response:
     """Poll a pre-recorded transcription job until it completes.
 
@@ -236,8 +268,8 @@ class PreRecordedV2AsyncClient:
     Args:
       job_id: The UUID of the transcription job.
       interval: Seconds between polling attempts (default: 3.0).
-      timeout: Maximum seconds to wait before raising TimeoutError.
-        None means wait indefinitely.
+      timeout: Maximum seconds before raising TimeoutError. If omitted, uses
+        ``GladiaClientOptions.prerecorded_timeouts.poll``. ``None`` means no deadline.
 
     Returns:
       The completed job response.
@@ -246,6 +278,10 @@ class PreRecordedV2AsyncClient:
       TimeoutError: If the job does not complete within the timeout.
       Exception: If the job status is "error".
     """
+    poll_timeout = resolve_prerecorded_flow_timeout(
+      timeout,
+      configured=self._options.prerecorded_timeouts.poll,
+    )
     loop = asyncio.get_event_loop()
     start = loop.time()
     while True:
@@ -255,8 +291,8 @@ class PreRecordedV2AsyncClient:
       if self._core.is_job_failed(result.status):
         error_msg = self._core.create_job_error_message(job_id, result.error_code)
         raise Exception(error_msg)
-      if timeout is not None and (loop.time() - start) >= timeout:
-        timeout_msg = self._core.create_timeout_error_message(job_id, timeout)
+      if poll_timeout is not None and (loop.time() - start) >= poll_timeout:
+        timeout_msg = self._core.create_timeout_error_message(job_id, poll_timeout)
         raise TimeoutError(timeout_msg)
       await asyncio.sleep(interval)
 
@@ -265,7 +301,7 @@ class PreRecordedV2AsyncClient:
     options: PreRecordedV2InitTranscriptionRequest | dict[str, Any],
     *,
     interval: float = 3.0,
-    timeout: float | None = None,
+    timeout: float | None | object = UNSET_PRERECORDED_FLOW_TIMEOUT,
   ) -> PreRecordedV2Response:
     """Create a pre-recorded transcription job and poll until completion.
 
@@ -275,10 +311,15 @@ class PreRecordedV2AsyncClient:
       options: The transcription request parameters (or a dict including `audio_url`
         for direct API use). Can be a :class:`PreRecordedV2InitTranscriptionRequest` or a payload dict.
       interval: Seconds between polling attempts (default: 3.0).
-      timeout: Maximum seconds to wait before raising TimeoutError.
+      timeout: Maximum seconds for create plus polling. If omitted, uses
+        ``GladiaClientOptions.prerecorded_timeouts.create_and_poll``. ``None`` means no deadline.
 
     Returns:
       The completed job response.
     """
+    flow_timeout = resolve_prerecorded_flow_timeout(
+      timeout,
+      configured=self._options.prerecorded_timeouts.create_and_poll,
+    )
     init_response = await self.create(options)
-    return await self.poll(init_response.id, interval=interval, timeout=timeout)
+    return await self.poll(init_response.id, interval=interval, timeout=flow_timeout)
