@@ -1,7 +1,7 @@
 import { GladiaClient, type LiveV2TranscriptMessage } from '@gladiaio/sdk'
 import { parseAudioFile, sendAudioFile } from '@gladiaio/sdk-e2e-javascript-fixtures'
 import assert from 'node:assert'
-import { test } from 'node:test'
+import { test } from 'vitest'
 
 test('split infinity', async () => {
   const audioFile = 'short_split_infinity_16k.wav'

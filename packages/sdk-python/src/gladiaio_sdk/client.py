@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import os
 from typing import cast, overload
 
 from gladiaio_sdk.client_options import (
@@ -13,6 +14,8 @@ from gladiaio_sdk.client_options import (
 )
 from gladiaio_sdk.v2.live.async_client import LiveV2AsyncClient
 from gladiaio_sdk.v2.live.client import LiveV2Client
+from gladiaio_sdk.v2.prerecorded.async_client import PreRecordedV2AsyncClient
+from gladiaio_sdk.v2.prerecorded.client import PreRecordedV2Client
 from gladiaio_sdk.version import SDK_VERSION
 
 
@@ -35,9 +38,8 @@ def _assert_valid_options(options: GladiaClientOptions) -> None:
   except Exception as err:
     raise ValueError(f'Invalid url: "{options.api_url}".') from err
 
-  if not options.api_key and (url.hostname or "").endswith(".gladia.io"):
-    raise ValueError('You have to set your "api_key" or define a proxy "api_url".')
-
+  if not options.api_key:
+    raise ValueError('You must set your "api_key" or GLADIA_API_KEY environment variable set.')
   if url.scheme not in ["https", "http", "wss", "ws"]:
     raise ValueError(
       f"Only HTTP and WebSocket protocols are supported for api_url (received: {url.scheme})."
@@ -71,7 +73,61 @@ class GladiaClient:
     opts: GladiaClientOptions,
   ) -> None: ...
   def __init__(self, *args, **kwargs) -> None:
+    if "api_key" not in kwargs and "api_key" not in args:
+      kwargs["api_key"] = os.environ.get("GLADIA_API_KEY")
     self.options = args[0] if len(args) > 0 and args[0] else GladiaClientOptions(**kwargs)
+
+  @overload
+  def pre_recorded_v2(
+    self,
+    *,
+    api_key: str | None = None,
+    api_url: str | None = None,
+    region: Region | None = None,
+    http_headers: dict[str, str] | None = None,
+    http_retry: HttpRetryOptions | None = None,
+    http_timeout: float | None = None,
+    ws_retry: WebSocketRetryOptions | None = None,
+    ws_timeout: float | None = None,
+  ) -> PreRecordedV2Client: ...
+  @overload
+  def pre_recorded_v2(
+    self,
+    opts: GladiaClientOptions,
+  ) -> PreRecordedV2Client: ...
+  def pre_recorded_v2(self, *args, **kwargs) -> PreRecordedV2Client:
+    """Get sync pre-recorded V2 client."""
+    merged_options = self._merge_options(*args, **kwargs)
+    return PreRecordedV2Client(merged_options)
+
+  prerecorded = pre_recorded_v2
+  pre_recorded = pre_recorded_v2
+
+  @overload
+  def pre_recorded_v2_async(
+    self,
+    *,
+    api_key: str | None = None,
+    api_url: str | None = None,
+    region: Region | None = None,
+    http_headers: dict[str, str] | None = None,
+    http_retry: HttpRetryOptions | None = None,
+    http_timeout: float | None = None,
+    ws_retry: WebSocketRetryOptions | None = None,
+    ws_timeout: float | None = None,
+  ) -> PreRecordedV2AsyncClient: ...
+  @overload
+  def pre_recorded_v2_async(
+    self,
+    opts: GladiaClientOptions,
+  ) -> PreRecordedV2AsyncClient: ...
+  def pre_recorded_v2_async(self, *args, **kwargs) -> PreRecordedV2AsyncClient:
+    """Get async pre-recorded V2 client."""
+    merged_options = self._merge_options(*args, **kwargs)
+    return PreRecordedV2AsyncClient(merged_options)
+
+  prerecorded_async = pre_recorded_v2_async
+  pre_recorded_async = pre_recorded_v2_async
 
   @overload
   def live_v2(
@@ -95,6 +151,9 @@ class GladiaClient:
     merged_options = self._merge_options(*args, **kwargs)
     return LiveV2Client(merged_options)
 
+  live = live_v2
+  live_v2 = live_v2
+
   @overload
   def live_v2_async(
     self,
@@ -116,6 +175,9 @@ class GladiaClient:
   def live_v2_async(self, *args, **kwargs) -> LiveV2AsyncClient:
     merged_options = self._merge_options(*args, **kwargs)
     return LiveV2AsyncClient(merged_options)
+
+  live_async = live_v2_async
+  live_v2_async = live_v2_async
 
   def _merge_options(self, *args, **kwargs) -> GladiaClientOptions:
     merged_options: GladiaClientOptions = self.options

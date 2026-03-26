@@ -49,3 +49,12 @@ export type LiveV2Schemas = {
   webhookMessages: ReferencedSchemaObject[]
   referencedTypes: ReferencedSchemaObject[]
 }
+
+export type PreRecordedV2Schemas = {
+  uploadRequest: ReferencedSchemaObject
+  uploadResponse: ReferencedSchemaObject
+  initRequest: ReferencedSchemaObject
+  initResponse: ReferencedSchemaObject
+  resultResponse: ReferencedSchemaObject
+  referencedTypes: ReferencedSchemaObject[]
+}

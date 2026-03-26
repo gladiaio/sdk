@@ -125,8 +125,8 @@ class AbstractWebSocketSession(ABC):
 
     # Best-effort: clear ws reference if present on subclass
     with suppress(Exception):
-      if "_ws" in self.__dict__:
-        self.__dict__["_ws"] = None
+      if hasattr(self, "_ws"):
+        self._ws = None
 
 
 @final

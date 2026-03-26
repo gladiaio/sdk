@@ -65,6 +65,23 @@ export type WebSocketRetryOptions = {
 }
 
 /**
+ * HTTP and flow timeouts for pre-recorded V2 (milliseconds).
+ *
+ * Used as per-request HTTP limits and as defaults for `poll`, `createAndPoll`, and `transcribe`
+ * when their `timeout` argument is omitted. Pass `timeout: null` on those methods for no deadline.
+ */
+export type PreRecordedV2Timeouts = {
+  transcribe?: number
+  poll?: number
+  createAndPoll?: number
+  uploadFile?: number
+  getFile?: number
+  create?: number
+  delete?: number
+  get?: number
+}
+
+/**
  * Options for the Gladia Client.
  */
 export type GladiaClientOptions = {
@@ -132,4 +149,9 @@ export type GladiaClientOptions = {
    * Default is 10_000.
    */
   wsTimeout?: number
+
+  /**
+   * Pre-recorded V2 per-operation timeouts. See {@link PreRecordedV2Timeouts}.
+   */
+  prerecordedTimeouts?: PreRecordedV2Timeouts
 }

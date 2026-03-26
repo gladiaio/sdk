@@ -1,6 +1,7 @@
 """Python tests mirroring JS HttpClient tests (synchronous wrappers)."""
 
 import asyncio
+import json
 from typing import TypedDict
 
 import httpx
@@ -11,6 +12,8 @@ from gladiaio_sdk.network import (
   AsyncHttpClient,
   HttpError,
   TimeoutError,
+  enrich_http_error_with_field_suggestions,
+  format_invalid_field_suggestions,
 )
 
 
@@ -93,6 +96,99 @@ def test_http_error_non_retryable(monkeypatch):
 
   with pytest.raises(HttpError):
     run(client.get("/404"))
+
+
+def test_http_error_includes_difflib_parameter_hints_for_typo(monkeypatch):
+  client = new_http_client(
+    retry=HttpRetryOptions(max_attempts=5, status_codes=[408, 413, 429, (500, 599)]),
+  )
+  payload = {
+    "message": "Unknown field",
+    "request_id": "G-test",
+    "validation_errors": [{"loc": ["body", "languge"], "msg": "extra fields not permitted"}],
+  }
+
+  async def fake_request(method, url, **kwargs):
+    return make_response(400, json.dumps(payload))
+
+  monkeypatch.setattr(client._client, "request", fake_request)
+
+  with pytest.raises(HttpError) as exc_info:
+    run(client.get("/v2/pre-recorded"))
+  err = exc_info.value
+  assert err.invalid_parameters == ["languge"]
+  assert "did you mean" in str(err).lower()
+  assert "language" in str(err)
+
+
+def test_http_error_string_validation_errors_show_affected_field_path(monkeypatch):
+  client = new_http_client(
+    retry=HttpRetryOptions(max_attempts=5, status_codes=[408, 413, 429, (500, 599)]),
+  )
+  msg = "language_config.languages must only contain the following values: af, am, ar, en"
+  payload = {
+    "message": "Invalid parameter(s). See validation_errors for more details.",
+    "request_id": "G-test",
+    "validation_errors": [msg],
+  }
+
+  async def fake_request(method, url, **kwargs):
+    return make_response(400, json.dumps(payload))
+
+  monkeypatch.setattr(client._client, "request", fake_request)
+
+  with pytest.raises(HttpError) as exc_info:
+    run(client.get("/v2/pre-recorded"))
+  err = exc_info.value
+  assert err.invalid_parameters == ["language_config.languages"]
+  assert "Affected request field(s): language_config.languages" in str(err)
+  assert msg in str(err)
+
+
+def test_http_error_includes_validation_errors_in_message(monkeypatch):
+  client = new_http_client(
+    retry=HttpRetryOptions(max_attempts=5, status_codes=[408, 413, 429, (500, 599)]),
+  )
+  payload = {
+    "message": "Invalid parameter(s). See validation_errors for more details.",
+    "request_id": "G-7d29b8f8",
+    "validation_errors": [{"loc": ["body", "audio_url"], "msg": "field required"}],
+  }
+
+  async def fake_request(method, url, **kwargs):
+    return make_response(400, json.dumps(payload))
+
+  monkeypatch.setattr(client._client, "request", fake_request)
+
+  with pytest.raises(HttpError) as exc_info:
+    run(client.get("/v2/pre-recorded"))
+  err = exc_info.value
+  assert err.validation_errors == payload["validation_errors"]
+  assert err.invalid_parameters == ["audio_url"]
+  assert "validation_errors:" in str(err)
+  assert "audio_url" in str(err)
+  assert "field required" in str(err)
+
+
+def test_format_invalid_field_suggestions_typo():
+  known = ("language", "audio_url", "diarization")
+  hint = format_invalid_field_suggestions(["languge"], known)
+  assert "language" in hint
+  assert "languge" in hint
+
+
+def test_enrich_http_error_appends_suggestions():
+  err = HttpError(
+    message="bad request",
+    method="POST",
+    url="https://example.com/v2/pre-recorded",
+    status=400,
+    invalid_parameters=["languge"],
+  )
+  enriched = enrich_http_error_with_field_suggestions(err, ("language", "audio_url"))
+  assert enriched is not err
+  assert "language" in str(enriched)
+  assert "did you mean" in str(enriched)
 
 
 def test_methods_and_url(monkeypatch):

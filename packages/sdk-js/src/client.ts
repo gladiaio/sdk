@@ -3,6 +3,7 @@ import type { InternalGladiaClientOptions } from './internal_types.js'
 import type { Headers } from './network/types.js'
 import type { GladiaClientOptions } from './types.js'
 import { LiveV2Client } from './v2/live/index.js'
+import { PreRecordedV2Client } from './v2/prerecorded/index.js'
 import { SDK_VERSION } from './version.js'
 
 function normalizeGladiaHeaders(headers: Headers | [string, string][]): Headers {
@@ -65,6 +66,16 @@ const defaultOptions: InternalGladiaClientOptions = {
     maxConnections: 0,
   },
   wsTimeout: 10_000,
+  prerecordedTimeouts: {
+    transcribe: 7_200_000,
+    poll: 7_200_000,
+    createAndPoll: 7_200_000,
+    uploadFile: 300_000,
+    getFile: 300_000,
+    create: 30_000,
+    delete: 30_000,
+    get: 10_000,
+  },
 }
 
 /**
@@ -79,6 +90,26 @@ export class GladiaClient {
     }
     this.options = deepMergeObjects(defaultOptions, options)
   }
+
+  preRecordedV2(options?: GladiaClientOptions): PreRecordedV2Client {
+    if (options?.httpHeaders) {
+      options.httpHeaders = normalizeGladiaHeaders(options.httpHeaders)
+    }
+
+    const mergedOptions = deepMergeObjects(this.options, options)
+    if (mergedOptions.apiKey) {
+      mergedOptions.httpHeaders = deepMergeObjects(mergedOptions.httpHeaders, {
+        'x-gladia-key': mergedOptions.apiKey,
+      })
+    }
+    if (mergedOptions.httpHeaders['x-gladia-version'] !== gladiaVersion) {
+      mergedOptions.httpHeaders['x-gladia-version'] =
+        `${mergedOptions.httpHeaders['x-gladia-version'].trim()} ${gladiaVersion}`.trim()
+    }
+    assertValidOptions(mergedOptions)
+    return new PreRecordedV2Client(mergedOptions)
+  }
+  preRecorded: (options?: GladiaClientOptions) => PreRecordedV2Client = this.preRecordedV2
 
   liveV2(options?: GladiaClientOptions): LiveV2Client {
     if (options?.httpHeaders) {
@@ -98,4 +129,5 @@ export class GladiaClient {
     assertValidOptions(mergedOptions)
     return new LiveV2Client(mergedOptions)
   }
+  live: (options?: GladiaClientOptions) => LiveV2Client = this.liveV2
 }

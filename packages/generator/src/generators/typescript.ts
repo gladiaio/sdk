@@ -4,6 +4,15 @@ import type { ReferencedSchemaObject, SchemaOrReference } from '../types.ts'
 import { BaseGenerator } from './base.ts'
 
 export class TypeScriptGenerator extends BaseGenerator {
+  // Field overrides: force specific fields in specific types to be optional
+  // Format: 'TypeName.fieldName' -> true means force optional
+  // This is useful when API behavior doesn't match OpenAPI schema exactly
+  private fieldOverrides: Map<string, boolean> = new Map([
+    // PreRecordedResponse fields that should be optional despite schema
+    // These debug/metadata fields are not always returned by the API
+    ['PreRecordedV2Response.post_session_metadata', true],
+  ])
+
   override get sdkName(): string {
     return 'sdk-js'
   }
@@ -88,7 +97,11 @@ export class TypeScriptGenerator extends BaseGenerator {
 
     if (schema.properties) {
       for (const [propName, propSchemaOrRef] of Object.entries(schema.properties)) {
-        const isRequired = schema.required?.includes(propName) ?? false
+        // Check if field should be forced optional via overrides
+        const overrideKey = `${name}.${propName}`
+        const shouldForceOptional = this.fieldOverrides.get(overrideKey) === true
+
+        const isRequired = (schema.required?.includes(propName) ?? false) && !shouldForceOptional
         const optional = isRequired ? '' : '?'
         const isNullable = isReferencedSchemaObject(propSchemaOrRef)
           ? propSchemaOrRef.schema.nullable
