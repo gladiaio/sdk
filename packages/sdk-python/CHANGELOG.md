@@ -1,3 +1,9 @@
+# 1.0.0 (2026-03-26)
+
+### 🚀 Features
+
+- add pre-recorded to sdk
+
 ## 0.4.0 (2025-10-28)
 
 ### 🚀 Features
