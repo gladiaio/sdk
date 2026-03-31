@@ -72,8 +72,8 @@ const defaultOptions: InternalGladiaClientOptions = {
     createAndPoll: 7_200_000,
     uploadFile: 300_000,
     getFile: 300_000,
-    create: 30_000,
-    delete: 30_000,
+    create: 60_000,
+    delete: 60_000,
     get: 10_000,
   },
 }
