@@ -1,11 +1,10 @@
 # Gladia JavaScript SDK
 
-A TypeScript/JavaScript SDK for the Gladia API.
+A TypeScript/JavaScript SDK for the [Gladia](https://www.gladia.io/) API.
 
 ## Requirements
 
-For non-browser environment, you need either Node 20+ or Bun.  
-It may work on other runtimes but they are not supported / tested.
+For non-browser environment, you need either **Node.js 20+** or **Bun** .
 
 ## Installation
 
@@ -19,16 +18,13 @@ If you are using Node.js < 22, you also need to install the `ws` package:
 npm install ws
 ```
 
-On Node >= 22, Bun and browser, the native WebSocket client will be used.
-
 ## Usage
 
-To use the SDK, import `GladiaClient` and create a new instance of it.
+Import **`GladiaClient`** and create an instance.
 
-You have to give a valid `apiKey` to make requests.
-If the SDK is used in public code (on browser for example) and you don't want to give away your private api key, you can also change the default `apiUrl` to redirect calls to a proxy that will redirect to `https://api.gladia.io` and add the header `X-Gladia-Key`.
+Provide an API key with **`apiKey`** or the **`GLADIA_API_KEY`** environment variable. [Get your API key here](https://docs.gladia.io/chapters/introduction/getting-started) in under a minute.
 
-You can also configure `apiKey`, `apiUrl` and `region` through their respective environment variables: `GLADIA_API_KEY`, `GLADIA_API_URL` and `GLADIA_REGION`.
+You can also set **`GLADIA_API_URL`** and **`GLADIA_REGION`** (`eu-west` / `us-west`).
 
 ### Node.js / Browser (ESM)
 
@@ -50,7 +46,7 @@ const gladiaClient = new GladiaClient({
 })
 ```
 
-### Browser (Script Tag)
+### Browser (script tag)
 
 ```html
 <script src="https://unpkg.com/@gladiaio/sdk"></script>
@@ -62,13 +58,51 @@ const gladiaClient = new GladiaClient({
 </script>
 ```
 
-## Live V2
+## Pre-recorded transcription
 
-### Usage
+**`transcribe()`** accepts a file path (Node), **`http(s)` URL**, **`File`**, or **`Blob`**. It uploads when needed, then polls until the job completes.
+
+```typescript
+import { GladiaClient } from '@gladiaio/sdk'
+import 'dotenv/config'
+
+const gladiaClient = new GladiaClient()
+const audioPath = '../data/online-meeting-example.mp4'
+
+const result = await gladiaClient.preRecorded().transcribe(audioPath, {
+  language_config: { languages: ['en'] },
+})
+
+console.log(result.result?.transcription?.full_transcript ?? '')
+```
+
+See all [supported languages here](https://docs.gladia.io/chapters/language/supported-languages) !
+
+Pass the **options** argument to enable features from **[Audio intelligence](https://docs.gladia.io/chapters/pre-recorded-stt/audio-intelligence)** such as diarization, translation, PII redaction, and much more.
+
+### Async pre-recorded
+
+If your runtime has no top-level `await`, wrap calls in an **`async`** function:
+
+```typescript
+async function main() {
+  const gladiaClient = new GladiaClient()
+  const result = await gladiaClient.preRecorded().transcribe('./audio.mp3')
+  console.log(result.result?.transcription?.full_transcript ?? '')
+}
+
+main().catch(console.error)
+```
+
+## Live transcription
 
 ```javascript
-// Create session
 const liveSession = gladiaClient.liveV2().startSession({
+  model: 'solaria-1',
+  encoding: 'wav/pcm',
+  sample_rate: 16000,
+  bit_depth: 16,
+  channels: 1,
   language_config: {
     languages: ['en'],
   },
@@ -77,7 +111,6 @@ const liveSession = gladiaClient.liveV2().startSession({
   },
 })
 
-// Add listeners
 liveSession.on('message', (message) => {
   if (message.type === 'transcript') {
     console.log(`${message.data.is_final ? 'F' : 'P'} | ${message.data.utterance.text.trim()}`)
@@ -96,13 +129,49 @@ liveSession.once('ended', () => {
   console.log(`Session ${liveSession.sessionId} ended`)
 })
 
-// Send audio
 liveSession.sendAudio(/* <audio_chunk> */)
-// ...
-liveSession.sendAudio(/* <audio_chunk> */)
-
-// Stop the recording when all audio have been sent.
-// Remaining audio will be processed and after post-processing,
-// the session is ended.
 liveSession.stopRecording()
 ```
+
+See all the [supported languages here](https://docs.gladia.io/chapters/language/supported-languages) !
+
+Pass the **options** argument to enable features from **[Audio intelligence](https://docs.gladia.io/chapters/pre-recorded-stt/audio-intelligence)** such as diarization, translation, PII redaction, and much more.
+
+### Waiting for the session to finish
+
+To **`await`** shutdown after **`stopRecording()`**, wait on the **`ended`** event:
+
+```typescript
+import { GladiaClient } from '@gladiaio/sdk'
+
+async function runLive() {
+  const gladiaClient = new GladiaClient({ apiKey: 'your-api-key' })
+  const liveSession = gladiaClient.liveV2().startSession({
+    language_config: { languages: ['en'] },
+  })
+
+  const ended = new Promise<void>((resolve) => {
+    liveSession.once('ended', () => resolve())
+  })
+
+  liveSession.stopRecording()
+  await ended
+}
+
+runLive().catch(console.error)
+```
+
+When you need the session id as soon as the backend has created the session:
+
+```typescript
+const sessionId = await liveSession.getSessionId()
+```
+
+## Documentation
+
+- [Pre-recorded quickstart](https://docs.gladia.io/chapters/pre-recorded-stt/quickstart)
+- [Live quickstart](https://docs.gladia.io/chapters/live-stt/quickstart)
+
+## License
+
+MIT
