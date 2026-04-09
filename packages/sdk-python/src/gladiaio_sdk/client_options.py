@@ -26,8 +26,8 @@ class PreRecordedV2Timeouts:
   upload_file: float = 300
   get_file: float = 300
 
-  create: float = 30
-  delete: float = 30
+  create: float = 60
+  delete: float = 60
 
   get: float = 10
 
