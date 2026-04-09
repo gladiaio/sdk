@@ -55,7 +55,7 @@ print(transcription.result.transcription.full_transcript)
 
 See all the [supported languages](https://docs.gladia.io/chapters/language/supported-languages) here !
 
-Pass a **options** as second argument to enable all the features from **[Audio intelligence](https://docs.gladia.io/chapters/pre-recorded-stt/audio-intelligence)** — diarization, translation, PII redaction, and more.
+Pass the **options** as second argument to enable all the features from **[Audio intelligence](https://docs.gladia.io/chapters/pre-recorded-stt/audio-intelligence)** — diarization, translation, PII redaction, and more.
 
 ### Async pre-recorded
 

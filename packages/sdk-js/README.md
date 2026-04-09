@@ -135,7 +135,7 @@ liveSession.stopRecording()
 
 See all the [supported languages here](https://docs.gladia.io/chapters/language/supported-languages) !
 
-Pass the **options** argument to enable features from **[Audio intelligence](https://docs.gladia.io/chapters/pre-recorded-stt/audio-intelligence)** such as diarization, translation, PII redaction, and much more.
+Pass the **options** argument to enable features from **[Audio intelligence](https://docs.gladia.io/chapters/live-stt/audio-intelligence)** such as diarization, translation, PII redaction, and much more.
 
 ### Waiting for the session to finish
 
