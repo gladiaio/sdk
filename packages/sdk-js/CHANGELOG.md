@@ -1,3 +1,9 @@
+## 1.0.1 (2026-04-09)
+
+### 🩹 Fixes
+
+- added readme files and updated timeouts
+
 # 1.0.0 (2026-03-26)
 
 ### 🚀 Features
