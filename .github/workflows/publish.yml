@@ -68,3 +68,5 @@ jobs:
           bun run publish -- \
             --projects "$PROJECT" \
             $([ "${{ github.event.inputs['dry-run'] }}" = "true" ] && echo --dryRun || true)
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
