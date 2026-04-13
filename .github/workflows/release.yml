@@ -58,7 +58,7 @@ jobs:
         id: generate-token-sdk-publisher
         uses: actions/create-github-app-token@v3
         with:
-          app-id: "2089066"
+          client-id: "2089066"
           private-key: ${{ steps.secrets.outputs.SDK_PUBLISHER_PRIVATE_KEY }}
           owner: "gladiaio"
           repositories: "sdk"
