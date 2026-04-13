@@ -85,6 +85,7 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
+      - run: npm install -g npm
       - run: bun install
 
       - name: Install uv
