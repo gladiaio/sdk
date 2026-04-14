@@ -4,37 +4,37 @@ on:
   workflow_dispatch:
     inputs:
       project:
-        description: 'Target project to release'
+        description: "Target project to release"
         type: choice
         required: false
         options:
-          - ''
+          - ""
           - sdk-js
           - sdk-python
-        default: ''
+        default: ""
       version:
-        description: 'Version bump type'
+        description: "Version bump type"
         type: choice
         required: false
         options:
-          - ''
+          - ""
           - major
           - minor
           - patch
-        default: ''
+        default: ""
       first-release:
-        description: 'Is this the first release?'
+        description: "Is this the first release?"
         type: boolean
         required: false
         default: false
       dry-run:
-        description: 'Dry run (no changes pushed)'
+        description: "Dry run (no changes pushed)"
         type: boolean
         required: false
         default: false
 
 concurrency:
-  group: '${{ github.workflow }}'
+  group: "${{ github.workflow }}"
   cancel-in-progress: false
 
 jobs:
@@ -58,10 +58,10 @@ jobs:
         id: generate-token-sdk-publisher
         uses: actions/create-github-app-token@v3
         with:
-          app-id: '2089066'
+          client-id: "2089066"
           private-key: ${{ steps.secrets.outputs.SDK_PUBLISHER_PRIVATE_KEY }}
-          owner: 'gladiaio'
-          repositories: 'sdk'
+          owner: "gladiaio"
+          repositories: "sdk"
 
       - name: Get GitHub App User ID
         id: get-user-id

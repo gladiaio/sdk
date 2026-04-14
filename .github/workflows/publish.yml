@@ -4,20 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       project:
-        description: 'Target project to publish'
+        description: "Target project to publish"
         type: choice
         required: true
         options:
           - sdk-js
           - sdk-python
       dry-run:
-        description: 'Dry run (no publish)'
+        description: "Dry run (no publish)"
         type: boolean
         required: false
         default: false
   push:
     tags:
-      - 'sdk-*@*'
+      - "sdk-*@*"
 
 jobs:
   publish:
@@ -68,3 +68,5 @@ jobs:
           bun run publish -- \
             --projects "$PROJECT" \
             $([ "${{ github.event.inputs['dry-run'] }}" = "true" ] && echo --dryRun || true)
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
