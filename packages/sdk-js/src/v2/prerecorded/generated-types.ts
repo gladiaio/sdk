@@ -313,6 +313,8 @@ export interface PreRecordedV2CustomSpellingConfig {
 export interface PreRecordedV2AudioToLlmListConfig {
   /** The list of prompts applied on the audio transcription */
   prompts: Array<Array<any>>
+  /** The model to use for the prompt execution. You can find the list of supported models [here](https://openrouter.ai/models). */
+  model?: string
 }
 
 export type PreRecordedV2PiiRedactionEntityType =
@@ -401,9 +403,9 @@ export type PreRecordedV2PiiRedactionEntityType =
 
 export interface PreRecordedV2PiiRedactionConfig {
   /** The entity types to redact */
-  entity_types: PreRecordedV2PiiRedactionEntityType
+  entity_types?: PreRecordedV2PiiRedactionEntityType
   /** The type of processed text to return (marker or mask) */
-  processed_text_type: 'MARKER' | 'MASK'
+  processed_text_type?: 'MARKER' | 'MASK'
 }
 
 export interface PreRecordedV2LanguageConfig {
@@ -615,6 +617,13 @@ export interface PreRecordedV2Moderation {
   results: string | null
 }
 
+export interface PreRecordedV2NamedEntityRecognitionResult {
+  entity_type: string
+  text: string
+  start: number
+  end: number
+}
+
 export interface PreRecordedV2NamedEntityRecognition {
   /** The audio intelligence model succeeded to get a valid output */
   success: boolean
@@ -625,7 +634,7 @@ export interface PreRecordedV2NamedEntityRecognition {
   /** `null` if `success` is `true`. Contains the error details of the failed model */
   error: PreRecordedV2AddonError | null
   /** If `named_entity_recognition` has been enabled, the detected entities. */
-  entity: string
+  results: Array<PreRecordedV2NamedEntityRecognitionResult> | null
 }
 
 export interface PreRecordedV2NamesConsistency {
@@ -637,7 +646,7 @@ export interface PreRecordedV2NamesConsistency {
   exec_time: number
   /** `null` if `success` is `true`. Contains the error details of the failed model */
   error: PreRecordedV2AddonError | null
-  /** If `name_consistency` has been enabled, Gladia will improve the consistency of the names across the transcription */
+  /** Deprecated, If `name_consistency` has been enabled, Gladia will improve the consistency of the names across the transcription */
   results: string
 }
 
