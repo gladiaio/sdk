@@ -175,6 +175,35 @@ async def test_transcribe_with_options_dict():
 
 
 @pytest.mark.asyncio
+async def test_transcribe_named_entity_recognition_detects_sasha_as_given_name():
+  """Named entity recognition: anna-and-sasha audio should yield Sasha as NAME_GIVEN."""
+  audio_path = _data_path("anna-and-sasha-16000.wav")
+  client = GladiaClient().pre_recorded_v2_async()
+  options = PreRecordedV2TranscriptionOptions(
+    language_config=PreRecordedV2LanguageConfig(languages=["en"]),
+    named_entity_recognition=True,
+  )
+  result = await client.transcribe(audio_url=audio_path, options=options, timeout=POLL_TIMEOUT_S)
+  assert result.status == "done"
+  assert result.result is not None
+  transcription = result.result.transcription
+  assert transcription is not None
+  full = (transcription.full_transcript or "").lower()
+  assert "sasha" in full
+  ner = result.result.named_entity_recognition
+  assert ner is not None
+  assert ner.success, f"NER addon failed: {ner.error}"
+  raw_results = ner.results or []
+  sasha_as_given = [
+    r for r in raw_results if "sasha" in r.text.lower() and r.entity_type.upper() == "NAME_GIVEN"
+  ]
+  assert sasha_as_given, (
+    "expected a NAME_GIVEN entity whose text includes Sasha; "
+    f"got {[(r.entity_type, r.text) for r in raw_results]}"
+  )
+
+
+@pytest.mark.asyncio
 async def test_transcribe_url():
   """Test async pre-recorded transcribe with URL (direct create + poll, no upload) returns done."""
   client = GladiaClient().pre_recorded_v2_async()
