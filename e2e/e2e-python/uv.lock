@@ -84,7 +84,7 @@ wheels = [
 
 [[package]]
 name = "gladiaio-sdk"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "../../packages/sdk-python" }
 dependencies = [
     { name = "dataclasses-json" },

@@ -1,3 +1,9 @@
+## 1.0.2 (2026-04-16)
+
+### 🩹 Fixes
+
+- **prerecorded/live:** align named_entity_recognition with API response shape
+
 ## 1.0.1 (2026-04-09)
 
 ### 🩹 Fixes
