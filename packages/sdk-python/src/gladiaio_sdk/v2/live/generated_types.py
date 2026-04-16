@@ -616,10 +616,10 @@ class LiveV2NamedEntityRecognition(BaseDataClass):
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # If `named_entity_recognition` has been enabled, the detected entities.
-  entity: str
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: LiveV2AddonError | None = None
+  # If `named_entity_recognition` has been enabled, the detected entities.
+  results: list[LiveV2NamedEntityRecognitionResult] | None = None
 
 
 @dataclass(frozen=True, slots=True)

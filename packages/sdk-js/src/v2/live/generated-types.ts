@@ -557,7 +557,7 @@ export interface LiveV2NamedEntityRecognition {
   /** `null` if `success` is `true`. Contains the error details of the failed model */
   error: LiveV2AddonError | null
   /** If `named_entity_recognition` has been enabled, the detected entities. */
-  entity: string
+  results: Array<LiveV2NamedEntityRecognitionResult> | null
 }
 
 export interface LiveV2SentimentAnalysis {

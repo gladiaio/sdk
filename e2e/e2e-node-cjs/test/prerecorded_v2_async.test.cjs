@@ -168,6 +168,34 @@ test('transcribe: file + options as plain object (e.g. sentiment_analysis) → r
   assert(result.result.transcription != null)
 })
 
+test('transcribe: named entity recognition detects Sasha as NAME_GIVEN (anna-and-sasha audio)', async () => {
+  const client = new GladiaClient().preRecordedV2()
+  const options = {
+    language_config: { languages: ['en'] },
+    named_entity_recognition: true,
+  }
+  const audioPathSasha = getDataFile('anna-and-sasha-16000.wav')
+  const result = await client.transcribe(audioPathSasha, options, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  assert.strictEqual(result.status, 'done')
+  assert(result.result != null)
+  const full = (result.result.transcription?.full_transcript || '').toLowerCase()
+  assert(full.includes('sasha'), 'expected transcript to contain sasha')
+  const ner = result.result.named_entity_recognition
+  assert(ner != null)
+  assert.strictEqual(ner.success, true, ner.error ? JSON.stringify(ner.error) : '')
+  const rawResults = ner.results ?? []
+  const sashaAsGivenName = rawResults.filter(
+    (r) => r.text.toLowerCase().includes('sasha') && r.entity_type.toUpperCase() === 'NAME_GIVEN'
+  )
+  assert(
+    sashaAsGivenName.length > 0,
+    `expected NAME_GIVEN entity for Sasha, got ${JSON.stringify(rawResults.map((r) => [r.entity_type, r.text]))}`
+  )
+})
+
 test('transcribe: URL → direct create + poll (no upload) returns done with non-empty transcript', async () => {
   const client = new GladiaClient().preRecordedV2()
   const options = {

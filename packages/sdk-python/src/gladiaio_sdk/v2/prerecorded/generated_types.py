@@ -351,6 +351,9 @@ class PreRecordedV2CustomSpellingConfig(BaseDataClass):
 class PreRecordedV2AudioToLlmListConfig(BaseDataClass):
   # The list of prompts applied on the audio transcription
   prompts: list[list[Any]]
+  # The model to use for the prompt execution. You can find the list of supported models
+  # [here](https://openrouter.ai/models).
+  model: str | None = None
 
 
 PreRecordedV2PiiRedactionEntityType = Literal[
@@ -442,9 +445,9 @@ PreRecordedV2PiiRedactionEntityType = Literal[
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2PiiRedactionConfig(BaseDataClass):
   # The entity types to redact
-  entity_types: PreRecordedV2PiiRedactionEntityType
+  entity_types: PreRecordedV2PiiRedactionEntityType | None = None
   # The type of processed text to return (marker or mask)
-  processed_text_type: Literal["MARKER", "MASK"]
+  processed_text_type: Literal["MARKER", "MASK"] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -677,6 +680,14 @@ class PreRecordedV2Moderation(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
+class PreRecordedV2NamedEntityRecognitionResult(BaseDataClass):
+  entity_type: str
+  text: str
+  start: float
+  end: float
+
+
+@dataclass(frozen=True, slots=True)
 class PreRecordedV2NamedEntityRecognition(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -684,10 +695,10 @@ class PreRecordedV2NamedEntityRecognition(BaseDataClass):
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # If `named_entity_recognition` has been enabled, the detected entities.
-  entity: str
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: PreRecordedV2AddonError | None = None
+  # If `named_entity_recognition` has been enabled, the detected entities.
+  results: list[PreRecordedV2NamedEntityRecognitionResult] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -698,8 +709,8 @@ class PreRecordedV2NamesConsistency(BaseDataClass):
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # If `name_consistency` has been enabled, Gladia will improve the consistency of the names
-  # across the transcription
+  # Deprecated, If `name_consistency` has been enabled, Gladia will improve the consistency of the
+  # names across the transcription
   results: str
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: PreRecordedV2AddonError | None = None
