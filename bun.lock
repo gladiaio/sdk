@@ -84,7 +84,7 @@
     },
     "packages/sdk-js": {
       "name": "@gladiaio/sdk",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "devDependencies": {
         "@tsconfig/node20": "^20.1.6",
         "@types/node": "^20.19.19",
