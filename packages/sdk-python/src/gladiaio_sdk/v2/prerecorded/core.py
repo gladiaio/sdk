@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any, BinaryIO, Protocol, cast
 from urllib.parse import urlparse
 
+from gladiaio_sdk.v2.core import V2JobCore
+
 from .generated_types import (
   BaseDataClass,
   PreRecordedV2AudioToLlmListConfig,
@@ -108,11 +110,15 @@ class HttpClientProtocol(Protocol):
   def delete(self, url: str, **kwargs: Any) -> Any: ...
 
 
-class PreRecordedV2Core:
+class PreRecordedV2Core(V2JobCore):
   """Core business logic shared between sync and async pre-recorded clients.
 
-  This class contains all the pure business logic without any I/O operations.
+  Extends :class:`V2JobCore` with pre-recorded-specific helpers (file upload,
+  create body preparation).
   """
+
+  def __init__(self) -> None:
+    super().__init__(base_path="/v2/pre-recorded", kind="Pre-recorded")
 
   @staticmethod
   def is_url(path: str) -> bool:
@@ -183,89 +189,3 @@ class PreRecordedV2Core:
     if isinstance(options, dict):
       return options
     return options.to_dict()
-
-  @staticmethod
-  def build_job_endpoint(job_id: str) -> str:
-    """Build the endpoint URL for a specific job.
-
-    Args:
-      job_id: The UUID of the transcription job.
-
-    Returns:
-      The endpoint path.
-    """
-    return f"/v2/pre-recorded/{job_id}"
-
-  @staticmethod
-  def build_job_file_endpoint(job_id: str) -> str:
-    """Build the endpoint URL for downloading job audio file.
-
-    Args:
-      job_id: The UUID of the transcription job.
-
-    Returns:
-      The endpoint path.
-    """
-    return f"/v2/pre-recorded/{job_id}/file"
-
-  @staticmethod
-  def is_job_complete(status: str) -> bool:
-    """Check if a job has completed (successfully or with error).
-
-    Args:
-      status: The job status string.
-
-    Returns:
-      True if job is in terminal state.
-    """
-    return status in ("done", "error")
-
-  @staticmethod
-  def is_job_successful(status: str) -> bool:
-    """Check if a job completed successfully.
-
-    Args:
-      status: The job status string.
-
-    Returns:
-      True if job is done.
-    """
-    return status == "done"
-
-  @staticmethod
-  def is_job_failed(status: str) -> bool:
-    """Check if a job failed.
-
-    Args:
-      status: The job status string.
-
-    Returns:
-      True if job errored.
-    """
-    return status == "error"
-
-  @staticmethod
-  def create_job_error_message(job_id: str, error_code: Any) -> str:
-    """Create an error message for a failed job.
-
-    Args:
-      job_id: The UUID of the transcription job.
-      error_code: The error code from the job response.
-
-    Returns:
-      Formatted error message.
-    """
-    return f"Pre-recorded job {job_id} failed with error code: {error_code}"
-
-  @staticmethod
-  def create_timeout_error_message(job_id: str, timeout: float) -> str:
-    """Create an error message for a timeout.
-
-    Args:
-      job_id: The UUID of the transcription job.
-      timeout: The timeout duration in seconds.
-
-    Returns:
-      Formatted timeout message.
-    """
-    return f"Pre-recorded job {job_id} did not complete within {timeout}s"

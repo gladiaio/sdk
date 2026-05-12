@@ -1,7 +1,7 @@
 import { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient } from '../../network/wsClient.js'
-import type { LiveV2InitRequest } from './generated-types.js'
+import type { LiveV2InitRequest, LiveV2Response } from './generated-types.js'
 import { LiveV2Session } from './session.js'
 
 /**
@@ -37,5 +37,40 @@ export class LiveV2Client {
       httpClient: this.httpClient,
       webSocketClient: this.webSocketClient,
     })
+  }
+
+  /**
+   * Get a live job by ID.
+   *
+   * @param jobId - The UUID of the live job.
+   * @returns The full job response including status and result if done.
+   */
+  async get(jobId: string): Promise<LiveV2Response> {
+    return this.httpClient.get<LiveV2Response>(`/v2/live/${jobId}`)
+  }
+
+  /**
+   * Delete a live job.
+   *
+   * @param jobId - The UUID of the live job to delete.
+   * @returns `true` if the job was deleted successfully (HTTP 202), `false` if the server responded with another 2xx status.
+   * @throws When the server responds with an error HTTP status (e.g. 404).
+   */
+  async delete(jobId: string): Promise<boolean> {
+    const response = await this.httpClient.delete<Response>(`/v2/live/${jobId}`, {
+      rawResponse: true,
+    })
+    return response.status === 202
+  }
+
+  /**
+   * Download the audio file for a live job.
+   *
+   * @param jobId - The UUID of the live job.
+   * @returns The raw audio file as an `ArrayBuffer`.
+   */
+  async getFile(jobId: string): Promise<ArrayBuffer> {
+    const response = await this.httpClient.get<Response>(`/v2/live/${jobId}/file`)
+    return response.arrayBuffer()
   }
 }
