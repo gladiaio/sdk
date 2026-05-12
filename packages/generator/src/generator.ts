@@ -45,6 +45,8 @@ export class Generator {
   private preProcessSchemaForLiveV2(openapi: OpenAPIObject): LiveV2Schemas {
     const initRequestRef = `#/components/schemas/StreamingRequest`
     const initResponseRef = `#/components/schemas/InitStreamingResponse`
+    const getResponseRef = `#/components/schemas/StreamingResponse`
+    const listResponseRef = `#/components/schemas/ListStreamingResponse`
     const wsMessagesRef: string[] = []
     const callbackMessagesRef: string[] = []
     const webhookMessagesRef: string[] = []
@@ -52,6 +54,8 @@ export class Generator {
 
     collectAllReferencedObject({ $ref: initRequestRef }, openapi, referencedTypes)
     collectAllReferencedObject({ $ref: initResponseRef }, openapi, referencedTypes)
+    collectAllReferencedObject({ $ref: getResponseRef }, openapi, referencedTypes)
+    collectAllReferencedObject({ $ref: listResponseRef }, openapi, referencedTypes)
 
     for (const key of Object.keys(openapi.components?.schemas ?? {})) {
       if (key.match(/^CallbackLive.*Message$/)) {
@@ -76,6 +80,10 @@ export class Generator {
           acc.initRequest = refObject
         } else if (ref === initResponseRef) {
           acc.initResponse = refObject
+        } else if (ref === getResponseRef) {
+          acc.getResponse = refObject
+        } else if (ref === listResponseRef) {
+          acc.listResponse = refObject
         } else if (wsMessagesRef.includes(ref)) {
           acc.wsMessages.push(refObject)
         } else if (callbackMessagesRef.includes(ref)) {
@@ -94,6 +102,8 @@ export class Generator {
       {
         initRequest: referencedTypes.get(initRequestRef)!,
         initResponse: referencedTypes.get(initResponseRef)!,
+        getResponse: referencedTypes.get(getResponseRef)!,
+        listResponse: referencedTypes.get(listResponseRef)!,
         wsMessages: [],
         callbackMessages: [],
         webhookMessages: [],
@@ -116,8 +126,15 @@ export class Generator {
     const initRequestRef = `#/components/schemas/InitTranscriptionRequest`
     const initResponseRef = `#/components/schemas/InitPreRecordedTranscriptionResponse`
     const resultResponseRef = `#/components/schemas/PreRecordedResponse`
+    const listResponseRef = `#/components/schemas/ListPreRecordedResponse`
 
-    const rootRefs = [uploadResponseRef, initRequestRef, initResponseRef, resultResponseRef]
+    const rootRefs = [
+      uploadResponseRef,
+      initRequestRef,
+      initResponseRef,
+      resultResponseRef,
+      listResponseRef,
+    ]
     const referencedTypes: Map<string, ReferencedSchemaObject> = new Map()
 
     for (const ref of rootRefs) {
@@ -151,6 +168,8 @@ export class Generator {
           acc.initResponse = refObject
         } else if (ref === resultResponseRef) {
           acc.resultResponse = refObject
+        } else if (ref === listResponseRef) {
+          acc.listResponse = refObject
         } else {
           acc.referencedTypes.push(refObject)
         }
@@ -165,6 +184,7 @@ export class Generator {
         initRequest: referencedTypes.get(initRequestRef)!,
         initResponse: referencedTypes.get(initResponseRef)!,
         resultResponse: referencedTypes.get(resultResponseRef)!,
+        listResponse: referencedTypes.get(listResponseRef)!,
         referencedTypes: [],
       }
     )

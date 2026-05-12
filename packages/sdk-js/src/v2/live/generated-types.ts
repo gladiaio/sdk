@@ -350,105 +350,53 @@ export interface LiveV2CallbackConfig {
   receive_lifecycle_events?: boolean
 }
 
-export interface LiveV2Error {
-  /** The error message */
-  message: string
+export interface LiveV2FileResponse {
+  /** The file id */
+  id: string
+  /** The name of the uploaded file */
+  filename: string | null
+  /** The link used to download the file if audio_url was used */
+  source: string | null
+  /** Duration of the audio file */
+  audio_duration: number | null
+  /** Number of channels in the audio file */
+  number_of_channels: number | null
 }
 
-export interface LiveV2AudioChunkAckData {
-  /** Range in bytes length of the audio chunk (relative to the whole session) */
-  byte_range: Array<number>
-  /** Range in seconds of the audio chunk (relative to the whole session) */
-  time_range: Array<number>
-}
+export interface LiveV2RequestParamsResponse {
+  /** The encoding format of the audio stream. Supported formats: 
+- PCM: 8, 16, 24, and 32 bits 
+- A-law: 8 bits 
+- μ-law: 8 bits 
 
-export interface LiveV2EndRecordingMessageData {
-  /** Total audio duration in seconds */
-  recording_duration: number
-}
-
-export interface LiveV2Word {
-  /** Spoken word */
-  word: string
-  /** Start timestamps in seconds of the spoken word */
-  start: number
-  /** End timestamps in seconds of the spoken word */
-  end: number
-  /** Confidence on the transcribed word (1 = 100% confident) */
-  confidence: number
-}
-
-export interface LiveV2Utterance {
-  /** Start timestamp in seconds of this utterance */
-  start: number
-  /** End timestamp in seconds of this utterance */
-  end: number
-  /** Confidence on the transcribed utterance (1 = 100% confident) */
-  confidence: number
-  /** Audio channel of where this utterance has been transcribed from */
-  channel: number
-  /** If `diarization` enabled, speaker identification number */
-  speaker?: number
-  /** List of words of the utterance, split by timestamp */
-  words: Array<LiveV2Word>
-  /** Transcription for this utterance */
-  text: string
-  /** Spoken language in this utterance */
-  language: LiveV2TranscriptionLanguageCode
-}
-
-export interface LiveV2TranslationData {
-  /** Id of the utterance used for this result */
-  utterance_id: string
-  /** The transcribed utterance */
-  utterance: LiveV2Utterance
-  /** The original language in `iso639-1` or `iso639-2` format depending on the language */
-  original_language: LiveV2TranscriptionLanguageCode
-  /** The target language in `iso639-1` or `iso639-2` format depending on the language */
-  target_language: LiveV2TranslationLanguageCode
-  /** The translated utterance */
-  translated_utterance: LiveV2Utterance
-}
-
-export interface LiveV2NamedEntityRecognitionResult {
-  entity_type: string
-  text: string
-  start: number
-  end: number
-}
-
-export interface LiveV2NamedEntityRecognitionData {
-  /** Id of the utterance used for this result */
-  utterance_id: string
-  /** The transcribed utterance */
-  utterance: LiveV2Utterance
-  /** The NER results */
-  results: Array<LiveV2NamedEntityRecognitionResult>
-}
-
-export interface LiveV2ChapterizationSentence {
-  sentence: string
-  start: number
-  end: number
-  words: Array<LiveV2Word>
-}
-
-export interface LiveV2PostChapterizationResult {
-  abstractive_summary?: string
-  extractive_summary?: string
-  summary?: string
-  headline: string
-  gist: string
-  keywords: Array<string>
-  start: number
-  end: number
-  sentences: Array<LiveV2ChapterizationSentence>
-  text: string
-}
-
-export interface LiveV2PostChapterizationMessageData {
-  /** The chapters */
-  results: Array<LiveV2PostChapterizationResult>
+Note: No need to add WAV headers to raw audio as the API supports both formats. */
+  encoding?: LiveV2Encoding
+  /** The bit depth of the audio stream */
+  bit_depth?: LiveV2BitDepth
+  /** The sample rate of the audio stream */
+  sample_rate?: LiveV2SampleRate
+  /** The number of channels of the audio stream */
+  channels?: number
+  /** The model used to process the audio. "solaria-1" is used by default. */
+  model?: LiveV2Model
+  /** The endpointing duration in seconds. Endpointing is the duration of silence which will cause an utterance to be considered as finished */
+  endpointing?: number
+  /** The maximum duration in seconds without endpointing. If endpointing is not detected after this duration, current utterance will be considered as finished */
+  maximum_duration_without_endpointing?: number
+  /** Specify the language configuration */
+  language_config?: LiveV2LanguageConfig
+  /** Specify the pre-processing configuration */
+  pre_processing?: LiveV2PreProcessingConfig
+  /** Specify the realtime processing configuration */
+  realtime_processing?: LiveV2RealtimeProcessingConfig
+  /** Specify the post-processing configuration */
+  post_processing?: LiveV2PostProcessingConfig
+  /** Specify the websocket messages configuration */
+  messages_config?: LiveV2MessagesConfig
+  /** If true, messages will be sent to configured url. */
+  callback?: boolean
+  /** Specify the callback configuration */
+  callback_config?: LiveV2CallbackConfig
 }
 
 export interface LiveV2TranscriptionMetadata {
@@ -491,6 +439,36 @@ export interface LiveV2Subtitle {
   format: LiveV2SubtitlesFormat
   /** Transcription on the asked subtitle format */
   subtitles: string
+}
+
+export interface LiveV2Word {
+  /** Spoken word */
+  word: string
+  /** Start timestamps in seconds of the spoken word */
+  start: number
+  /** End timestamps in seconds of the spoken word */
+  end: number
+  /** Confidence on the transcribed word (1 = 100% confident) */
+  confidence: number
+}
+
+export interface LiveV2Utterance {
+  /** Start timestamp in seconds of this utterance */
+  start: number
+  /** End timestamp in seconds of this utterance */
+  end: number
+  /** Confidence on the transcribed utterance (1 = 100% confident) */
+  confidence: number
+  /** Audio channel of where this utterance has been transcribed from */
+  channel: number
+  /** If `diarization` enabled, speaker identification number */
+  speaker?: number
+  /** List of words of the utterance, split by timestamp */
+  words: Array<LiveV2Word>
+  /** Transcription for this utterance */
+  text: string
+  /** Spoken language in this utterance */
+  language: LiveV2TranscriptionLanguageCode
 }
 
 export interface LiveV2Transcription {
@@ -547,6 +525,13 @@ export interface LiveV2Summarization {
   results: string | null
 }
 
+export interface LiveV2NamedEntityRecognitionResult {
+  entity_type: string
+  text: string
+  start: number
+  end: number
+}
+
 export interface LiveV2NamedEntityRecognition {
   /** The audio intelligence model succeeded to get a valid output */
   success: boolean
@@ -584,6 +569,89 @@ export interface LiveV2Chapterization {
   error: LiveV2AddonError | null
   /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
   results: Record<string, any>
+}
+
+export interface LiveV2TranscriptionResultWithMessages {
+  /** Metadata for the given transcription & audio file */
+  metadata: LiveV2TranscriptionMetadata
+  /** Transcription of the audio speech */
+  transcription?: LiveV2Transcription
+  /** If `translation` has been enabled, translation of the audio speech transcription */
+  translation?: LiveV2Translation
+  /** If `summarization` has been enabled, summarization of the audio speech transcription */
+  summarization?: LiveV2Summarization
+  /** If `named_entity_recognition` has been enabled, the detected entities */
+  named_entity_recognition?: LiveV2NamedEntityRecognition
+  /** If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription */
+  sentiment_analysis?: LiveV2SentimentAnalysis
+  /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
+  chapterization?: LiveV2Chapterization
+  /** Real-Time messages sent by the server during the live transcription */
+  messages?: Array<string>
+}
+
+export interface LiveV2Error {
+  /** The error message */
+  message: string
+}
+
+export interface LiveV2AudioChunkAckData {
+  /** Range in bytes length of the audio chunk (relative to the whole session) */
+  byte_range: Array<number>
+  /** Range in seconds of the audio chunk (relative to the whole session) */
+  time_range: Array<number>
+}
+
+export interface LiveV2EndRecordingMessageData {
+  /** Total audio duration in seconds */
+  recording_duration: number
+}
+
+export interface LiveV2TranslationData {
+  /** Id of the utterance used for this result */
+  utterance_id: string
+  /** The transcribed utterance */
+  utterance: LiveV2Utterance
+  /** The original language in `iso639-1` or `iso639-2` format depending on the language */
+  original_language: LiveV2TranscriptionLanguageCode
+  /** The target language in `iso639-1` or `iso639-2` format depending on the language */
+  target_language: LiveV2TranslationLanguageCode
+  /** The translated utterance */
+  translated_utterance: LiveV2Utterance
+}
+
+export interface LiveV2NamedEntityRecognitionData {
+  /** Id of the utterance used for this result */
+  utterance_id: string
+  /** The transcribed utterance */
+  utterance: LiveV2Utterance
+  /** The NER results */
+  results: Array<LiveV2NamedEntityRecognitionResult>
+}
+
+export interface LiveV2ChapterizationSentence {
+  sentence: string
+  start: number
+  end: number
+  words: Array<LiveV2Word>
+}
+
+export interface LiveV2PostChapterizationResult {
+  abstractive_summary?: string
+  extractive_summary?: string
+  summary?: string
+  headline: string
+  gist: string
+  keywords: Array<string>
+  start: number
+  end: number
+  sentences: Array<LiveV2ChapterizationSentence>
+  text: string
+}
+
+export interface LiveV2PostChapterizationMessageData {
+  /** The chapters */
+  results: Array<LiveV2PostChapterizationResult>
 }
 
 export interface LiveV2TranscriptionResult {
@@ -700,6 +768,46 @@ export interface LiveV2InitResponse {
   created_at: string
   /** The websocket url to connect to for sending audio data. The url will contain the temporary token to authenticate the session. */
   url: string
+}
+
+// Job Management Types
+export interface LiveV2Response {
+  /** Id of the job */
+  id: string
+  /** Debug id */
+  request_id: string
+  /** API version */
+  version: number
+  /** "queued": the job has been queued. "processing": the job is being processed. "done": the job has been processed and the result is available. "error": an error occurred during the job's processing. */
+  status: 'queued' | 'processing' | 'done' | 'error'
+  /** Creation date */
+  created_at: string
+  /** Completion date when status is "done" or "error" */
+  completed_at?: string | null
+  /** Custom metadata given in the initial request */
+  custom_metadata?: Record<string, any>
+  /** HTTP status code of the error if status is "error" */
+  error_code?: number | null
+  /** For debugging purposes, send data that could help to identify issues */
+  post_session_metadata?: object
+  kind: 'live'
+  /** The file data you uploaded. Can be null if status is "error" */
+  file?: LiveV2FileResponse | null
+  /** Parameters used for this live transcription. Can be null if status is "error" */
+  request_params?: LiveV2RequestParamsResponse | null
+  /** Live transcription's result when status is "done" */
+  result?: LiveV2TranscriptionResultWithMessages | null
+}
+
+export interface LiveV2ListResponse {
+  /** URL to fetch the first page */
+  first: string
+  /** URL to fetch the current page */
+  current: string
+  /** URL to fetch the next page */
+  next: string | null
+  /** List of live transcriptions */
+  items: Array<LiveV2Response>
 }
 
 // WebSocket Messages Types
