@@ -39,6 +39,7 @@ class LiveV2AsyncClient:
       timeout=options.ws_timeout,
     )
 
+    self._options = options
     self._core = V2JobCore(base_path="/v2/live", kind="Live")
 
   def start_session(self, options: LiveV2InitRequest) -> LiveV2AsyncSession:
@@ -58,7 +59,9 @@ class LiveV2AsyncClient:
     from gladiaio_sdk.v2.live.generated_types import LiveV2Response
 
     endpoint = self._core.build_job_endpoint(job_id)
-    resp = await self._http_client.get(endpoint)
+    resp = await self._http_client.get(
+      endpoint, {"request_timeout": self._options.live_timeouts.get}
+    )
     return LiveV2Response.from_dict(resp.json())
 
   async def delete(self, job_id: str) -> bool:
@@ -71,7 +74,9 @@ class LiveV2AsyncClient:
       True if the job was deleted successfully (HTTP 202), False otherwise.
     """
     endpoint = self._core.build_job_endpoint(job_id)
-    resp = await self._http_client.delete(endpoint)
+    resp = await self._http_client.delete(
+      endpoint, {"request_timeout": self._options.live_timeouts.delete}
+    )
     return resp.status_code == 202
 
   async def get_file(self, job_id: str) -> bytes:
@@ -84,5 +89,7 @@ class LiveV2AsyncClient:
       The raw audio file bytes.
     """
     endpoint = self._core.build_job_file_endpoint(job_id)
-    resp = await self._http_client.get(endpoint)
+    resp = await self._http_client.get(
+      endpoint, {"request_timeout": self._options.live_timeouts.get_file}
+    )
     return resp.content

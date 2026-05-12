@@ -7,6 +7,7 @@ import type { Headers } from './network/types.js'
 import type {
   GladiaClientOptions,
   HttpRetryOptions,
+  LiveV2Timeouts,
   PreRecordedV2Timeouts,
   WebSocketRetryOptions,
 } from './types.js'
@@ -20,11 +21,17 @@ export type InternalGladiaClientOptions = Pick<GladiaClientOptions, OptionalGlad
   Required<
     Omit<
       GladiaClientOptions,
-      OptionalGladiaClientOptions | 'httpHeaders' | 'httpRetry' | 'wsRetry' | 'prerecordedTimeouts'
+      | OptionalGladiaClientOptions
+      | 'httpHeaders'
+      | 'httpRetry'
+      | 'wsRetry'
+      | 'prerecordedTimeouts'
+      | 'liveTimeouts'
     >
   > & {
     httpHeaders: Headers
     httpRetry: InternalHttpRetryOptions
     wsRetry: InternalWebSocketRetryOptions
     prerecordedTimeouts: Required<PreRecordedV2Timeouts>
+    liveTimeouts: Required<LiveV2Timeouts>
   }
