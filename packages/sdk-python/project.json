@@ -50,7 +50,7 @@
       "options": {
         "outputPath": "{projectRoot}/dist",
         "publish": true,
-        "lockedVersions": true,
+        "lockedVersions": false,
         "bundleLocalDependencies": true
       },
       "cache": true

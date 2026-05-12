@@ -9,6 +9,8 @@ from gladiaio_sdk import (
   GladiaClient,
   HttpError,
   LiveV2EndedMessage,
+)
+from gladiaio_sdk.v2.live.generated_types import (
   LiveV2InitRequest,
   LiveV2LanguageConfig,
   LiveV2MessagesConfig,

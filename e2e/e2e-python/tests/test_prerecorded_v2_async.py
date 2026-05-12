@@ -8,9 +8,11 @@ import pytest
 from gladiaio_sdk import (
   GladiaClient,
   HttpError,
+  PreRecordedV2TranscriptionOptions,
+)
+from gladiaio_sdk.v2.prerecorded.generated_types import (
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2LanguageConfig,
-  PreRecordedV2TranscriptionOptions,
 )
 
 

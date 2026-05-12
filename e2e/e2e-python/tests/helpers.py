@@ -3,12 +3,8 @@ from asyncio import sleep as async_sleep
 from time import sleep
 from typing import TypedDict, cast
 
-from gladiaio_sdk import (
-  LiveV2AsyncSession,
-  LiveV2BitDepth,
-  LiveV2Encoding,
-  LiveV2SampleRate,
-)
+from gladiaio_sdk import LiveV2AsyncSession
+from gladiaio_sdk.v2.live.generated_types import LiveV2BitDepth, LiveV2Encoding, LiveV2SampleRate
 
 
 class LiveV2InitRequestAudioConfig(TypedDict):
