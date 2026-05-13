@@ -503,9 +503,9 @@ class PreRecordedV2RequestParamsResponse(BaseDataClass):
   translation: bool | None = None
   # **[Beta]** Translation configuration, if `translation` is enabled
   translation_config: PreRecordedV2TranslationConfig | None = None
-  # **[Beta]** Enable summarization for this audio
+  # Enable summarization for this audio
   summarization: bool | None = None
-  # **[Beta]** Summarization configuration, if `summarization` is enabled
+  # Summarization configuration, if `summarization` is enabled
   summarization_config: PreRecordedV2SummarizationConfig | None = None
   # **[Alpha]** Enable named entity recognition for this audio
   named_entity_recognition: bool | None = None
@@ -515,9 +515,9 @@ class PreRecordedV2RequestParamsResponse(BaseDataClass):
   custom_spelling_config: PreRecordedV2CustomSpellingConfig | None = None
   # Enable sentiment analysis for this audio
   sentiment_analysis: bool | None = None
-  # **[Alpha]** Enable audio to llm processing for this audio
+  # Enable audio to LLM processing for this audio
   audio_to_llm: bool | None = None
-  # **[Alpha]** Audio to llm configuration, if `audio_to_llm` is enabled
+  # Audio to LLM configuration, if `audio_to_llm` is enabled
   audio_to_llm_config: PreRecordedV2AudioToLlmListConfig | None = None
   # Enable PII redaction for this audio
   pii_redaction: bool | None = None
@@ -717,20 +717,6 @@ class PreRecordedV2NamesConsistency(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class PreRecordedV2SpeakerReidentification(BaseDataClass):
-  # The audio intelligence model succeeded to get a valid output
-  success: bool
-  # The audio intelligence model returned an empty value
-  is_empty: bool
-  # Time audio intelligence model took to complete the task
-  exec_time: float
-  # If `speaker_reidentification` has been enabled, results of the AI speaker reidentification.
-  results: str
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: PreRecordedV2AddonError | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class PreRecordedV2StructuredDataExtraction(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -856,8 +842,6 @@ class PreRecordedV2TranscriptionResult(BaseDataClass):
   # If `name_consistency` has been enabled, Gladia will improve consistency of the names accross
   # the transcription
   name_consistency: PreRecordedV2NamesConsistency | None = None
-  # If `speaker_reidentification` has been enabled, results of the AI speaker reidentification.
-  speaker_reidentification: PreRecordedV2SpeakerReidentification | None = None
   # If `structured_data_extraction` has been enabled, structured data extraction results
   structured_data_extraction: PreRecordedV2StructuredDataExtraction | None = None
   # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
@@ -924,9 +908,9 @@ class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   translation: bool | None = None
   # **[Beta]** Translation configuration, if `translation` is enabled
   translation_config: PreRecordedV2TranslationConfig | None = None
-  # **[Beta]** Enable summarization for this audio
+  # Enable summarization for this audio
   summarization: bool | None = None
-  # **[Beta]** Summarization configuration, if `summarization` is enabled
+  # Summarization configuration, if `summarization` is enabled
   summarization_config: PreRecordedV2SummarizationConfig | None = None
   # **[Alpha]** Enable named entity recognition for this audio
   named_entity_recognition: bool | None = None
@@ -936,9 +920,9 @@ class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   custom_spelling_config: PreRecordedV2CustomSpellingConfig | None = None
   # Enable sentiment analysis for this audio
   sentiment_analysis: bool | None = None
-  # **[Alpha]** Enable audio to llm processing for this audio
+  # Enable audio to LLM processing for this audio
   audio_to_llm: bool | None = None
-  # **[Alpha]** Audio to llm configuration, if `audio_to_llm` is enabled
+  # Audio to LLM configuration, if `audio_to_llm` is enabled
   audio_to_llm_config: PreRecordedV2AudioToLlmListConfig | None = None
   # Enable PII redaction for this audio
   pii_redaction: bool | None = None
@@ -992,3 +976,16 @@ class PreRecordedV2Response(BaseDataClass):
   request_params: PreRecordedV2RequestParamsResponse | None = None
   # Pre-recorded transcription's result when status is "done"
   result: PreRecordedV2TranscriptionResult | None = None
+
+
+# List Types
+@dataclass(frozen=True, slots=True)
+class PreRecordedV2ListResponse(BaseDataClass):
+  # URL to fetch the first page
+  first: str
+  # URL to fetch the current page
+  current: str
+  # List of pre-recorded transcriptions
+  items: list[PreRecordedV2Response]
+  # URL to fetch the next page
+  next: str | None = None

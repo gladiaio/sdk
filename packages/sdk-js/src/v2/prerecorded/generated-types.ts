@@ -451,9 +451,9 @@ export interface PreRecordedV2RequestParamsResponse {
   translation?: boolean
   /** **[Beta]** Translation configuration, if `translation` is enabled */
   translation_config?: PreRecordedV2TranslationConfig
-  /** **[Beta]** Enable summarization for this audio */
+  /** Enable summarization for this audio */
   summarization?: boolean
-  /** **[Beta]** Summarization configuration, if `summarization` is enabled */
+  /** Summarization configuration, if `summarization` is enabled */
   summarization_config?: PreRecordedV2SummarizationConfig
   /** **[Alpha]** Enable named entity recognition for this audio */
   named_entity_recognition?: boolean
@@ -463,9 +463,9 @@ export interface PreRecordedV2RequestParamsResponse {
   custom_spelling_config?: PreRecordedV2CustomSpellingConfig
   /** Enable sentiment analysis for this audio */
   sentiment_analysis?: boolean
-  /** **[Alpha]** Enable audio to llm processing for this audio */
+  /** Enable audio to LLM processing for this audio */
   audio_to_llm?: boolean
-  /** **[Alpha]** Audio to llm configuration, if `audio_to_llm` is enabled */
+  /** Audio to LLM configuration, if `audio_to_llm` is enabled */
   audio_to_llm_config?: PreRecordedV2AudioToLlmListConfig
   /** Enable PII redaction for this audio */
   pii_redaction?: boolean
@@ -650,19 +650,6 @@ export interface PreRecordedV2NamesConsistency {
   results: string
 }
 
-export interface PreRecordedV2SpeakerReidentification {
-  /** The audio intelligence model succeeded to get a valid output */
-  success: boolean
-  /** The audio intelligence model returned an empty value */
-  is_empty: boolean
-  /** Time audio intelligence model took to complete the task */
-  exec_time: number
-  /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: PreRecordedV2AddonError | null
-  /** If `speaker_reidentification` has been enabled, results of the AI speaker reidentification. */
-  results: string
-}
-
 export interface PreRecordedV2StructuredDataExtraction {
   /** The audio intelligence model succeeded to get a valid output */
   success: boolean
@@ -776,8 +763,6 @@ export interface PreRecordedV2TranscriptionResult {
   named_entity_recognition?: PreRecordedV2NamedEntityRecognition
   /** If `name_consistency` has been enabled, Gladia will improve consistency of the names accross the transcription */
   name_consistency?: PreRecordedV2NamesConsistency
-  /** If `speaker_reidentification` has been enabled, results of the AI speaker reidentification. */
-  speaker_reidentification?: PreRecordedV2SpeakerReidentification
   /** If `structured_data_extraction` has been enabled, structured data extraction results */
   structured_data_extraction?: PreRecordedV2StructuredDataExtraction
   /** If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription */
@@ -832,9 +817,9 @@ export interface PreRecordedV2InitTranscriptionRequest {
   translation?: boolean
   /** **[Beta]** Translation configuration, if `translation` is enabled */
   translation_config?: PreRecordedV2TranslationConfig
-  /** **[Beta]** Enable summarization for this audio */
+  /** Enable summarization for this audio */
   summarization?: boolean
-  /** **[Beta]** Summarization configuration, if `summarization` is enabled */
+  /** Summarization configuration, if `summarization` is enabled */
   summarization_config?: PreRecordedV2SummarizationConfig
   /** **[Alpha]** Enable named entity recognition for this audio */
   named_entity_recognition?: boolean
@@ -844,9 +829,9 @@ export interface PreRecordedV2InitTranscriptionRequest {
   custom_spelling_config?: PreRecordedV2CustomSpellingConfig
   /** Enable sentiment analysis for this audio */
   sentiment_analysis?: boolean
-  /** **[Alpha]** Enable audio to llm processing for this audio */
+  /** Enable audio to LLM processing for this audio */
   audio_to_llm?: boolean
-  /** **[Alpha]** Audio to llm configuration, if `audio_to_llm` is enabled */
+  /** Audio to LLM configuration, if `audio_to_llm` is enabled */
   audio_to_llm_config?: PreRecordedV2AudioToLlmListConfig
   /** Enable PII redaction for this audio */
   pii_redaction?: boolean
@@ -898,4 +883,16 @@ export interface PreRecordedV2Response {
   request_params?: PreRecordedV2RequestParamsResponse | null
   /** Pre-recorded transcription's result when status is "done" */
   result?: PreRecordedV2TranscriptionResult | null
+}
+
+// List Types
+export interface PreRecordedV2ListResponse {
+  /** URL to fetch the first page */
+  first: string
+  /** URL to fetch the current page */
+  current: string
+  /** URL to fetch the next page */
+  next: string | null
+  /** List of pre-recorded transcriptions */
+  items: Array<PreRecordedV2Response>
 }

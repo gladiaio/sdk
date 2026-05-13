@@ -82,6 +82,15 @@ export type PreRecordedV2Timeouts = {
 }
 
 /**
+ * HTTP timeouts for live V2 job-management operations (milliseconds).
+ */
+export type LiveV2Timeouts = {
+  get?: number
+  delete?: number
+  getFile?: number
+}
+
+/**
  * Options for the Gladia Client.
  */
 export type GladiaClientOptions = {
@@ -154,4 +163,9 @@ export type GladiaClientOptions = {
    * Pre-recorded V2 per-operation timeouts. See {@link PreRecordedV2Timeouts}.
    */
   prerecordedTimeouts?: PreRecordedV2Timeouts
+
+  /**
+   * Live V2 per-operation timeouts. See {@link LiveV2Timeouts}.
+   */
+  liveTimeouts?: LiveV2Timeouts
 }

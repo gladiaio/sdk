@@ -43,6 +43,10 @@ export abstract class BaseGenerator {
       '\n\n' +
       (await this.generateTypes([schemas.initRequest, schemas.initResponse], 'Init Session'))
 
+    const jobManagementContent =
+      '\n\n' +
+      (await this.generateTypes([schemas.getResponse, schemas.listResponse], 'Job Management'))
+
     const wsMessagesContent =
       '\n\n' +
       (await this.generateTypes(schemas.wsMessages, 'WebSocket Messages')) +
@@ -82,6 +86,7 @@ export abstract class BaseGenerator {
       header,
       sharedContent,
       initSessionContent,
+      jobManagementContent,
       wsMessagesContent,
       callbackMessagesContent,
       webhookMessagesContent,
@@ -111,8 +116,17 @@ export abstract class BaseGenerator {
 
     const resultContent = '\n\n' + (await this.generateTypes([schemas.resultResponse], 'Result'))
 
+    const listContent = '\n\n' + (await this.generateTypes([schemas.listResponse], 'List'))
+
     const header = this.getGeneratedFileHeader()
-    const allContent = [header, sharedContent, uploadContent, initSessionContent, resultContent]
+    const allContent = [
+      header,
+      sharedContent,
+      uploadContent,
+      initSessionContent,
+      resultContent,
+      listContent,
+    ]
       .filter((content) => content.trim())
       .join('\n\n')
 

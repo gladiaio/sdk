@@ -392,115 +392,56 @@ class LiveV2CallbackConfig(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class LiveV2Error(BaseDataClass):
-  # The error message
-  message: str
+class LiveV2FileResponse(BaseDataClass):
+  # The file id
+  id: str
+  # The name of the uploaded file
+  filename: str | None = None
+  # The link used to download the file if audio_url was used
+  source: str | None = None
+  # Duration of the audio file
+  audio_duration: float | None = None
+  # Number of channels in the audio file
+  number_of_channels: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
-class LiveV2AudioChunkAckData(BaseDataClass):
-  # Range in bytes length of the audio chunk (relative to the whole session)
-  byte_range: list[int]
-  # Range in seconds of the audio chunk (relative to the whole session)
-  time_range: list[float]
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2EndRecordingMessageData(BaseDataClass):
-  # Total audio duration in seconds
-  recording_duration: float
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2Word(BaseDataClass):
-  # Spoken word
-  word: str
-  # Start timestamps in seconds of the spoken word
-  start: float
-  # End timestamps in seconds of the spoken word
-  end: float
-  # Confidence on the transcribed word (1 = 100% confident)
-  confidence: float
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2Utterance(BaseDataClass):
-  # Start timestamp in seconds of this utterance
-  start: float
-  # End timestamp in seconds of this utterance
-  end: float
-  # Confidence on the transcribed utterance (1 = 100% confident)
-  confidence: float
-  # Audio channel of where this utterance has been transcribed from
-  channel: int
-  # List of words of the utterance, split by timestamp
-  words: list[LiveV2Word]
-  # Transcription for this utterance
-  text: str
-  # Spoken language in this utterance
-  language: LiveV2TranscriptionLanguageCode
-  # If `diarization` enabled, speaker identification number
-  speaker: int | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2TranslationData(BaseDataClass):
-  # Id of the utterance used for this result
-  utterance_id: str
-  # The transcribed utterance
-  utterance: LiveV2Utterance
-  # The original language in `iso639-1` or `iso639-2` format depending on the language
-  original_language: LiveV2TranscriptionLanguageCode
-  # The target language in `iso639-1` or `iso639-2` format depending on the language
-  target_language: LiveV2TranslationLanguageCode
-  # The translated utterance
-  translated_utterance: LiveV2Utterance
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2NamedEntityRecognitionResult(BaseDataClass):
-  entity_type: str
-  text: str
-  start: float
-  end: float
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2NamedEntityRecognitionData(BaseDataClass):
-  # Id of the utterance used for this result
-  utterance_id: str
-  # The transcribed utterance
-  utterance: LiveV2Utterance
-  # The NER results
-  results: list[LiveV2NamedEntityRecognitionResult]
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2ChapterizationSentence(BaseDataClass):
-  sentence: str
-  start: float
-  end: float
-  words: list[LiveV2Word]
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2PostChapterizationResult(BaseDataClass):
-  headline: str
-  gist: str
-  keywords: list[str]
-  start: float
-  end: float
-  sentences: list[LiveV2ChapterizationSentence]
-  text: str
-  abstractive_summary: str | None = None
-  extractive_summary: str | None = None
-  summary: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2PostChapterizationMessageData(BaseDataClass):
-  # The chapters
-  results: list[LiveV2PostChapterizationResult]
+class LiveV2RequestParamsResponse(BaseDataClass):
+  # The encoding format of the audio stream. Supported formats:
+  # - PCM: 8, 16, 24, and 32 bits
+  # - A-law: 8 bits
+  # - μ-law: 8 bits
+  #
+  # Note: No need to add WAV headers to raw audio as the API supports both formats.
+  encoding: LiveV2Encoding | None = None
+  # The bit depth of the audio stream
+  bit_depth: LiveV2BitDepth | None = None
+  # The sample rate of the audio stream
+  sample_rate: LiveV2SampleRate | None = None
+  # The number of channels of the audio stream
+  channels: int | None = None
+  # The model used to process the audio. "solaria-1" is used by default.
+  model: LiveV2Model | None = None
+  # The endpointing duration in seconds. Endpointing is the duration of silence which will cause
+  # an utterance to be considered as finished
+  endpointing: float | None = None
+  # The maximum duration in seconds without endpointing. If endpointing is not detected after this
+  # duration, current utterance will be considered as finished
+  maximum_duration_without_endpointing: float | None = None
+  # Specify the language configuration
+  language_config: LiveV2LanguageConfig | None = None
+  # Specify the pre-processing configuration
+  pre_processing: LiveV2PreProcessingConfig | None = None
+  # Specify the realtime processing configuration
+  realtime_processing: LiveV2RealtimeProcessingConfig | None = None
+  # Specify the post-processing configuration
+  post_processing: LiveV2PostProcessingConfig | None = None
+  # Specify the websocket messages configuration
+  messages_config: LiveV2MessagesConfig | None = None
+  # If true, messages will be sent to configured url.
+  callback: bool | None = None
+  # Specify the callback configuration
+  callback_config: LiveV2CallbackConfig | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -548,6 +489,38 @@ class LiveV2Subtitle(BaseDataClass):
   format: LiveV2SubtitlesFormat
   # Transcription on the asked subtitle format
   subtitles: str
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2Word(BaseDataClass):
+  # Spoken word
+  word: str
+  # Start timestamps in seconds of the spoken word
+  start: float
+  # End timestamps in seconds of the spoken word
+  end: float
+  # Confidence on the transcribed word (1 = 100% confident)
+  confidence: float
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2Utterance(BaseDataClass):
+  # Start timestamp in seconds of this utterance
+  start: float
+  # End timestamp in seconds of this utterance
+  end: float
+  # Confidence on the transcribed utterance (1 = 100% confident)
+  confidence: float
+  # Audio channel of where this utterance has been transcribed from
+  channel: int
+  # List of words of the utterance, split by timestamp
+  words: list[LiveV2Word]
+  # Transcription for this utterance
+  text: str
+  # Spoken language in this utterance
+  language: LiveV2TranscriptionLanguageCode
+  # If `diarization` enabled, speaker identification number
+  speaker: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -609,6 +582,14 @@ class LiveV2Summarization(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
+class LiveV2NamedEntityRecognitionResult(BaseDataClass):
+  entity_type: str
+  text: str
+  start: float
+  end: float
+
+
+@dataclass(frozen=True, slots=True)
 class LiveV2NamedEntityRecognition(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -650,6 +631,99 @@ class LiveV2Chapterization(BaseDataClass):
   results: dict[str, Any]
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: LiveV2AddonError | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2TranscriptionResultWithMessages(BaseDataClass):
+  # Metadata for the given transcription & audio file
+  metadata: LiveV2TranscriptionMetadata
+  # Transcription of the audio speech
+  transcription: LiveV2Transcription | None = None
+  # If `translation` has been enabled, translation of the audio speech transcription
+  translation: LiveV2Translation | None = None
+  # If `summarization` has been enabled, summarization of the audio speech transcription
+  summarization: LiveV2Summarization | None = None
+  # If `named_entity_recognition` has been enabled, the detected entities
+  named_entity_recognition: LiveV2NamedEntityRecognition | None = None
+  # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
+  sentiment_analysis: LiveV2SentimentAnalysis | None = None
+  # If `chapterization` has been enabled, will generate chapters name for different parts of the
+  # given audio.
+  chapterization: LiveV2Chapterization | None = None
+  # Real-Time messages sent by the server during the live transcription
+  messages: list[str] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2Error(BaseDataClass):
+  # The error message
+  message: str
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2AudioChunkAckData(BaseDataClass):
+  # Range in bytes length of the audio chunk (relative to the whole session)
+  byte_range: list[int]
+  # Range in seconds of the audio chunk (relative to the whole session)
+  time_range: list[float]
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2EndRecordingMessageData(BaseDataClass):
+  # Total audio duration in seconds
+  recording_duration: float
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2TranslationData(BaseDataClass):
+  # Id of the utterance used for this result
+  utterance_id: str
+  # The transcribed utterance
+  utterance: LiveV2Utterance
+  # The original language in `iso639-1` or `iso639-2` format depending on the language
+  original_language: LiveV2TranscriptionLanguageCode
+  # The target language in `iso639-1` or `iso639-2` format depending on the language
+  target_language: LiveV2TranslationLanguageCode
+  # The translated utterance
+  translated_utterance: LiveV2Utterance
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2NamedEntityRecognitionData(BaseDataClass):
+  # Id of the utterance used for this result
+  utterance_id: str
+  # The transcribed utterance
+  utterance: LiveV2Utterance
+  # The NER results
+  results: list[LiveV2NamedEntityRecognitionResult]
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2ChapterizationSentence(BaseDataClass):
+  sentence: str
+  start: float
+  end: float
+  words: list[LiveV2Word]
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2PostChapterizationResult(BaseDataClass):
+  headline: str
+  gist: str
+  keywords: list[str]
+  start: float
+  end: float
+  sentences: list[LiveV2ChapterizationSentence]
+  text: str
+  abstractive_summary: str | None = None
+  extractive_summary: str | None = None
+  summary: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2PostChapterizationMessageData(BaseDataClass):
+  # The chapters
+  results: list[LiveV2PostChapterizationResult]
 
 
 @dataclass(frozen=True, slots=True)
@@ -780,6 +854,50 @@ class LiveV2InitResponse(BaseDataClass):
   # The websocket url to connect to for sending audio data. The url will contain the temporary
   # token to authenticate the session.
   url: str
+
+
+# Job Management Types
+@dataclass(frozen=True, slots=True)
+class LiveV2Response(BaseDataClass):
+  # Id of the job
+  id: str
+  # Debug id
+  request_id: str
+  # API version
+  version: int
+  # "queued": the job has been queued. "processing": the job is being processed. "done": the job
+  # has been processed and the result is available. "error": an error occurred during the job's
+  # processing.
+  status: Literal["queued", "processing", "done", "error"]
+  # Creation date
+  created_at: str
+  kind: Literal["live"]
+  # For debugging purposes, send data that could help to identify issues
+  post_session_metadata: dict[str, Any] | None = None
+  # Completion date when status is "done" or "error"
+  completed_at: str | None = None
+  # Custom metadata given in the initial request
+  custom_metadata: dict[str, Any] | None = None
+  # HTTP status code of the error if status is "error"
+  error_code: int | None = None
+  # The file data you uploaded. Can be null if status is "error"
+  file: LiveV2FileResponse | None = None
+  # Parameters used for this live transcription. Can be null if status is "error"
+  request_params: LiveV2RequestParamsResponse | None = None
+  # Live transcription's result when status is "done"
+  result: LiveV2TranscriptionResultWithMessages | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LiveV2ListResponse(BaseDataClass):
+  # URL to fetch the first page
+  first: str
+  # URL to fetch the current page
+  current: str
+  # List of live transcriptions
+  items: list[LiveV2Response]
+  # URL to fetch the next page
+  next: str | None = None
 
 
 # WebSocket Messages Types

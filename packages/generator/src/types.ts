@@ -44,6 +44,8 @@ export type SchemaObjectRefLess = Omit<
 export type LiveV2Schemas = {
   initRequest: ReferencedSchemaObject
   initResponse: ReferencedSchemaObject
+  getResponse: ReferencedSchemaObject
+  listResponse: ReferencedSchemaObject
   wsMessages: ReferencedSchemaObject[]
   callbackMessages: ReferencedSchemaObject[]
   webhookMessages: ReferencedSchemaObject[]
@@ -56,5 +58,6 @@ export type PreRecordedV2Schemas = {
   initRequest: ReferencedSchemaObject
   initResponse: ReferencedSchemaObject
   resultResponse: ReferencedSchemaObject
+  listResponse: ReferencedSchemaObject
   referencedTypes: ReferencedSchemaObject[]
 }

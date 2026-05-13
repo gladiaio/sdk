@@ -7,6 +7,7 @@ from .client import GladiaClient
 from .client_options import (
   GladiaClientOptions,
   HttpRetryOptions,
+  LiveV2Timeouts,
   PreRecordedV2Timeouts,
   WebSocketRetryOptions,
 )
@@ -37,6 +38,7 @@ __all__: list[str] = [
   "TimeoutError",
   "GladiaClientOptions",
   "HttpRetryOptions",
+  "LiveV2Timeouts",
   "PreRecordedV2Timeouts",
   "WebSocketRetryOptions",
   "PreRecordedV2AsyncClient",

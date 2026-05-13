@@ -8,9 +8,9 @@ export class TypeScriptGenerator extends BaseGenerator {
   // Format: 'TypeName.fieldName' -> true means force optional
   // This is useful when API behavior doesn't match OpenAPI schema exactly
   private fieldOverrides: Map<string, boolean> = new Map([
-    // PreRecordedResponse fields that should be optional despite schema
     // These debug/metadata fields are not always returned by the API
     ['PreRecordedV2Response.post_session_metadata', true],
+    ['LiveV2Response.post_session_metadata', true],
   ])
 
   override get sdkName(): string {

@@ -9,6 +9,8 @@ from typing import cast, overload
 from gladiaio_sdk.client_options import (
   GladiaClientOptions,
   HttpRetryOptions,
+  LiveV2Timeouts,
+  PreRecordedV2Timeouts,
   Region,
   WebSocketRetryOptions,
 )
@@ -64,6 +66,8 @@ class GladiaClient:
     http_headers: dict[str, str] | None = None,
     http_retry: HttpRetryOptions | None = None,
     http_timeout: float | None = None,
+    prerecorded_timeouts: PreRecordedV2Timeouts | None = None,
+    live_timeouts: LiveV2Timeouts | None = None,
     ws_retry: WebSocketRetryOptions | None = None,
     ws_timeout: float | None = None,
   ) -> None: ...
@@ -87,6 +91,8 @@ class GladiaClient:
     http_headers: dict[str, str] | None = None,
     http_retry: HttpRetryOptions | None = None,
     http_timeout: float | None = None,
+    prerecorded_timeouts: PreRecordedV2Timeouts | None = None,
+    live_timeouts: LiveV2Timeouts | None = None,
     ws_retry: WebSocketRetryOptions | None = None,
     ws_timeout: float | None = None,
   ) -> PreRecordedV2Client: ...
@@ -113,6 +119,8 @@ class GladiaClient:
     http_headers: dict[str, str] | None = None,
     http_retry: HttpRetryOptions | None = None,
     http_timeout: float | None = None,
+    prerecorded_timeouts: PreRecordedV2Timeouts | None = None,
+    live_timeouts: LiveV2Timeouts | None = None,
     ws_retry: WebSocketRetryOptions | None = None,
     ws_timeout: float | None = None,
   ) -> PreRecordedV2AsyncClient: ...
@@ -139,6 +147,8 @@ class GladiaClient:
     http_headers: dict[str, str] | None = None,
     http_retry: HttpRetryOptions | None = None,
     http_timeout: float | None = None,
+    prerecorded_timeouts: PreRecordedV2Timeouts | None = None,
+    live_timeouts: LiveV2Timeouts | None = None,
     ws_retry: WebSocketRetryOptions | None = None,
     ws_timeout: float | None = None,
   ) -> LiveV2Client: ...
@@ -164,6 +174,8 @@ class GladiaClient:
     http_headers: dict[str, str] | None = None,
     http_retry: HttpRetryOptions | None = None,
     http_timeout: float | None = None,
+    prerecorded_timeouts: PreRecordedV2Timeouts | None = None,
+    live_timeouts: LiveV2Timeouts | None = None,
     ws_retry: WebSocketRetryOptions | None = None,
     ws_timeout: float | None = None,
   ) -> LiveV2AsyncClient: ...

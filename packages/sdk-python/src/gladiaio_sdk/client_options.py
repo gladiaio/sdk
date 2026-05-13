@@ -46,6 +46,20 @@ class PreRecordedV2Timeouts:
 
 
 @dataclass(frozen=True, slots=True)
+class LiveV2Timeouts:
+  """HTTP timeouts for live V2 job-management operations (seconds)."""
+
+  get: float = 10
+  delete: float = 60
+  get_file: float = 300
+
+  def __post_init__(self) -> None:
+    for name in ("get", "delete", "get_file"):
+      v = max(0, float(getattr(self, name)))
+      object.__setattr__(self, name, v)
+
+
+@dataclass(frozen=True, slots=True)
 class HttpRetryOptions:
   """Retry behavior for HTTP requests. Retries are not triggered after a timeout."""
 
@@ -95,6 +109,7 @@ class GladiaClientOptions:
   """HTTP request timeout in seconds. Default 10. Retries are not triggered after a timeout."""
   http_timeout: float = DEFAULT_HTTP_TIMEOUT
   prerecorded_timeouts: PreRecordedV2Timeouts = field(default_factory=PreRecordedV2Timeouts)
+  live_timeouts: LiveV2Timeouts = field(default_factory=LiveV2Timeouts)
   ws_retry: WebSocketRetryOptions = WebSocketRetryOptions()
   """WebSocket connection timeout in seconds. Default 10. Retries are not triggered after a timeout."""
   ws_timeout: float = DEFAULT_WS_TIMEOUT
