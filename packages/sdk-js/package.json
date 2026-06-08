@@ -29,7 +29,7 @@
     "build:watch": "tsdown --watch"
   },
   "dependencies": {
-    "eventemitter3": ">=5"
+    "eventemitter3": "^5.0.0"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.6",
