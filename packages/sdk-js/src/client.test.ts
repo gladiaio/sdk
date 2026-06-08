@@ -4,9 +4,9 @@ import * as liveModule from './v2/live/index.js'
 import { SDK_VERSION } from './version.js'
 
 describe('GladiaClient', () => {
-  const liveV2Spy = vi.spyOn(liveModule, 'LiveV2Client').mockImplementation(() => {
+  const liveV2Spy = vi.spyOn(liveModule, 'LiveV2Client').mockImplementation(function () {
     return {} as unknown as InstanceType<typeof liveModule.LiveV2Client>
-  })
+  } as unknown as typeof liveModule.LiveV2Client)
 
   beforeEach(() => {
     vi.clearAllMocks()
