@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Callable
-from typing import Any, Literal, Protocol, overload
+from typing import Any, Callable, Literal, Protocol, TypeVar, overload
 
 from gladiaio_sdk.v2.live.types import (
   LiveV2ConnectedMessage,
@@ -24,23 +24,28 @@ from .generated_types import (
 )
 
 EventCallback = Callable[..., Any]
+Handler = TypeVar("Handler", bound=Callable[..., Any])
 
 # The server rejects WebSocket frames larger than 1 MiB with CloseCode 1009.
 _MAX_RESUME_CHUNK_BYTES = 512 * 1024  # 512 KiB
 
 
 class _EventEmitter(Protocol):
-  def add_listener(self, event: str, cb: Any) -> None: ...
+  """Structural typing for pyee EventEmitter / AsyncIOEventEmitter."""
 
-  def remove_listener(self, event: str, cb: Any) -> None: ...
+  def add_listener(self, event: str, f: Handler) -> Handler: ...
+
+  def remove_listener(self, event: str, f: Callable[..., Any]) -> None: ...
 
   def remove_all_listeners(self, event: str | None = None) -> None: ...
 
-  def listens_to(self, event: str) -> Callable[..., Any]: ...
+  def listens_to(self, event: str) -> Callable[[Handler], Handler]: ...
 
-  def once(self, event: str, cb: Any | None = None) -> Any: ...
+  def once(
+    self, event: str, f: Callable[..., Any] | None = None
+  ) -> Callable[..., Any]: ...
 
-  def emit(self, event: str, *args: Any) -> bool: ...
+  def emit(self, event: str, *args: Any, **kwargs: Any) -> bool: ...
 
 
 def send_audio_in_chunks(ws: Any, audio: bytes) -> None:
