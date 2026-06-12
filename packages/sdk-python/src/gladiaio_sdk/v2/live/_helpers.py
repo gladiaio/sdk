@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Callable
-from typing import Any, Callable, Literal, Protocol, TypeVar, overload
+from typing import Any, Literal, Protocol, TypeVar, overload
 
 from gladiaio_sdk.v2.live.types import (
   LiveV2ConnectedMessage,
@@ -41,9 +41,7 @@ class _EventEmitter(Protocol):
 
   def listens_to(self, event: str) -> Callable[[Handler], Handler]: ...
 
-  def once(
-    self, event: str, f: Callable[..., Any] | None = None
-  ) -> Callable[..., Any]: ...
+  def once(self, event: str, f: Callable[..., Any] | None = None) -> Callable[..., Any]: ...
 
   def emit(self, event: str, *args: Any, **kwargs: Any) -> bool: ...
 
