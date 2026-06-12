@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+from typing import Literal
+
+LiveV2SessionStatus = Literal["starting", "started", "connecting", "connected", "ending", "ended"]
 
 
 @dataclass(frozen=True, slots=True)
