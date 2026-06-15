@@ -36,6 +36,7 @@ from .generated_types import (
 
 EventCallback = Callable[..., Any]
 
+_MAX_RESUME_CHUNK_BYTES = 512 * 1024  # 512 KiB, well below the 1 MiB server frame limit
 
 LiveV2SessionStatus = Literal["starting", "started", "connecting", "connected", "ending", "ended"]
 
@@ -185,7 +186,8 @@ class LiveV2Session:
         pending_stop = self._pending_stop
       if buffered and len(buffered):
         with contextlib.suppress(Exception):
-          ws.send(buffered)
+          for i in range(0, len(buffered), _MAX_RESUME_CHUNK_BYTES):
+            ws.send(buffered[i : i + _MAX_RESUME_CHUNK_BYTES])
       if pending_stop:
         with self._state_lock:
           self._pending_stop = False

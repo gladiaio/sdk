@@ -35,6 +35,7 @@ from .generated_types import (
 
 EventCallback = Callable[..., Any]
 
+_MAX_RESUME_CHUNK_BYTES = 512 * 1024  # 512 KiB, well below the 1 MiB server frame limit
 
 LiveV2SessionStatus = Literal["starting", "started", "connecting", "connected", "ending", "ended"]
 
@@ -174,7 +175,8 @@ class LiveV2AsyncSession:
         return
 
       if self._audio_buffer and len(self._audio_buffer):
-        ws.send(self._audio_buffer)
+        for i in range(0, len(self._audio_buffer), _MAX_RESUME_CHUNK_BYTES):
+          ws.send(self._audio_buffer[i : i + _MAX_RESUME_CHUNK_BYTES])
 
       if self._status == "ending":
         ws.send(json.dumps({"type": "stop_recording"}))

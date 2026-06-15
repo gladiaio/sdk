@@ -207,7 +207,10 @@ export class LiveV2Session {
 
     this.webSocketSession.onopen = ({ connection }) => {
       if (this.audioBuffer?.byteLength) {
-        webSocketSession.send(this.audioBuffer)
+        const MAX_CHUNK = 512 * 1024 // 512 KiB, well below the 1 MiB server frame limit
+        for (let offset = 0; offset < this.audioBuffer.byteLength; offset += MAX_CHUNK) {
+          webSocketSession.send(this.audioBuffer.subarray(offset, offset + MAX_CHUNK))
+        }
       }
       if (this.status === 'ending') {
         webSocketSession.send(JSON.stringify({ type: 'stop_recording' }))
