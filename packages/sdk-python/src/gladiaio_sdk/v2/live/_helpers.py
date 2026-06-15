@@ -83,7 +83,9 @@ def trim_acknowledged_audio_buffer(
   bytes_sent: int,
   byte_end: int,
 ) -> tuple[bytes, int]:
-  return audio_buffer[byte_end - bytes_sent :], byte_end
+  acked_in_buffer = max(0, min(len(audio_buffer), byte_end - bytes_sent))
+  next_bytes_sent = max(bytes_sent, byte_end)
+  return audio_buffer[acked_in_buffer:], next_bytes_sent
 
 
 def emit_started_if_needed(
@@ -118,6 +120,8 @@ def emit_session_ending_events(
   code: int,
   reason: str | None,
 ) -> LiveV2SessionStatus:
+  if status == "ended":
+    return status
   if status != "ending":
     _ = event_emitter.emit("ending", LiveV2EndingMessage(code=code, reason=reason))
   _ = event_emitter.emit("ended", LiveV2EndedMessage(code=code, reason=reason))

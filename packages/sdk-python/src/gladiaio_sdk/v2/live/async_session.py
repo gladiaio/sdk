@@ -155,7 +155,8 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
         return
 
       if self._audio_buffer and len(self._audio_buffer):
-        send_audio_in_chunks(ws, self._audio_buffer)
+        with contextlib.suppress(Exception):
+          send_audio_in_chunks(ws, self._audio_buffer)
 
       if self._status == "ending":
         ws.send(json.dumps({"type": "stop_recording"}))
