@@ -1,3 +1,14 @@
+## 1.0.3 (2026-06-17)
+
+### 🚀 Features
+
+- add job management methods to live V2 client (get, delete, getFile)
+
+### 🩹 Fixes
+
+- **live-v2:** chunk audio buffer on reconnect to avoid oversized ws frames
+- **vuln:** Bump vitest 3→4 and idna 3.10→3.15 (FEA-1161/1162/1159/1160)
+
 ## 1.0.2 (2026-04-16)
 
 ### 🩹 Fixes
