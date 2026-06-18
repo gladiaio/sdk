@@ -85,6 +85,9 @@
     "packages/sdk-js": {
       "name": "@gladiaio/sdk",
       "version": "1.0.4",
+      "dependencies": {
+        "eventemitter3": "^5.0.0",
+      },
       "devDependencies": {
         "@tsconfig/node20": "^20.1.6",
         "@types/node": "^20.19.19",
@@ -92,7 +95,6 @@
         "tsdown": "^0.15.6",
       },
       "peerDependencies": {
-        "eventemitter3": ">=5",
         "undici": ">=5",
         "ws": "5.2.4 || 6.2.3 || 7.5.10 || >=8.8",
       },
