@@ -132,9 +132,12 @@ describe('LiveV2Session connectSession', () => {
 
     await tick()
 
-    expect(mockHttpPost).toHaveBeenCalledWith('/v2/live', expect.objectContaining({
-      body: expect.stringContaining('"sample_rate":16000'),
-    }))
+    expect(mockHttpPost).toHaveBeenCalledWith(
+      '/v2/live',
+      expect.objectContaining({
+        body: expect.stringContaining('"sample_rate":16000'),
+      })
+    )
     expect(mockCreateSession).toHaveBeenCalledWith('wss://api.gladia.io/v2/live/ws?token=created')
     expect(startedSpy).toHaveBeenCalledWith({
       id: 'created-session-id',

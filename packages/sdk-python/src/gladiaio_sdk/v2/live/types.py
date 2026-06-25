@@ -16,6 +16,7 @@ class LiveV2ConnectSessionOptions:
   created_at: str | None = None
   messages_config: LiveV2MessagesConfig | None = None
 
+
 @dataclass(frozen=True, slots=True)
 class LiveV2ConnectingMessage:
   attempt: int
