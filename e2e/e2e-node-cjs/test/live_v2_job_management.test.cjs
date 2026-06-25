@@ -37,6 +37,26 @@ async function runLiveSession() {
   return jobId
 }
 
+/**
+ * Poll until the live job reaches a terminal status (done or error).
+ * The API only allows deletion once post-processing has finished.
+ */
+async function waitForTerminalJobStatus(
+  client,
+  jobId,
+  { intervalMs = 1000, timeoutMs = 60_000 } = {}
+) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const result = await client.get(jobId)
+    if (result.status === 'done' || result.status === 'error') {
+      return result
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+  throw new Error(`Timed out waiting for job ${jobId} to reach terminal status`)
+}
+
 test('get: returns live job metadata after session ends', async () => {
   const jobId = await runLiveSession()
   const client = new GladiaClient().liveV2()
@@ -62,6 +82,7 @@ test('getFile: returns audio bytes with RIFF header', async () => {
 test('delete: returns true on success (HTTP 202)', async () => {
   const jobId = await runLiveSession()
   const client = new GladiaClient().liveV2()
+  await waitForTerminalJobStatus(client, jobId)
   const deleted = await client.delete(jobId)
   assert.strictEqual(deleted, true)
 })

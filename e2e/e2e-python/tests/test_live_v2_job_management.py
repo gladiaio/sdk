@@ -5,6 +5,7 @@ the session to end, then exercises the HTTP job-management method.
 """
 
 import asyncio
+import time
 
 import pytest
 from gladiaio_sdk import GladiaClient, HttpError
@@ -51,6 +52,26 @@ async def _run_live_session() -> str:
   return job_id
 
 
+async def _wait_for_terminal_job_status(
+  client,
+  job_id: str,
+  *,
+  interval_s: float = 1.0,
+  timeout_s: float = 60.0,
+):
+  """Poll until the live job reaches a terminal status (done or error).
+
+  The API only allows deletion once post-processing has finished.
+  """
+  deadline = time.monotonic() + timeout_s
+  while time.monotonic() < deadline:
+    result = await client.get(job_id)
+    if result.status in ("done", "error"):
+      return result
+    await asyncio.sleep(interval_s)
+  raise TimeoutError(f"Timed out waiting for job {job_id} to reach terminal status")
+
+
 @pytest.mark.asyncio
 async def test_get():
   """get returns live job metadata after session ends."""
@@ -78,6 +99,7 @@ async def test_delete():
   """delete returns True when job is correctly removed (HTTP 202)."""
   job_id = await _run_live_session()
   client = GladiaClient().live_v2_async()
+  await _wait_for_terminal_job_status(client, job_id)
   deleted = await client.delete(job_id)
   assert deleted is True
 
