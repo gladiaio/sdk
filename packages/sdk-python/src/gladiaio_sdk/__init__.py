@@ -18,6 +18,7 @@ from .v2.live.client import LiveV2Client
 from .v2.live.types import (
   LiveV2ConnectedMessage,
   LiveV2ConnectingMessage,
+  LiveV2ConnectSessionOptions,
   LiveV2EndedMessage,
   LiveV2EndingMessage,
 )
@@ -31,6 +32,7 @@ __all__: list[str] = [
   "LiveV2AsyncClient",
   "LiveV2AsyncSession",
   "LiveV2ConnectingMessage",
+  "LiveV2ConnectSessionOptions",
   "LiveV2ConnectedMessage",
   "LiveV2EndedMessage",
   "LiveV2EndingMessage",

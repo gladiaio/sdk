@@ -59,6 +59,7 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     options: LiveV2InitRequest,
     http_client: AsyncHttpClient,
     ws_client: WebSocketClient,
+    existing_session: LiveV2InitResponse | None = None,
   ) -> None:
     self._options = options
     self._http_client = http_client
@@ -67,7 +68,7 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     self._abort = asyncio.Event()
     self._event_emitter = AsyncIOEventEmitter()
     self._status: LiveV2SessionStatus = "starting"
-    self._init_session_response: LiveV2InitResponse | None = None
+    self._init_session_response: LiveV2InitResponse | None = existing_session
 
     self._ws: AsyncWebSocketSession | None = None
     self._connect_ws_task: asyncio.Task[None] | None = None
@@ -75,8 +76,12 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     self._audio_buffer: bytes = bytes([])
     self._bytes_sent = 0
 
-    # Kick off session creation
-    self._init_session_task = asyncio.create_task(self._init_session())
+    if existing_session:
+      init_task: asyncio.Future[LiveV2InitResponse] = asyncio.get_running_loop().create_future()
+      init_task.set_result(existing_session)
+      self._init_session_task = init_task
+    else:
+      self._init_session_task = asyncio.create_task(self._init_session())
     self._start_session_task = asyncio.create_task(self._start_session())
 
   # Public API
