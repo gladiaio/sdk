@@ -13,7 +13,10 @@ describe('GladiaClient', () => {
   })
 
   it('merges default headers and appends SDK version when providing user headers at construction', () => {
-    const gladiaClient = new GladiaClient({ httpHeaders: { 'x-custom': 'abc' } })
+    const gladiaClient = new GladiaClient({
+      apiKey: 'test-key',
+      httpHeaders: { 'x-custom': 'abc' },
+    })
     gladiaClient.liveV2()
     const calls = liveV2Spy.mock.calls
     expect(calls.length).toBeGreaterThan(0)
@@ -23,7 +26,10 @@ describe('GladiaClient', () => {
   })
 
   it('appends SDK version to any provided X-GLADIA-VERSION value', () => {
-    const gladiaClient = new GladiaClient({ httpHeaders: { 'X-GLADIA-VERSION': 'MyApp/1.2.3' } })
+    const gladiaClient = new GladiaClient({
+      apiKey: 'test-key',
+      httpHeaders: { 'X-GLADIA-VERSION': 'MyApp/1.2.3' },
+    })
     gladiaClient.liveV2()
     const calls = liveV2Spy.mock.calls
     expect(calls.length).toBeGreaterThan(0)
