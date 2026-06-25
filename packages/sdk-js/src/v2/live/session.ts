@@ -38,10 +38,12 @@ export class LiveV2Session {
 
   constructor({
     options,
+    existingSession,
     httpClient,
     webSocketClient,
   }: {
     options: LiveV2InitRequest
+    existingSession?: LiveV2InitResponse
     httpClient: HttpClient
     webSocketClient: WebSocketClient
   }) {
@@ -50,7 +52,9 @@ export class LiveV2Session {
     this.webSocketClient = webSocketClient
     this.abortController = new AbortController()
 
-    this.initSessionPromise = this.initSession()
+    this.initSessionPromise = existingSession
+      ? Promise.resolve(existingSession)
+      : this.initSession()
     this.startSession()
   }
 
