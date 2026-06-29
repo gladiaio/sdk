@@ -1,8 +1,9 @@
 import { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient } from '../../network/wsClient.js'
-import type { LiveV2InitRequest, LiveV2Response } from './generated-types.js'
+import type { LiveV2InitRequest, LiveV2InitResponse, LiveV2Response } from './generated-types.js'
 import { LiveV2Session } from './session.js'
+import type { LiveV2ConnectSessionOptions } from './types.js'
 
 /**
  * Client used to interact with Gladia Live Speech-To-Text API.
@@ -36,6 +37,24 @@ export class LiveV2Client {
   startSession(options: LiveV2InitRequest): LiveV2Session {
     return new LiveV2Session({
       options,
+      httpClient: this.httpClient,
+      webSocketClient: this.webSocketClient,
+    })
+  }
+
+  /**
+   * Connect to an existing live session using its WebSocket URL and session ID.
+   * Skips session initialization and connects directly to the WebSocket.
+   */
+  connectSession(connectOptions: LiveV2ConnectSessionOptions): LiveV2Session {
+    const existingSession: LiveV2InitResponse = {
+      id: connectOptions.id,
+      url: connectOptions.url,
+      created_at: connectOptions.created_at ?? '',
+    }
+    return new LiveV2Session({
+      options: { messages_config: connectOptions.messages_config },
+      existingSession,
       httpClient: this.httpClient,
       webSocketClient: this.webSocketClient,
     })

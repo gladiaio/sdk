@@ -60,10 +60,12 @@ class LiveV2Session(LiveV2SessionEventsMixin):
     options: LiveV2InitRequest,
     http_client: HttpClient,
     ws_client: WebSocketClient,
+    existing_session: LiveV2InitResponse | None = None,
   ) -> None:
     self._options = options
     self._http_client = http_client
     self._ws_client = ws_client
+    self._existing_session = existing_session
 
     self._event_emitter = EventEmitter()
     self._status: LiveV2SessionStatus = "starting"
@@ -224,9 +226,10 @@ class LiveV2Session(LiveV2SessionEventsMixin):
 
   def _lifecycle_worker(self) -> None:
     try:
-      # 1) HTTP init
-      self._init_session_response = self._init_session()
-      # 2) Emit started and connect WS
+      if self._existing_session:
+        self._init_session_response = self._existing_session
+      else:
+        self._init_session_response = self._init_session()
       self._start_session()
       # 3) Keep thread alive until stop/end to let join() wait for session end
       while not self._ws_stop.is_set() and self._status != "ended":

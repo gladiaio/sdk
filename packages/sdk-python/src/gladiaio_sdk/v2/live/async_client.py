@@ -8,6 +8,7 @@ from gladiaio_sdk.client_options import GladiaClientOptions
 from gladiaio_sdk.network import AsyncHttpClient, WebSocketClient
 from gladiaio_sdk.v2.core import V2JobCore
 from gladiaio_sdk.v2.live.async_session import LiveV2AsyncSession
+from gladiaio_sdk.v2.live.types import LiveV2ConnectSessionOptions
 
 if TYPE_CHECKING:
   from gladiaio_sdk.v2.live.generated_types import LiveV2InitRequest, LiveV2Response
@@ -45,6 +46,26 @@ class LiveV2AsyncClient:
   def start_session(self, options: LiveV2InitRequest) -> LiveV2AsyncSession:
     return LiveV2AsyncSession(
       options=options, http_client=self._http_client, ws_client=self._ws_client
+    )
+
+  def connect_session(self, options: LiveV2ConnectSessionOptions) -> LiveV2AsyncSession:
+    """Connect to an existing live session using its WebSocket URL and session ID.
+
+    Skips session initialization and connects directly to the WebSocket.
+    """
+    from gladiaio_sdk.v2.live.generated_types import LiveV2InitRequest, LiveV2InitResponse
+
+    existing_session = LiveV2InitResponse(
+      id=options.id,
+      url=options.url,
+      created_at=options.created_at or "",
+    )
+    init_options = LiveV2InitRequest(messages_config=options.messages_config)
+    return LiveV2AsyncSession(
+      options=init_options,
+      http_client=self._http_client,
+      ws_client=self._ws_client,
+      existing_session=existing_session,
     )
 
   async def get(self, job_id: str) -> LiveV2Response:
