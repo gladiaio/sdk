@@ -115,6 +115,7 @@
   "tags": ["scope:sdk"],
   "release": {
     "version": {
+      "currentVersionResolver": "disk",
       "versionActions": "@nxlv/python/src/release/version-actions"
     }
   }
