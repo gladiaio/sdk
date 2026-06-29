@@ -31,5 +31,10 @@
     "type:check": {},
     "test": {}
   },
-  "tags": ["type:lib", "scope:sdk"]
+  "tags": ["type:lib", "scope:sdk"],
+  "release": {
+    "version": {
+      "currentVersionResolver": "disk"
+    }
+  }
 }
