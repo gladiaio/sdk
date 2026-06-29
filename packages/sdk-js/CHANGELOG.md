@@ -1,3 +1,16 @@
+## 1.0.7 (2026-06-29)
+
+### 🚀 Features
+
+- add job management methods to live V2 client (get, delete, getFile)
+
+### 🩹 Fixes
+
+- change version
+- **live-v2:** chunk audio buffer on reconnect to avoid oversized ws frames
+- **vuln:** Bump vitest 3→4 and idna 3.10→3.15 (FEA-1161/1162/1159/1160)
+- **prerecorded/live:** align named_entity_recognition with API response shape
+
 ## 1.0.3 (2026-04-13)
 
 This was a version bump only for sdk-js to align it with other projects, there were no code changes.
