@@ -114,6 +114,7 @@
   "release": {
     "projects": ["packages/*", "!packages/generator"],
     "projectsRelationship": "independent",
+    "releaseTagPatternCheckAllBranchesWhen": true,
     "changelog": {
       "projectChangelogs": {
         "renderOptions": {
