@@ -146,4 +146,30 @@ describe('LiveV2Session connectSession', () => {
     })
     expect(session.sessionId).toBe('created-session-id')
   })
+
+  it('endSession does not throw when abort closes the websocket with a reserved code', async () => {
+    const existingSession = {
+      id: 'session-123',
+      url: 'wss://api.gladia.io/v2/live/ws?token=abc',
+      created_at: '2026-06-25T10:00:00Z',
+    }
+
+    mockWsSession.readyState = WS_STATES.OPEN
+    mockWsSession.close = vi.fn(() => {
+      throw new DOMException('Invalid close code', 'InvalidAccessError')
+    })
+
+    const session = new LiveV2Session({
+      options: {},
+      existingSession,
+      httpClient,
+      webSocketClient,
+    })
+
+    await tick()
+    mockWsSession.onopen?.({ connection: 1, attempt: 1 })
+
+    expect(() => session.endSession()).not.toThrow()
+    expect(session.status).toBe('ended')
+  })
 })

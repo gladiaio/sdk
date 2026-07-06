@@ -199,7 +199,11 @@ export class LiveV2Session {
       webSocketSession.onmessage = null
       webSocketSession.onclose = null
       webSocketSession.onerror = null
-      webSocketSession.close(1001, 'Aborted')
+      try {
+        webSocketSession.close(1001, 'Aborted')
+      } catch {
+        // Abort listeners route exceptions to window.onerror; swallow close failures.
+      }
     })
 
     this.webSocketSession = webSocketSession
