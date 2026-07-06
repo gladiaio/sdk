@@ -33,6 +33,36 @@ function removeWsListeners(ws?: IsoWS | null): void {
   ws.onclose = null
 }
 
+/** Browser WebSocket.close() only accepts 1000 or 3000–4999. */
+function isBrowserWebSocketEnvironment(): boolean {
+  const env = globalThis as typeof globalThis & {
+    window?: unknown
+    document?: unknown
+    WebSocket?: unknown
+  }
+  return env.window !== undefined && env.document !== undefined && env.WebSocket !== undefined
+}
+
+function sanitizeCloseCodeForBrowser(code: number): number {
+  if (code === 1000 || (code >= 3000 && code <= 4999)) {
+    return code
+  }
+  return 1000
+}
+
+function safeWsClose(ws: IsoWS, code: number): void {
+  const closeCode = isBrowserWebSocketEnvironment() ? sanitizeCloseCodeForBrowser(code) : code
+  try {
+    ws.close(closeCode)
+  } catch {
+    try {
+      ws.close(1000)
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export class WebSocketClient {
   private readonly baseUrl: string | URL
   private readonly retry: Required<WebSocketRetryOptions>
@@ -77,6 +107,7 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
   private connectionCount = 0
   private connectionAttempt = 0
   private connectionTimeoutId: ReturnType<typeof setTimeout> | undefined
+  private pendingClose: { code: number; reason: string } | null = null
 
   constructor({
     retry,
@@ -123,9 +154,10 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
 
     this.clearConnectionTimeout()
     this._readyState = WS_STATES.CLOSING
+    this.pendingClose = { code, reason }
 
     if (this.ws?.readyState === WS_STATES.OPEN) {
-      this.ws.close(code)
+      safeWsClose(this.ws, code)
     } /* if (this.readyState === WS_STATES.CONNECTING) */ else {
       this.onWsClose(code, reason)
     }
@@ -147,6 +179,7 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
 
     removeWsListeners(this.ws)
     this.ws = null
+    this.pendingClose = null
   }
 
   private async connect(isRetry = false): Promise<void> {
@@ -198,7 +231,7 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
     }
 
     if (this.readyState !== WS_STATES.CONNECTING) {
-      ws.close(1001)
+      safeWsClose(ws, 1001)
       return
     }
 
@@ -209,7 +242,7 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
 
       if (this.readyState !== WS_STATES.CONNECTING) {
         // User closed the connection during the connection attempt
-        ws.close(1001)
+        safeWsClose(ws, 1001)
         return
       }
 
@@ -227,7 +260,8 @@ class WebSocketSession implements Omit<IsoWS, 'onopen'> {
         this.ws = null
 
         if (this.readyState === WS_STATES.CLOSING) {
-          this.onWsClose(event.code, event.reason || '')
+          const pending = this.pendingClose
+          this.onWsClose(pending?.code ?? event.code, pending?.reason || event.reason || '')
           return
         }
 

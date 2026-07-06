@@ -736,4 +736,57 @@ describe('WebSocketClient + WebSocketSession', () => {
 
     expect(limitCloseSpy).toHaveBeenCalledWith({ code: 1002, reason: 'Test close' })
   })
+
+  it('should sanitize reserved close codes in browser environments', async () => {
+    const originalWindow = globalThis.window
+    const originalDocument = globalThis.document
+
+    vi.stubGlobal('window', { WebSocket: class {} })
+    vi.stubGlobal('document', {})
+
+    try {
+      const closeSpy = vi.fn()
+      client = new WebSocketClient(partialOptions())
+      session = client.createSession('ws://localhost:8080')
+      session.onclose = closeSpy
+      await tick()
+      simulateOpen()
+
+      session.close(1001, 'Aborted')
+      expect(mockWs.close).toHaveBeenCalledWith(1000)
+
+      simulateClose(1000, '')
+      expect(closeSpy).toHaveBeenCalledWith({ code: 1001, reason: 'Aborted' })
+    } finally {
+      vi.stubGlobal('window', originalWindow)
+      vi.stubGlobal('document', originalDocument)
+    }
+  })
+
+  it('should fall back to 1000 when browser close throws InvalidAccessError', async () => {
+    const originalWindow = globalThis.window
+    const originalDocument = globalThis.document
+
+    vi.stubGlobal('window', { WebSocket: class {} })
+    vi.stubGlobal('document', {})
+
+    mockWs.close = vi.fn((code: number) => {
+      if (code !== 1000) {
+        throw new DOMException('Invalid close code', 'InvalidAccessError')
+      }
+    })
+
+    try {
+      client = new WebSocketClient(partialOptions())
+      session = client.createSession('ws://localhost:8080')
+      await tick()
+      simulateOpen()
+
+      expect(() => session.close(1006, 'WebSocket connection error')).not.toThrow()
+      expect(mockWs.close).toHaveBeenLastCalledWith(1000)
+    } finally {
+      vi.stubGlobal('window', originalWindow)
+      vi.stubGlobal('document', originalDocument)
+    }
+  })
 })
