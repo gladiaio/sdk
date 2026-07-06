@@ -38,9 +38,8 @@ function isBrowserWebSocketEnvironment(): boolean {
   const env = globalThis as typeof globalThis & {
     window?: unknown
     document?: unknown
-    WebSocket?: unknown
   }
-  return env.window !== undefined && env.document !== undefined && env.WebSocket !== undefined
+  return env.window !== undefined && env.document !== undefined
 }
 
 function sanitizeCloseCodeForBrowser(code: number): number {

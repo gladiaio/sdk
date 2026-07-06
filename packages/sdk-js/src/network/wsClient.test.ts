@@ -741,7 +741,7 @@ describe('WebSocketClient + WebSocketSession', () => {
     const originalWindow = globalThis.window
     const originalDocument = globalThis.document
 
-    vi.stubGlobal('window', { WebSocket: class {} })
+    vi.stubGlobal('window', {})
     vi.stubGlobal('document', {})
 
     try {
@@ -754,6 +754,7 @@ describe('WebSocketClient + WebSocketSession', () => {
 
       session.close(1001, 'Aborted')
       expect(mockWs.close).toHaveBeenCalledWith(1000)
+      expect(mockWs.close).not.toHaveBeenCalledWith(1001)
 
       simulateClose(1000, '')
       expect(closeSpy).toHaveBeenCalledWith({ code: 1001, reason: 'Aborted' })
@@ -767,7 +768,7 @@ describe('WebSocketClient + WebSocketSession', () => {
     const originalWindow = globalThis.window
     const originalDocument = globalThis.document
 
-    vi.stubGlobal('window', { WebSocket: class {} })
+    vi.stubGlobal('window', {})
     vi.stubGlobal('document', {})
 
     mockWs.close = vi.fn((code: number) => {
