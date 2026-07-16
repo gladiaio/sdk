@@ -25,6 +25,7 @@ from ...network import (
 )
 from ._helpers import (
   LiveV2SessionEventsMixin,
+  build_live_init_url,
   emit_session_ending_events,
   emit_started_if_needed,
   maybe_emit_start_session_message,
@@ -61,11 +62,13 @@ class LiveV2Session(LiveV2SessionEventsMixin):
     http_client: HttpClient,
     ws_client: WebSocketClient,
     existing_session: LiveV2InitResponse | None = None,
+    region: str | None = None,
   ) -> None:
     self._options = options
     self._http_client = http_client
     self._ws_client = ws_client
     self._existing_session = existing_session
+    self._region = region
 
     self._event_emitter = EventEmitter()
     self._status: LiveV2SessionStatus = "starting"
@@ -132,7 +135,7 @@ class LiveV2Session(LiveV2SessionEventsMixin):
   def _init_session(self) -> LiveV2InitResponse:
     try:
       options = with_acknowledgments_enabled(self._options)
-      resp = self._http_client.post("/v2/live", json=options.to_dict())
+      resp = self._http_client.post(build_live_init_url(self._region), json=options.to_dict())
       return LiveV2InitResponse.from_json(resp.content)
     except Exception as err:
       _ = self._event_emitter.emit("error", err)

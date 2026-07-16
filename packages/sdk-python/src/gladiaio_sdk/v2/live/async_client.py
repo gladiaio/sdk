@@ -20,14 +20,10 @@ class LiveV2AsyncClient:
     base_http_url = urlparse(options.api_url)
     base_http_url = base_http_url._replace(scheme=re.sub(r"^ws", "http", base_http_url.scheme))
 
-    query_params: dict[str, str] = {}
-    if options.region:
-      query_params["region"] = options.region
-
     self._http_client = AsyncHttpClient(
       base_url=base_http_url.geturl(),
       headers=options.http_headers,
-      query_params=query_params,
+      query_params={},
       retry=options.http_retry,
       timeout=options.http_timeout,
     )
@@ -45,7 +41,10 @@ class LiveV2AsyncClient:
 
   def start_session(self, options: LiveV2InitRequest) -> LiveV2AsyncSession:
     return LiveV2AsyncSession(
-      options=options, http_client=self._http_client, ws_client=self._ws_client
+      options=options,
+      http_client=self._http_client,
+      ws_client=self._ws_client,
+      region=self._options.region,
     )
 
   def connect_session(self, options: LiveV2ConnectSessionOptions) -> LiveV2AsyncSession:

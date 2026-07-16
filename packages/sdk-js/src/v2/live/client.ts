@@ -12,15 +12,16 @@ export class LiveV2Client {
   private httpClient: HttpClient
   private webSocketClient: WebSocketClient
   private readonly liveTimeouts: InternalGladiaClientOptions['liveTimeouts']
+  private readonly region: InternalGladiaClientOptions['region']
 
   constructor(options: InternalGladiaClientOptions) {
     const httpBaseUrl = new URL(options.apiUrl)
     httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
     this.liveTimeouts = options.liveTimeouts
+    this.region = options.region
     this.httpClient = new HttpClient({
       baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
-      ...(options.region ? { queryParams: { region: options.region } } : {}),
       retry: options.httpRetry,
       timeout: options.httpTimeout,
     })
@@ -37,6 +38,7 @@ export class LiveV2Client {
   startSession(options: LiveV2InitRequest): LiveV2Session {
     return new LiveV2Session({
       options,
+      region: this.region,
       httpClient: this.httpClient,
       webSocketClient: this.webSocketClient,
     })

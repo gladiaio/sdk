@@ -36,18 +36,24 @@ export class LiveV2Session {
 
   private _status: LiveV2SessionStatus = 'starting'
 
+  private readonly region?: string
+
   constructor({
     options,
+    region,
     existingSession,
     httpClient,
     webSocketClient,
   }: {
     options: LiveV2InitRequest
+    /** Region query param for POST /v2/live only. Ignored when attaching to an existing session. */
+    region?: string
     existingSession?: LiveV2InitResponse
     httpClient: HttpClient
     webSocketClient: WebSocketClient
   }) {
     this.sessionOptions = options
+    this.region = region
     this.httpClient = httpClient
     this.webSocketClient = webSocketClient
     this.abortController = new AbortController()
@@ -132,7 +138,11 @@ export class LiveV2Session {
 
   private async initSession(): Promise<LiveV2InitResponse> {
     try {
-      return await this.httpClient.post<LiveV2InitResponse>(`/v2/live`, {
+      // region is only supported on session creation (POST /v2/live)
+      const initUrl = this.region
+        ? `/v2/live?region=${encodeURIComponent(this.region)}`
+        : '/v2/live'
+      return await this.httpClient.post<LiveV2InitResponse>(initUrl, {
         signal: this.abortController.signal,
         headers: {
           'Content-Type': 'application/json',

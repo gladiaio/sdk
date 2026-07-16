@@ -22,7 +22,7 @@ Import **`GladiaClient`** and create an instance.
 
 Provide an API key with **`api_key`** or the **`GLADIA_API_KEY`** environment variable. [Get your API key](https://docs.gladia.io/chapters/introduction/getting-started) in under a minute.
 
-You can also set **`GLADIA_API_URL`** and **`GLADIA_REGION`** (`eu-west` / `us-west`).
+You can also set **`GLADIA_API_URL`**. For live sessions, **`GLADIA_REGION`** (`eu-west` / `us-west`) is passed only on session creation (`POST /v2/live`).
 
 ### Sync client
 

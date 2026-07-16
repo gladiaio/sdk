@@ -115,9 +115,9 @@ export type GladiaClientOptions = {
   apiUrl?: string
 
   /**
-   * Region to use.
+   * Region for live session creation (POST /v2/live). Other routes do not support this param.
    *
-   * If not provided, the client will take the environment variable GLADIA_REGION and, if not provided either, it will default to 'eu-west'.
+   * If not provided, the client will take the environment variable GLADIA_REGION.
    */
   region?: 'eu-west' | 'us-west'
 

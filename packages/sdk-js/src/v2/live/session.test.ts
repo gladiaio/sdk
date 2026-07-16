@@ -146,4 +146,23 @@ describe('LiveV2Session connectSession', () => {
     })
     expect(session.sessionId).toBe('created-session-id')
   })
+
+  it('passes region only on POST /v2/live', async () => {
+    const session = new LiveV2Session({
+      options: { sample_rate: 16000 },
+      region: 'us-west',
+      httpClient,
+      webSocketClient,
+    })
+
+    await tick()
+
+    expect(mockHttpPost).toHaveBeenCalledWith(
+      '/v2/live?region=us-west',
+      expect.objectContaining({
+        body: expect.stringContaining('"sample_rate":16000'),
+      })
+    )
+    expect(session.sessionId).toBe('created-session-id')
+  })
 })
