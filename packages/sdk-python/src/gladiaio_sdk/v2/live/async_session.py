@@ -124,9 +124,7 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
   async def _init_session(self) -> LiveV2InitResponse:
     try:
       options = with_acknowledgments_enabled(self._options)
-      resp = await self._http_client.post(
-        build_live_init_url(self._region), json=options.to_dict()
-      )
+      resp = await self._http_client.post(build_live_init_url(self._region), json=options.to_dict())
       return LiveV2InitResponse.from_json(resp.content)
     except Exception as err:
       _ = self._event_emitter.emit("error", err)
