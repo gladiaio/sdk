@@ -7,6 +7,7 @@ from collections.abc import Callable
 from typing import Any, Literal, Protocol, TypeVar, overload
 from urllib.parse import urlencode
 
+from gladiaio_sdk.client_options import Region
 from gladiaio_sdk.v2.live.types import (
   LiveV2ConnectedMessage,
   LiveV2ConnectingMessage,
@@ -63,7 +64,7 @@ def with_acknowledgments_enabled(options: LiveV2InitRequest) -> LiveV2InitReques
   return dataclasses.replace(options, messages_config=msg_cfg)
 
 
-def build_live_init_url(region: str | None = None) -> str:
+def build_live_init_url(region: Region | None = None) -> str:
   """Build POST /v2/live URL. ``region`` is only supported on this route."""
   if region:
     return f"/v2/live?{urlencode({'region': region})}"

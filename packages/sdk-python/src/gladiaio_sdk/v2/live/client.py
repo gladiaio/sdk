@@ -4,7 +4,7 @@ import re
 from typing import TYPE_CHECKING, final
 from urllib.parse import urlparse
 
-from gladiaio_sdk.client_options import GladiaClientOptions
+from gladiaio_sdk.client_options import GladiaClientOptions, QueryParams
 from gladiaio_sdk.network import HttpClient, WebSocketClient
 from gladiaio_sdk.v2.core import V2JobCore
 from gladiaio_sdk.v2.live.session import LiveV2Session
@@ -20,10 +20,12 @@ class LiveV2Client:
     base_http_url = urlparse(options.api_url)
     base_http_url = base_http_url._replace(scheme=re.sub(r"^ws", "http", base_http_url.scheme))
 
+    query_params: QueryParams = {}
+
     self._http_client = HttpClient(
       base_url=base_http_url.geturl(),
       headers=options.http_headers,
-      query_params={},
+      query_params=query_params,
       retry=options.http_retry,
       timeout=options.http_timeout,
     )

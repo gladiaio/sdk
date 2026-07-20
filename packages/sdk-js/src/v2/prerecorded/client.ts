@@ -1,6 +1,7 @@
 import { sleep } from '../../helpers.js'
 import type { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
+import type { QueryParams } from '../../types.js'
 import type {
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
@@ -37,9 +38,11 @@ export class PreRecordedV2Client {
     const httpBaseUrl = new URL(options.apiUrl)
     httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
     this.prerecordedTimeouts = options.prerecordedTimeouts
+    const queryParams: QueryParams = {}
     this.httpClient = new HttpClient({
       baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
+      queryParams,
       retry: options.httpRetry,
       timeout: options.httpTimeout,
     })

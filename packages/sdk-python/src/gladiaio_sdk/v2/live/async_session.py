@@ -9,6 +9,7 @@ from typing import Any, final
 
 from pyee.asyncio import AsyncIOEventEmitter
 
+from gladiaio_sdk.client_options import Region
 from gladiaio_sdk.v2.live.types import (
   LiveV2ConnectedMessage,
   LiveV2ConnectingMessage,
@@ -61,7 +62,7 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     http_client: AsyncHttpClient,
     ws_client: WebSocketClient,
     existing_session: LiveV2InitResponse | None = None,
-    region: str | None = None,
+    region: Region | None = None,
   ) -> None:
     self._options = options
     self._http_client = http_client

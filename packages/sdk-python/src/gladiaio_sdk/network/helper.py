@@ -39,8 +39,8 @@ def build_url(base_url: str, url: str) -> str:
   else:
     path = rel_path
 
-  params = dict(parse_qsl(base.query, keep_blank_values=True))
-  params.update(dict(parse_qsl(rel.query, keep_blank_values=True)))
+  params = parse_qsl(base.query, keep_blank_values=True)
+  params.extend(parse_qsl(rel.query, keep_blank_values=True))
   query = urlencode(params)
 
   return urlunsplit((base.scheme, base.netloc, path, query, rel.fragment or base.fragment))

@@ -2,6 +2,7 @@ import { EventEmitter } from 'eventemitter3'
 import { concatArrayBuffer, toUint8Array } from '../../helpers.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient, WebSocketSession, WS_STATES } from '../../network/wsClient.js'
+import type { Region } from '../../types.js'
 import type {
   LiveV2InitRequest,
   LiveV2InitResponse,
@@ -36,7 +37,7 @@ export class LiveV2Session {
 
   private _status: LiveV2SessionStatus = 'starting'
 
-  private readonly region?: string
+  private readonly region?: Region
 
   constructor({
     options,
@@ -47,7 +48,7 @@ export class LiveV2Session {
   }: {
     options: LiveV2InitRequest
     /** Region query param for POST /v2/live only. Ignored when attaching to an existing session. */
-    region?: string
+    region?: Region
     existingSession?: LiveV2InitResponse
     httpClient: HttpClient
     webSocketClient: WebSocketClient
