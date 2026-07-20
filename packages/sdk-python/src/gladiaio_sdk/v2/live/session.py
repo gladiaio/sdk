@@ -69,7 +69,7 @@ class LiveV2Session(LiveV2SessionEventsMixin):
     self._http_client = http_client
     self._ws_client = ws_client
     self._existing_session = existing_session
-    self._region = region
+    self._region: Region | None = region
 
     self._event_emitter = EventEmitter()
     self._status: LiveV2SessionStatus = "starting"

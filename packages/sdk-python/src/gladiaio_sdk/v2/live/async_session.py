@@ -67,7 +67,7 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     self._options = options
     self._http_client = http_client
     self._ws_client = ws_client
-    self._region = region
+    self._region: Region | None = region
 
     self._abort = asyncio.Event()
     self._event_emitter = AsyncIOEventEmitter()
