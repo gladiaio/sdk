@@ -24,7 +24,8 @@ export class LiveV2Client {
     this.httpClient = new HttpClient({
       baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
-      queryParams,
+      ...(options.region ? { queryParams: { region: options.region } } : {}),
+
       retry: options.httpRetry,
       timeout: options.httpTimeout,
     })

@@ -7,7 +7,6 @@ from typing import Literal, cast
 Region = Literal["eu-west", "us-west"]
 
 # Default HTTP query parameters attached to every request from an HTTP client.
-# Do not put ``region`` here — it is only supported on live session creation (POST /v2/live).
 QueryParams = dict[str, str]
 
 # Default timeouts (seconds) for general HTTP / WebSocket clients.
