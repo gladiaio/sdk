@@ -9,6 +9,7 @@ from typing import Any, final
 
 from pyee.asyncio import AsyncIOEventEmitter
 
+from gladiaio_sdk.client_options import Region
 from gladiaio_sdk.v2.live.types import (
   LiveV2ConnectedMessage,
   LiveV2ConnectingMessage,
@@ -24,6 +25,7 @@ from ...network import (
 )
 from ._helpers import (
   LiveV2SessionEventsMixin,
+  build_live_init_url,
   emit_session_ending_events,
   emit_started_if_needed,
   maybe_emit_start_session_message,
@@ -60,10 +62,12 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     http_client: AsyncHttpClient,
     ws_client: WebSocketClient,
     existing_session: LiveV2InitResponse | None = None,
+    region: Region | None = None,
   ) -> None:
     self._options = options
     self._http_client = http_client
     self._ws_client = ws_client
+    self._region: Region | None = region
 
     self._abort = asyncio.Event()
     self._event_emitter = AsyncIOEventEmitter()
@@ -121,7 +125,7 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
   async def _init_session(self) -> LiveV2InitResponse:
     try:
       options = with_acknowledgments_enabled(self._options)
-      resp = await self._http_client.post("/v2/live", json=options.to_dict())
+      resp = await self._http_client.post(build_live_init_url(self._region), json=options.to_dict())
       return LiveV2InitResponse.from_json(resp.content)
     except Exception as err:
       _ = self._event_emitter.emit("error", err)

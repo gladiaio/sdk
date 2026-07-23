@@ -4,7 +4,7 @@ import re
 from typing import TYPE_CHECKING, final
 from urllib.parse import urlparse
 
-from gladiaio_sdk.client_options import GladiaClientOptions
+from gladiaio_sdk.client_options import GladiaClientOptions, QueryParams
 from gladiaio_sdk.network import HttpClient, WebSocketClient
 from gladiaio_sdk.v2.core import V2JobCore
 from gladiaio_sdk.v2.live.session import LiveV2Session
@@ -20,9 +20,7 @@ class LiveV2Client:
     base_http_url = urlparse(options.api_url)
     base_http_url = base_http_url._replace(scheme=re.sub(r"^ws", "http", base_http_url.scheme))
 
-    query_params: dict[str, str] = {}
-    if options.region:
-      query_params["region"] = options.region
+    query_params: QueryParams = {}
 
     self._http_client = HttpClient(
       base_url=base_http_url.geturl(),
@@ -44,7 +42,12 @@ class LiveV2Client:
     self._core = V2JobCore(base_path="/v2/live", kind="Live")
 
   def start_session(self, options: LiveV2InitRequest) -> LiveV2Session:
-    return LiveV2Session(options=options, http_client=self._http_client, ws_client=self._ws_client)
+    return LiveV2Session(
+      options=options,
+      http_client=self._http_client,
+      ws_client=self._ws_client,
+      region=self._options.region,
+    )
 
   def connect_session(self, options: LiveV2ConnectSessionOptions) -> LiveV2Session:
     """Connect to an existing live session using its WebSocket URL and session ID.

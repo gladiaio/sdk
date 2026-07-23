@@ -4,7 +4,7 @@ import re
 from typing import TYPE_CHECKING, final
 from urllib.parse import urlparse
 
-from gladiaio_sdk.client_options import GladiaClientOptions
+from gladiaio_sdk.client_options import GladiaClientOptions, QueryParams
 from gladiaio_sdk.network import AsyncHttpClient, WebSocketClient
 from gladiaio_sdk.v2.core import V2JobCore
 from gladiaio_sdk.v2.live.async_session import LiveV2AsyncSession
@@ -20,9 +20,7 @@ class LiveV2AsyncClient:
     base_http_url = urlparse(options.api_url)
     base_http_url = base_http_url._replace(scheme=re.sub(r"^ws", "http", base_http_url.scheme))
 
-    query_params: dict[str, str] = {}
-    if options.region:
-      query_params["region"] = options.region
+    query_params: QueryParams = {}
 
     self._http_client = AsyncHttpClient(
       base_url=base_http_url.geturl(),
@@ -45,7 +43,10 @@ class LiveV2AsyncClient:
 
   def start_session(self, options: LiveV2InitRequest) -> LiveV2AsyncSession:
     return LiveV2AsyncSession(
-      options=options, http_client=self._http_client, ws_client=self._ws_client
+      options=options,
+      http_client=self._http_client,
+      ws_client=self._ws_client,
+      region=self._options.region,
     )
 
   def connect_session(self, options: LiveV2ConnectSessionOptions) -> LiveV2AsyncSession:

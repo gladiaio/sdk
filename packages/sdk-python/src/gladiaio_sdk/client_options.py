@@ -6,6 +6,9 @@ from typing import Literal, cast
 # Region parameter
 Region = Literal["eu-west", "us-west"]
 
+# Default HTTP query parameters attached to every request from an HTTP client.
+QueryParams = dict[str, str]
+
 # Default timeouts (seconds) for general HTTP / WebSocket clients.
 DEFAULT_HTTP_TIMEOUT: float = 10
 DEFAULT_WS_TIMEOUT: float = 10
@@ -103,6 +106,7 @@ class GladiaClientOptions:
 
   api_key: str | None = os.environ.get("GLADIA_API_KEY")
   api_url: str = os.environ.get("GLADIA_API_URL", "https://api.gladia.io")
+  # Only applied to live session creation (POST /v2/live). Other routes ignore it.
   region: Region | None = cast(Region | None, os.environ.get("GLADIA_REGION"))
   http_headers: dict[str, str] = field(default_factory=dict)
   http_retry: HttpRetryOptions = HttpRetryOptions()

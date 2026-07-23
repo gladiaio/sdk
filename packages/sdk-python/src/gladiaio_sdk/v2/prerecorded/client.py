@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, BinaryIO, final
 from urllib.parse import urlparse
 
-from gladiaio_sdk.client_options import GladiaClientOptions
+from gladiaio_sdk.client_options import GladiaClientOptions, QueryParams
 from gladiaio_sdk.network import HttpClient
 
 from .core import (
@@ -37,9 +37,7 @@ class PreRecordedV2Client:
     base_http_url = urlparse(options.api_url)
     base_http_url = base_http_url._replace(scheme=re.sub(r"^ws", "http", base_http_url.scheme))
 
-    query_params: dict[str, str] = {}
-    if options.region:
-      query_params["region"] = options.region
+    query_params: QueryParams = {}
 
     self._http_client = HttpClient(
       base_url=base_http_url.geturl(),

@@ -10,7 +10,7 @@ from typing import Any, final
 
 import httpx
 
-from gladiaio_sdk.client_options import HttpRetryOptions
+from gladiaio_sdk.client_options import HttpRetryOptions, QueryParams
 from gladiaio_sdk.network.helper import matches_status
 
 _schema_field_names_cache: dict[str, frozenset[str]] = {}
@@ -313,7 +313,7 @@ class AsyncHttpClient:
     self,
     base_url: str,
     headers: dict[str, str],
-    query_params: dict[str, str],
+    query_params: QueryParams,
     retry: HttpRetryOptions,
     timeout: float,
   ) -> None:
@@ -442,7 +442,7 @@ class HttpClient:
     self,
     base_url: str,
     headers: dict[str, str],
-    query_params: dict[str, str],
+    query_params: QueryParams,
     retry: HttpRetryOptions,
     timeout: float,
   ) -> None:
