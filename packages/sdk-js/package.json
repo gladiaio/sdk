@@ -1,7 +1,7 @@
 {
   "name": "@gladiaio/sdk",
   "description": "Gladia JavaScript/TypeScript SDK",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "author": "Gladia",
   "license": "MIT",
   "repository": "github:gladiaio/sdk",
