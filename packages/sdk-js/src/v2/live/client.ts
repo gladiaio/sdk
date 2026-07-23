@@ -1,7 +1,7 @@
 import { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient } from '../../network/wsClient.js'
-import type { QueryParams, Region } from '../../types.js'
+import type { Region } from '../../types.js'
 import type { LiveV2InitRequest, LiveV2InitResponse, LiveV2Response } from './generated-types.js'
 import { LiveV2Session } from './session.js'
 import type { LiveV2ConnectSessionOptions } from './types.js'
@@ -20,7 +20,6 @@ export class LiveV2Client {
     httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
     this.liveTimeouts = options.liveTimeouts
     this.region = options.region
-    const queryParams: QueryParams = {}
     this.httpClient = new HttpClient({
       baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
