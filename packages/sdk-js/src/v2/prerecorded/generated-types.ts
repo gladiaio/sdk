@@ -279,7 +279,7 @@ export type PreRecordedV2TranslationLanguageCode =
   | 'yo'
   | 'zh'
 
-export type PreRecordedV2TranslationModel = 'base' | 'enhanced'
+export type PreRecordedV2TranslationModel = 'base' | 'batch' | 'enhanced'
 
 export interface PreRecordedV2TranslationConfig {
   /** Target language in `iso639-1` format you want the transcription translated to */
@@ -415,6 +415,8 @@ export interface PreRecordedV2LanguageConfig {
   code_switching?: boolean
 }
 
+export type PreRecordedV2TranscriptionModel = 'solaria-1' | 'solaria-3' | 'solaria-fusion'
+
 export interface PreRecordedV2FileResponse {
   /** The file id */
   id: string
@@ -477,6 +479,8 @@ export interface PreRecordedV2RequestParamsResponse {
   punctuation_enhanced?: boolean
   /** Specify the language configuration */
   language_config?: PreRecordedV2LanguageConfig
+  /** The model used to process the audio. "solaria-1" is used by default. */
+  model?: PreRecordedV2TranscriptionModel
   audio_url: string | null
 }
 
@@ -647,7 +651,7 @@ export interface PreRecordedV2NamesConsistency {
   /** `null` if `success` is `true`. Contains the error details of the failed model */
   error: PreRecordedV2AddonError | null
   /** Deprecated, If `name_consistency` has been enabled, Gladia will improve the consistency of the names across the transcription */
-  results: string
+  results: string | null
 }
 
 export interface PreRecordedV2StructuredDataExtraction {
@@ -660,7 +664,7 @@ export interface PreRecordedV2StructuredDataExtraction {
   /** `null` if `success` is `true`. Contains the error details of the failed model */
   error: PreRecordedV2AddonError | null
   /** If `structured_data_extraction` has been enabled, results of the AI structured data extraction for the defined classes. */
-  results: string
+  results: string | null
 }
 
 export interface PreRecordedV2SentimentAnalysis {
@@ -722,19 +726,6 @@ export interface PreRecordedV2DisplayMode {
   results: Array<string> | null
 }
 
-export interface PreRecordedV2Chapterization {
-  /** The audio intelligence model succeeded to get a valid output */
-  success: boolean
-  /** The audio intelligence model returned an empty value */
-  is_empty: boolean
-  /** Time audio intelligence model took to complete the task */
-  exec_time: number
-  /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: PreRecordedV2AddonError | null
-  /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
-  results: Record<string, any>
-}
-
 export interface PreRecordedV2Diarization {
   /** The audio intelligence model succeeded to get a valid output */
   success: boolean
@@ -773,8 +764,6 @@ export interface PreRecordedV2TranscriptionResult {
   sentences?: PreRecordedV2Sentences
   /** If `display_mode` has been enabled, the output will be reordered, creating new utterances when speakers overlapped */
   display_mode?: PreRecordedV2DisplayMode
-  /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
-  chapterization?: PreRecordedV2Chapterization
   /** If `diarization` has been requested and an error has occurred, the result will appear here */
   diarization?: PreRecordedV2Diarization
 }
@@ -845,6 +834,8 @@ export interface PreRecordedV2InitTranscriptionRequest {
   punctuation_enhanced?: boolean
   /** Specify the language configuration */
   language_config?: PreRecordedV2LanguageConfig
+  /** The model used to process the audio. "solaria-1" is used by default. */
+  model?: PreRecordedV2TranscriptionModel
   /** URL to a Gladia file or to an external audio or video file */
   audio_url: string
 }
