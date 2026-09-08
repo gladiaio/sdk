@@ -43,8 +43,8 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: auto-update OpenAPI generated types'
-          title: 'chore: auto-update OpenAPI generated types'
+          commit-message: 'chore: auto-update openapi generated types'
+          title: 'chore: auto-update openapi generated types'
           body: |
             Automated regeneration of SDK types from the remote OpenAPI schema:
 
