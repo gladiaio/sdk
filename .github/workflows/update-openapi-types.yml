@@ -1,0 +1,57 @@
+name: Update OpenAPI types
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: '${{ github.workflow }}'
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-openapi-types:
+    name: Regenerate OpenAPI types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: bun install
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install Python deps
+        run: bun nx run-many -t sync
+
+      - name: Generate OpenAPI types
+        run: bun nx run generator:generate
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: auto-update OpenAPI generated types'
+          title: 'chore: auto-update OpenAPI generated types'
+          body: |
+            Automated regeneration of SDK types from the remote OpenAPI schema:
+
+            https://api.gladia.io/openapi.json
+
+            Please review the generated type changes before merging.
+          branch: chore/update-openapi-types
+          base: main
+          delete-branch: true
+          reviewers: egenthon-cmd
