@@ -1,3 +1,7 @@
+# 2.0.0 (2026-09-09)
+
+This was a version bump only for sdk-python to align it with other projects, there were no code changes.
+
 ## 1.0.2 (2026-04-16)
 
 ### 🩹 Fixes
