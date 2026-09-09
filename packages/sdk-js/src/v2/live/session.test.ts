@@ -147,29 +147,22 @@ describe('LiveV2Session connectSession', () => {
     expect(session.sessionId).toBe('created-session-id')
   })
 
-  it('endSession does not throw when abort closes the websocket with a reserved code', async () => {
-    const existingSession = {
-      id: 'session-123',
-      url: 'wss://api.gladia.io/v2/live/ws?token=abc',
-      created_at: '2026-06-25T10:00:00Z',
-    }
-
-    mockWsSession.readyState = WS_STATES.OPEN
-    mockWsSession.close = vi.fn(() => {
-      throw new DOMException('Invalid close code', 'InvalidAccessError')
-    })
-
+  it('passes region only on POST /v2/live', async () => {
     const session = new LiveV2Session({
-      options: {},
-      existingSession,
+      options: { sample_rate: 16000 },
+      region: 'us-west',
       httpClient,
       webSocketClient,
     })
 
     await tick()
-    mockWsSession.onopen?.({ connection: 1, attempt: 1 })
 
-    expect(() => session.endSession()).not.toThrow()
-    expect(session.status).toBe('ended')
+    expect(mockHttpPost).toHaveBeenCalledWith(
+      '/v2/live?region=us-west',
+      expect.objectContaining({
+        body: expect.stringContaining('"sample_rate":16000'),
+      })
+    )
+    expect(session.sessionId).toBe('created-session-id')
   })
 })

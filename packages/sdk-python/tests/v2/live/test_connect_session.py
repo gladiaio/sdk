@@ -90,10 +90,11 @@ class FakeWebSocketClient:
     return self.create_session(url)
 
 
-def _client_options() -> GladiaClientOptions:
+def _client_options(**overrides: Any) -> GladiaClientOptions:
   return GladiaClientOptions(
     api_url="https://api.gladia.io",
     ws_retry=WebSocketRetryOptions(max_attempts_per_connection=0, max_connections=0),
+    **overrides,
   )
 
 
@@ -163,6 +164,30 @@ def test_start_session_still_calls_http_init(monkeypatch):
   assert http_client.post_calls[0][0] == "/v2/live"
   assert http_client.post_calls[0][1]["json"]["sample_rate"] == 16000
   assert ws_client.created_urls == ["wss://api.gladia.io/v2/live/ws?token=created"]
+
+  session.end_session()
+  assert session.join(timeout=2)
+
+
+def test_start_session_passes_region_only_on_live_init(monkeypatch):
+  http_client = FakeHttpClient()
+  ws_client = FakeWebSocketClient()
+
+  monkeypatch.setattr(
+    "gladiaio_sdk.v2.live.client.HttpClient",
+    lambda **kwargs: http_client,
+  )
+  monkeypatch.setattr(
+    "gladiaio_sdk.v2.live.client.WebSocketClient",
+    lambda **kwargs: ws_client,
+  )
+
+  client = LiveV2Client(_client_options(region="us-west"))
+  session = client.start_session(LiveV2InitRequest(sample_rate=16000))
+
+  assert _wait_for(lambda: session.session_id == "created-session-id")
+  assert len(http_client.post_calls) == 1
+  assert http_client.post_calls[0][0] == "/v2/live?region=us-west"
 
   session.end_session()
   assert session.join(timeout=2)

@@ -1,5 +1,5 @@
 import { deepMergeObjects, sleep } from '../helpers.js'
-import type { HttpRetryOptions } from '../types.js'
+import type { HttpRetryOptions, QueryParams } from '../types.js'
 import { initFetch } from './iso-fetch.js'
 import type { Headers } from './types.js'
 
@@ -115,7 +115,7 @@ type RequestOptions = Omit<RequestInit, 'method' | 'headers'> & {
 export type HttpClientOptions = {
   baseUrl: string | URL
   headers?: Headers
-  queryParams?: Record<string, string>
+  queryParams?: QueryParams
   retry: Required<HttpRetryOptions>
   timeout: number
 }
@@ -153,7 +153,7 @@ function isAbortError(error: unknown): boolean {
 export class HttpClient {
   private baseUrl: string | URL
   private defaultHeaders?: Headers
-  private defaultQueryParams?: Record<string, string>
+  private defaultQueryParams?: QueryParams
 
   private retry: Required<HttpRetryOptions>
   private timeout: number

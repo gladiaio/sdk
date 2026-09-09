@@ -91,6 +91,17 @@ export type LiveV2Timeouts = {
 }
 
 /**
+ * Region for live session creation (POST /v2/live).
+ */
+export type Region = 'eu-west' | 'us-west'
+
+/**
+ * Default HTTP query parameters attached to every request from an HTTP client.
+ * Do not put `region` here — it is only supported on live session creation (POST /v2/live).
+ */
+export type QueryParams = Record<string, string>
+
+/**
  * Options for the Gladia Client.
  */
 export type GladiaClientOptions = {
@@ -115,11 +126,11 @@ export type GladiaClientOptions = {
   apiUrl?: string
 
   /**
-   * Region to use.
+   * Region for live session creation (POST /v2/live). Other routes do not support this param.
    *
-   * If not provided, the client will take the environment variable GLADIA_REGION and, if not provided either, it will default to 'eu-west'.
+   * If not provided, the client will take the environment variable GLADIA_REGION.
    */
-  region?: 'eu-west' | 'us-west'
+  region?: Region
 
   /**
    * Custom headers to add to the HTTP requests.
