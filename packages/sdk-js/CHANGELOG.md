@@ -1,3 +1,9 @@
+# 2.0.0 (2026-09-09)
+
+### 🩹 Fixes
+
+- **sdk-js:** prevent unhandled rejection start failure
+
 ## 1.0.3 (2026-04-13)
 
 This was a version bump only for sdk-js to align it with other projects, there were no code changes.
