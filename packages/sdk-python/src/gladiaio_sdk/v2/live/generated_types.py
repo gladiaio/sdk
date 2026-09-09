@@ -284,7 +284,7 @@ LiveV2TranslationLanguageCode = Literal[
   "zh",
 ]
 
-LiveV2TranslationModel = Literal["base", "enhanced"]
+LiveV2TranslationModel = Literal["base", "batch", "enhanced"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -341,7 +341,7 @@ class LiveV2PostProcessingConfig(BaseDataClass):
   summarization: bool | None = None
   # Summarization configuration, if `summarization` is enabled
   summarization_config: LiveV2SummarizationConfig | None = None
-  # If true, generates chapters for the whole transcription.
+  # Deprecated: this parameter is ignored.
   chapterization: bool | None = None
 
 
@@ -619,21 +619,6 @@ class LiveV2SentimentAnalysis(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class LiveV2Chapterization(BaseDataClass):
-  # The audio intelligence model succeeded to get a valid output
-  success: bool
-  # The audio intelligence model returned an empty value
-  is_empty: bool
-  # Time audio intelligence model took to complete the task
-  exec_time: float
-  # If `chapterization` has been enabled, will generate chapters name for different parts of the
-  # given audio.
-  results: dict[str, Any]
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: LiveV2AddonError | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class LiveV2TranscriptionResultWithMessages(BaseDataClass):
   # Metadata for the given transcription & audio file
   metadata: LiveV2TranscriptionMetadata
@@ -647,9 +632,6 @@ class LiveV2TranscriptionResultWithMessages(BaseDataClass):
   named_entity_recognition: LiveV2NamedEntityRecognition | None = None
   # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
   sentiment_analysis: LiveV2SentimentAnalysis | None = None
-  # If `chapterization` has been enabled, will generate chapters name for different parts of the
-  # given audio.
-  chapterization: LiveV2Chapterization | None = None
   # Real-Time messages sent by the server during the live transcription
   messages: list[str] | None = None
 
@@ -699,34 +681,6 @@ class LiveV2NamedEntityRecognitionData(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class LiveV2ChapterizationSentence(BaseDataClass):
-  sentence: str
-  start: float
-  end: float
-  words: list[LiveV2Word]
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2PostChapterizationResult(BaseDataClass):
-  headline: str
-  gist: str
-  keywords: list[str]
-  start: float
-  end: float
-  sentences: list[LiveV2ChapterizationSentence]
-  text: str
-  abstractive_summary: str | None = None
-  extractive_summary: str | None = None
-  summary: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2PostChapterizationMessageData(BaseDataClass):
-  # The chapters
-  results: list[LiveV2PostChapterizationResult]
-
-
-@dataclass(frozen=True, slots=True)
 class LiveV2TranscriptionResult(BaseDataClass):
   # Metadata for the given transcription & audio file
   metadata: LiveV2TranscriptionMetadata
@@ -740,9 +694,6 @@ class LiveV2TranscriptionResult(BaseDataClass):
   named_entity_recognition: LiveV2NamedEntityRecognition | None = None
   # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
   sentiment_analysis: LiveV2SentimentAnalysis | None = None
-  # If `chapterization` has been enabled, will generate chapters name for different parts of the
-  # given audio.
-  chapterization: LiveV2Chapterization | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -963,19 +914,6 @@ class LiveV2NamedEntityRecognitionMessage(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class LiveV2PostChapterizationMessage(BaseDataClass):
-  # Id of the live session
-  session_id: str
-  # Date of creation of the message. The date is formatted as an ISO 8601 string
-  created_at: str
-  type: Literal["post_chapterization"]
-  # Error message if the addon failed
-  error: LiveV2Error | None = None
-  # The message data. "null" if the addon failed
-  data: LiveV2PostChapterizationMessageData | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class LiveV2PostFinalTranscriptMessage(BaseDataClass):
   # Id of the live session
   session_id: str
@@ -1096,7 +1034,6 @@ LiveV2WebSocketMessage = (
   | LiveV2EndSessionMessage
   | LiveV2TranslationMessage
   | LiveV2NamedEntityRecognitionMessage
-  | LiveV2PostChapterizationMessage
   | LiveV2PostFinalTranscriptMessage
   | LiveV2PostSummarizationMessage
   | LiveV2PostTranscriptMessage
@@ -1114,7 +1051,6 @@ _WS_TYPE_TO_CLASS: dict[str, type[LiveV2WebSocketMessage]] = {
   "end_session": LiveV2EndSessionMessage,
   "translation": LiveV2TranslationMessage,
   "named_entity_recognition": LiveV2NamedEntityRecognitionMessage,
-  "post_chapterization": LiveV2PostChapterizationMessage,
   "post_final_transcript": LiveV2PostFinalTranscriptMessage,
   "post_summarization": LiveV2PostSummarizationMessage,
   "post_transcript": LiveV2PostTranscriptMessage,
@@ -1196,15 +1132,6 @@ class LiveV2CallbackNamedEntityRecognitionMessage(BaseDataClass):
   event: Literal["live.named_entity_recognition"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2NamedEntityRecognitionMessage
-
-
-@dataclass(frozen=True, slots=True)
-class LiveV2CallbackPostChapterizationMessage(BaseDataClass):
-  # Id of the job
-  id: str
-  event: Literal["live.post_chapterization"]
-  # The live message payload as sent to the WebSocket
-  payload: LiveV2PostChapterizationMessage
 
 
 @dataclass(frozen=True, slots=True)
@@ -1304,7 +1231,6 @@ LiveV2CallbackMessage = (
   | LiveV2CallbackEndSessionMessage
   | LiveV2CallbackTranslationMessage
   | LiveV2CallbackNamedEntityRecognitionMessage
-  | LiveV2CallbackPostChapterizationMessage
   | LiveV2CallbackPostFinalTranscriptMessage
   | LiveV2CallbackPostSummarizationMessage
   | LiveV2CallbackPostTranscriptMessage
@@ -1322,7 +1248,6 @@ _CALLBACK_EVENT_TO_CLASS: dict[str, type[LiveV2CallbackMessage]] = {
   "live.end_session": LiveV2CallbackEndSessionMessage,
   "live.translation": LiveV2CallbackTranslationMessage,
   "live.named_entity_recognition": LiveV2CallbackNamedEntityRecognitionMessage,
-  "live.post_chapterization": LiveV2CallbackPostChapterizationMessage,
   "live.post_final_transcript": LiveV2CallbackPostFinalTranscriptMessage,
   "live.post_summarization": LiveV2CallbackPostSummarizationMessage,
   "live.post_transcript": LiveV2CallbackPostTranscriptMessage,

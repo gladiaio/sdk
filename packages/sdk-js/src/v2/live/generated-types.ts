@@ -252,7 +252,7 @@ export type LiveV2TranslationLanguageCode =
   | 'yo'
   | 'zh'
 
-export type LiveV2TranslationModel = 'base' | 'enhanced'
+export type LiveV2TranslationModel = 'base' | 'batch' | 'enhanced'
 
 export interface LiveV2TranslationConfig {
   /** Target language in `iso639-1` format you want the transcription translated to */
@@ -302,7 +302,7 @@ export interface LiveV2PostProcessingConfig {
   summarization?: boolean
   /** Summarization configuration, if `summarization` is enabled */
   summarization_config?: LiveV2SummarizationConfig
-  /** If true, generates chapters for the whole transcription. */
+  /** Deprecated: this parameter is ignored. */
   chapterization?: boolean
 }
 
@@ -558,19 +558,6 @@ export interface LiveV2SentimentAnalysis {
   results: string
 }
 
-export interface LiveV2Chapterization {
-  /** The audio intelligence model succeeded to get a valid output */
-  success: boolean
-  /** The audio intelligence model returned an empty value */
-  is_empty: boolean
-  /** Time audio intelligence model took to complete the task */
-  exec_time: number
-  /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: LiveV2AddonError | null
-  /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
-  results: Record<string, any>
-}
-
 export interface LiveV2TranscriptionResultWithMessages {
   /** Metadata for the given transcription & audio file */
   metadata: LiveV2TranscriptionMetadata
@@ -584,8 +571,6 @@ export interface LiveV2TranscriptionResultWithMessages {
   named_entity_recognition?: LiveV2NamedEntityRecognition
   /** If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription */
   sentiment_analysis?: LiveV2SentimentAnalysis
-  /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
-  chapterization?: LiveV2Chapterization
   /** Real-Time messages sent by the server during the live transcription */
   messages?: Array<string>
 }
@@ -629,31 +614,6 @@ export interface LiveV2NamedEntityRecognitionData {
   results: Array<LiveV2NamedEntityRecognitionResult>
 }
 
-export interface LiveV2ChapterizationSentence {
-  sentence: string
-  start: number
-  end: number
-  words: Array<LiveV2Word>
-}
-
-export interface LiveV2PostChapterizationResult {
-  abstractive_summary?: string
-  extractive_summary?: string
-  summary?: string
-  headline: string
-  gist: string
-  keywords: Array<string>
-  start: number
-  end: number
-  sentences: Array<LiveV2ChapterizationSentence>
-  text: string
-}
-
-export interface LiveV2PostChapterizationMessageData {
-  /** The chapters */
-  results: Array<LiveV2PostChapterizationResult>
-}
-
 export interface LiveV2TranscriptionResult {
   /** Metadata for the given transcription & audio file */
   metadata: LiveV2TranscriptionMetadata
@@ -667,8 +627,6 @@ export interface LiveV2TranscriptionResult {
   named_entity_recognition?: LiveV2NamedEntityRecognition
   /** If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription */
   sentiment_analysis?: LiveV2SentimentAnalysis
-  /** If `chapterization` has been enabled, will generate chapters name for different parts of the given audio. */
-  chapterization?: LiveV2Chapterization
 }
 
 export interface LiveV2PostSummarizationMessageData {
@@ -867,18 +825,6 @@ export interface LiveV2NamedEntityRecognitionMessage {
   data: LiveV2NamedEntityRecognitionData | null
 }
 
-export interface LiveV2PostChapterizationMessage {
-  /** Id of the live session */
-  session_id: string
-  /** Date of creation of the message. The date is formatted as an ISO 8601 string */
-  created_at: string
-  /** Error message if the addon failed */
-  error: LiveV2Error | null
-  type: 'post_chapterization'
-  /** The message data. "null" if the addon failed */
-  data: LiveV2PostChapterizationMessageData | null
-}
-
 export interface LiveV2PostFinalTranscriptMessage {
   /** Id of the live session */
   session_id: string
@@ -990,7 +936,6 @@ export type LiveV2WebSocketMessage =
   | LiveV2EndSessionMessage
   | LiveV2TranslationMessage
   | LiveV2NamedEntityRecognitionMessage
-  | LiveV2PostChapterizationMessage
   | LiveV2PostFinalTranscriptMessage
   | LiveV2PostSummarizationMessage
   | LiveV2PostTranscriptMessage
@@ -1041,14 +986,6 @@ export interface LiveV2CallbackNamedEntityRecognitionMessage {
   event: 'live.named_entity_recognition'
   /** The live message payload as sent to the WebSocket */
   payload: LiveV2NamedEntityRecognitionMessage
-}
-
-export interface LiveV2CallbackPostChapterizationMessage {
-  /** Id of the job */
-  id: string
-  event: 'live.post_chapterization'
-  /** The live message payload as sent to the WebSocket */
-  payload: LiveV2PostChapterizationMessage
 }
 
 export interface LiveV2CallbackPostFinalTranscriptMessage {
@@ -1138,7 +1075,6 @@ export type LiveV2CallbackMessage =
   | LiveV2CallbackEndSessionMessage
   | LiveV2CallbackTranslationMessage
   | LiveV2CallbackNamedEntityRecognitionMessage
-  | LiveV2CallbackPostChapterizationMessage
   | LiveV2CallbackPostFinalTranscriptMessage
   | LiveV2CallbackPostSummarizationMessage
   | LiveV2CallbackPostTranscriptMessage
