@@ -172,28 +172,44 @@ export class LiveV2Session {
   }
 
   private async startSession(): Promise<void> {
-    const session = await this.initSessionPromise
-    this.initSessionResponse = session
+    try {
+      const session = await this.initSessionPromise
+      this.initSessionResponse = session
 
-    if (this.abortController.signal.aborted) {
-      return
-    }
-
-    if (this._status === 'starting') {
-      this._status = 'started'
-      this.emit('started', session)
-    }
-
-    if (this.sessionOptions.messages_config?.receive_lifecycle_events) {
-      const startSessionMessage: LiveV2StartSessionMessage = {
-        type: 'start_session',
-        session_id: session.id,
-        created_at: session.created_at,
+      if (this.abortController.signal.aborted) {
+        return
       }
-      this.emit('message', startSessionMessage)
-    }
 
-    this.connectToWebSocket(session)
+      if (this._status === 'starting') {
+        this._status = 'started'
+        this.emit('started', session)
+      }
+
+      if (this.sessionOptions.messages_config?.receive_lifecycle_events) {
+        const startSessionMessage: LiveV2StartSessionMessage = {
+          type: 'start_session',
+          session_id: session.id,
+          created_at: session.created_at,
+        }
+        this.emit('message', startSessionMessage)
+      }
+
+      this.connectToWebSocket(session)
+    } catch (error) {
+      // initSession already emits 'error' and destroys on failure.
+      // Catch here so the constructor's fire-and-forget call cannot become an
+      // unhandled rejection that crashes the Node process.
+      if (this.abortController.signal.aborted || this._status === 'ended') {
+        return
+      }
+      this.emit(
+        'error',
+        error instanceof Error
+          ? error
+          : new Error(`Error starting session: ${error}`, { cause: error })
+      )
+      this.doDestroy(1006, `Couldn't start session`)
+    }
   }
 
   private connectToWebSocket(session: LiveV2InitResponse): void {
