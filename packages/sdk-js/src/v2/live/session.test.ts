@@ -165,4 +165,43 @@ describe('LiveV2Session connectSession', () => {
     )
     expect(session.sessionId).toBe('created-session-id')
   })
+
+  it('surfaces init failure without an unhandled rejection', async () => {
+    const initError = new Error('init failed')
+    mockHttpPost.mockRejectedValue(initError)
+
+    const unhandledRejections: unknown[] = []
+    const onUnhandledRejection = (reason: unknown) => {
+      unhandledRejections.push(reason)
+    }
+    process.on('unhandledRejection', onUnhandledRejection)
+
+    try {
+      const errorSpy = vi.fn()
+      const endedSpy = vi.fn()
+
+      const session = new LiveV2Session({
+        options: { sample_rate: 16000 },
+        httpClient,
+        webSocketClient,
+      })
+
+      session.on('error', errorSpy)
+      session.on('ended', endedSpy)
+
+      await expect(session.getSessionId()).rejects.toThrow('init failed')
+      await tick()
+
+      expect(errorSpy).toHaveBeenCalledWith(initError)
+      expect(endedSpy).toHaveBeenCalledWith({
+        code: 1006,
+        reason: `Couldn't start a new session`,
+      })
+      expect(session.status).toBe('ended')
+      expect(mockCreateSession).not.toHaveBeenCalled()
+      expect(unhandledRejections).toEqual([])
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection)
+    }
+  })
 })
