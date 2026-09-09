@@ -310,7 +310,7 @@ PreRecordedV2TranslationLanguageCode = Literal[
   "zh",
 ]
 
-PreRecordedV2TranslationModel = Literal["base", "enhanced"]
+PreRecordedV2TranslationModel = Literal["base", "batch", "enhanced"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -461,6 +461,9 @@ class PreRecordedV2LanguageConfig(BaseDataClass):
   code_switching: bool | None = None
 
 
+PreRecordedV2TranscriptionModel = Literal["solaria-1", "solaria-3", "solaria-fusion"]
+
+
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2FileResponse(BaseDataClass):
   # The file id
@@ -529,6 +532,8 @@ class PreRecordedV2RequestParamsResponse(BaseDataClass):
   punctuation_enhanced: bool | None = None
   # Specify the language configuration
   language_config: PreRecordedV2LanguageConfig | None = None
+  # The model used to process the audio. "solaria-1" is used by default.
+  model: PreRecordedV2TranscriptionModel | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -709,11 +714,11 @@ class PreRecordedV2NamesConsistency(BaseDataClass):
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # Deprecated, If `name_consistency` has been enabled, Gladia will improve the consistency of the
-  # names across the transcription
-  results: str
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: PreRecordedV2AddonError | None = None
+  # Deprecated, If `name_consistency` has been enabled, Gladia will improve the consistency of the
+  # names across the transcription
+  results: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -724,11 +729,11 @@ class PreRecordedV2StructuredDataExtraction(BaseDataClass):
   is_empty: bool
   # Time audio intelligence model took to complete the task
   exec_time: float
-  # If `structured_data_extraction` has been enabled, results of the AI structured data extraction
-  # for the defined classes.
-  results: str
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: PreRecordedV2AddonError | None = None
+  # If `structured_data_extraction` has been enabled, results of the AI structured data extraction
+  # for the defined classes.
+  results: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -797,21 +802,6 @@ class PreRecordedV2DisplayMode(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class PreRecordedV2Chapterization(BaseDataClass):
-  # The audio intelligence model succeeded to get a valid output
-  success: bool
-  # The audio intelligence model returned an empty value
-  is_empty: bool
-  # Time audio intelligence model took to complete the task
-  exec_time: float
-  # If `chapterization` has been enabled, will generate chapters name for different parts of the
-  # given audio.
-  results: dict[str, Any]
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: PreRecordedV2AddonError | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class PreRecordedV2Diarization(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -854,9 +844,6 @@ class PreRecordedV2TranscriptionResult(BaseDataClass):
   # If `display_mode` has been enabled, the output will be reordered, creating new utterances when
   # speakers overlapped
   display_mode: PreRecordedV2DisplayMode | None = None
-  # If `chapterization` has been enabled, will generate chapters name for different parts of the
-  # given audio.
-  chapterization: PreRecordedV2Chapterization | None = None
   # If `diarization` has been requested and an error has occurred, the result will appear here
   diarization: PreRecordedV2Diarization | None = None
 
@@ -936,6 +923,8 @@ class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   punctuation_enhanced: bool | None = None
   # Specify the language configuration
   language_config: PreRecordedV2LanguageConfig | None = None
+  # The model used to process the audio. "solaria-1" is used by default.
+  model: PreRecordedV2TranscriptionModel | None = None
 
 
 @dataclass(frozen=True, slots=True)
