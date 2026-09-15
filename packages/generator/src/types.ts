@@ -46,6 +46,7 @@ export type LiveV2Schemas = {
   initResponse: ReferencedSchemaObject
   getResponse: ReferencedSchemaObject
   listResponse: ReferencedSchemaObject
+  listParams: ReferencedSchemaObject
   wsMessages: ReferencedSchemaObject[]
   callbackMessages: ReferencedSchemaObject[]
   webhookMessages: ReferencedSchemaObject[]
@@ -59,5 +60,6 @@ export type PreRecordedV2Schemas = {
   initResponse: ReferencedSchemaObject
   resultResponse: ReferencedSchemaObject
   listResponse: ReferencedSchemaObject
+  listParams: ReferencedSchemaObject
   referencedTypes: ReferencedSchemaObject[]
 }

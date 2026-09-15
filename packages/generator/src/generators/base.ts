@@ -45,7 +45,10 @@ export abstract class BaseGenerator {
 
     const jobManagementContent =
       '\n\n' +
-      (await this.generateTypes([schemas.getResponse, schemas.listResponse], 'Job Management'))
+      (await this.generateTypes(
+        [schemas.getResponse, schemas.listResponse, schemas.listParams],
+        'Job Management'
+      ))
 
     const wsMessagesContent =
       '\n\n' +
@@ -116,7 +119,8 @@ export abstract class BaseGenerator {
 
     const resultContent = '\n\n' + (await this.generateTypes([schemas.resultResponse], 'Result'))
 
-    const listContent = '\n\n' + (await this.generateTypes([schemas.listResponse], 'List'))
+    const listContent =
+      '\n\n' + (await this.generateTypes([schemas.listResponse, schemas.listParams], 'List'))
 
     const header = this.getGeneratedFileHeader()
     const allContent = [

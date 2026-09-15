@@ -768,6 +768,25 @@ export interface LiveV2ListResponse {
   items: Array<LiveV2Response>
 }
 
+/** Query parameters for listing live transcription jobs */
+export interface LiveV2ListParams {
+  /** The starting point for pagination. A value of 0 starts from the first item. */
+  offset?: number
+  /** The maximum number of items to return. Useful for pagination and controlling data payload size. */
+  limit?: number
+  /** Filter items relevant to a specific date in ISO format (YYYY-MM-DD). */
+  date?: string
+  /** Include items that occurred before the specified date in ISO format. */
+  before_date?: string
+  /** Filter for items after the specified date. Use with `before_date` for a range. Date in ISO format. */
+  after_date?: string
+  /** Filter the list based on item status. Accepts multiple values from the predefined list. */
+  status?: Array<'queued' | 'processing' | 'done' | 'error'>
+  custom_metadata?: Record<string, any>
+  /** Absolute pagination URL (`next`, `first`, or `current` from a previous list response). When set, other filters are ignored. */
+  url?: string
+}
+
 // WebSocket Messages Types
 export interface LiveV2AudioChunkAckMessage {
   /** Id of the live session */

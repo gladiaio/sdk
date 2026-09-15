@@ -21,6 +21,8 @@ from .generated_types import (
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2InitTranscriptionResponse,
+  PreRecordedV2ListParams,
+  PreRecordedV2ListResponse,
   PreRecordedV2Response,
 )
 
@@ -219,6 +221,23 @@ class PreRecordedV2AsyncClient:
       {"request_timeout": self._options.prerecorded_timeouts.get},
     )
     return PreRecordedV2Response.from_dict(resp.json())
+
+  async def list(self, params: PreRecordedV2ListParams | None = None) -> PreRecordedV2ListResponse:
+    """List pre-recorded transcription jobs matching the given filters.
+
+    Args:
+      params: Optional filters and pagination. Pass ``url`` from a previous
+        response's ``next`` / ``first`` / ``current`` to follow pagination links.
+
+    Returns:
+      A paginated list of pre-recorded jobs.
+    """
+    endpoint = self._core.build_list_endpoint(params)
+    resp = await self._http_client.get(
+      endpoint,
+      {"request_timeout": self._options.prerecorded_timeouts.list},
+    )
+    return PreRecordedV2ListResponse.from_dict(resp.json())
 
   async def delete(self, job_id: str) -> bool:
     """Delete a pre-recorded transcription job.

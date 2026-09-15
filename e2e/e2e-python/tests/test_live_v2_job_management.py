@@ -112,3 +112,22 @@ async def test_delete_nonexistent():
   with pytest.raises(HttpError) as exc_info:
     await client.delete(nonexistent_id)
   assert exc_info.value.status == 404
+
+
+@pytest.mark.asyncio
+async def test_list():
+  """list returns a page that includes the created live job."""
+  from gladiaio_sdk.v2.live.generated_types import LiveV2ListParams
+
+  job_id = await _run_live_session()
+  client = GladiaClient().live_v2_async()
+  page = await client.list(
+    LiveV2ListParams(limit=20, status=["done", "processing", "queued", "error"])
+  )
+  found = any(item.id == job_id for item in page.items)
+  while not found and page.next:
+    page = await client.list(LiveV2ListParams(url=page.next))
+    found = any(item.id == job_id for item in page.items)
+  assert found, f"expected job {job_id} in list results"
+  assert isinstance(page.first, str) and len(page.first) > 0
+  assert isinstance(page.current, str) and len(page.current) > 0

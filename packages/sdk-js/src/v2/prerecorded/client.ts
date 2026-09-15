@@ -2,10 +2,13 @@ import { sleep } from '../../helpers.js'
 import type { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import type { QueryParams } from '../../types.js'
+import { buildListUrl } from '../build-list-url.js'
 import type {
   PreRecordedV2AudioUploadResponse,
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2InitTranscriptionResponse,
+  PreRecordedV2ListParams,
+  PreRecordedV2ListResponse,
   PreRecordedV2Response,
 } from './generated-types.js'
 
@@ -131,6 +134,23 @@ export class PreRecordedV2Client {
     return this.httpClient.get<PreRecordedV2Response>(`/v2/pre-recorded/${jobId}`, {
       requestTimeout: this.prerecordedTimeouts.get,
     })
+  }
+
+  /**
+   * List pre-recorded transcription jobs matching the given filters.
+   *
+   * @see https://docs.gladia.io/api-reference/v2/pre-recorded/list
+   * @param params - Optional filters and pagination. Pass `url` from a previous
+   *   response's `next` / `first` / `current` to follow pagination links.
+   * @returns A paginated list of pre-recorded jobs.
+   */
+  async list(params?: PreRecordedV2ListParams): Promise<PreRecordedV2ListResponse> {
+    return this.httpClient.get<PreRecordedV2ListResponse>(
+      buildListUrl('/v2/pre-recorded', params),
+      {
+        requestTimeout: this.prerecordedTimeouts.list,
+      }
+    )
   }
 
   /**

@@ -33,6 +33,7 @@ class PreRecordedV2Timeouts:
   delete: float = 60
 
   get: float = 10
+  list: float = 10
 
   def __post_init__(self) -> None:
     for name in (
@@ -41,8 +42,10 @@ class PreRecordedV2Timeouts:
       "upload_file",
       "get",
       "delete",
+      "list",
       "poll",
       "create_and_poll",
+      "get_file",
     ):
       v = max(0, float(getattr(self, name)))
       object.__setattr__(self, name, v)
@@ -55,9 +58,10 @@ class LiveV2Timeouts:
   get: float = 10
   delete: float = 60
   get_file: float = 300
+  list: float = 10
 
   def __post_init__(self) -> None:
-    for name in ("get", "delete", "get_file"):
+    for name in ("get", "delete", "get_file", "list"):
       v = max(0, float(getattr(self, name)))
       object.__setattr__(self, name, v)
 

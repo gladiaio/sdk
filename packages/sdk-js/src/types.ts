@@ -79,6 +79,7 @@ export type PreRecordedV2Timeouts = {
   create?: number
   delete?: number
   get?: number
+  list?: number
 }
 
 /**
@@ -88,6 +89,7 @@ export type LiveV2Timeouts = {
   get?: number
   delete?: number
   getFile?: number
+  list?: number
 }
 
 /**

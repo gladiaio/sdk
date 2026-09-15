@@ -978,3 +978,27 @@ class PreRecordedV2ListResponse(BaseDataClass):
   items: list[PreRecordedV2Response]
   # URL to fetch the next page
   next: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PreRecordedV2ListParams(BaseDataClass):
+  """Query parameters for listing pre-recorded transcription jobs"""
+
+  # The starting point for pagination. A value of 0 starts from the first item.
+  offset: int | None = None
+  # The maximum number of items to return. Useful for pagination and controlling data payload
+  # size.
+  limit: int | None = None
+  # Filter items relevant to a specific date in ISO format (YYYY-MM-DD).
+  date: str | None = None
+  # Include items that occurred before the specified date in ISO format.
+  before_date: str | None = None
+  # Filter for items after the specified date. Use with `before_date` for a range. Date in ISO
+  # format.
+  after_date: str | None = None
+  # Filter the list based on item status. Accepts multiple values from the predefined list.
+  status: list[Literal["queued", "processing", "done", "error"]] | None = None
+  custom_metadata: dict[str, Any] | None = None
+  # Absolute pagination URL (`next`, `first`, or `current` from a previous list response). When
+  # set, other filters are ignored.
+  url: str | None = None
