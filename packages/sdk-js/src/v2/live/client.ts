@@ -27,11 +27,11 @@ export class LiveV2Client {
     httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
     this.liveTimeouts = options.liveTimeouts
     this.region = options.region
+    // Do not put `region` on HttpClient defaults — it is only supported on
+    // session creation (POST /v2/live), applied in LiveV2Session.initSession.
     this.httpClient = new HttpClient({
       baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
-      ...(options.region ? { queryParams: { region: options.region } } : {}),
-
       retry: options.httpRetry,
       timeout: options.httpTimeout,
     })

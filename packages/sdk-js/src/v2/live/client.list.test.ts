@@ -92,4 +92,15 @@ describe('LiveV2Client.list', () => {
     const [url] = getSpy.mock.calls[0]
     expect(String(url)).toBe(next)
   })
+
+  it('does not configure region as an HttpClient default query param', () => {
+    const client = new LiveV2Client(makeOptions({ region: 'us-west' }))
+    // Region must only be applied on POST /v2/live (see LiveV2Session), never as a
+    // default that would pollute list/get/delete/getFile or pagination URLs.
+    const httpClient = (client as unknown as { httpClient: HttpClient }).httpClient
+    expect(
+      (httpClient as unknown as { defaultQueryParams?: Record<string, string> })
+        .defaultQueryParams
+    ).toBeUndefined()
+  })
 })
