@@ -99,13 +99,21 @@ test('delete: throws with status 404 when job does not exist', async () => {
 test('list: returns page including the created live job', async () => {
   const jobId = await runLiveSession()
   const client = new GladiaClient().liveV2()
-  let page = await client.list({ limit: 20, status: ['done', 'processing', 'queued', 'error'] })
+  const afterDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const maxPages = 10
+  let pages = 1
+  let page = await client.list({
+    limit: 20,
+    after_date: afterDate,
+    status: ['done', 'processing', 'queued', 'error'],
+  })
   let found = page.items.some((item) => item.id === jobId)
-  while (!found && page.next) {
+  while (!found && page.next && pages < maxPages) {
     page = await client.list({ url: page.next })
     found = page.items.some((item) => item.id === jobId)
+    pages += 1
   }
-  assert(found, `expected job ${jobId} in list results`)
+  assert(found, `expected job ${jobId} in list results within ${maxPages} pages`)
   assert(typeof page.first === 'string' && page.first.length > 0)
   assert(typeof page.current === 'string' && page.current.length > 0)
 })

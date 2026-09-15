@@ -117,17 +117,27 @@ async def test_delete_nonexistent():
 @pytest.mark.asyncio
 async def test_list():
   """list returns a page that includes the created live job."""
+  from datetime import datetime, timedelta, timezone
+
   from gladiaio_sdk.v2.live.generated_types import LiveV2ListParams
 
   job_id = await _run_live_session()
   client = GladiaClient().live_v2_async()
+  after_date = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat().replace("+00:00", "Z")
+  max_pages = 10
+  pages = 1
   page = await client.list(
-    LiveV2ListParams(limit=20, status=["done", "processing", "queued", "error"])
+    LiveV2ListParams(
+      limit=20,
+      after_date=after_date,
+      status=["done", "processing", "queued", "error"],
+    )
   )
   found = any(item.id == job_id for item in page.items)
-  while not found and page.next:
+  while not found and page.next and pages < max_pages:
     page = await client.list(LiveV2ListParams(url=page.next))
     found = any(item.id == job_id for item in page.items)
-  assert found, f"expected job {job_id} in list results"
+    pages += 1
+  assert found, f"expected job {job_id} in list results within {max_pages} pages"
   assert isinstance(page.first, str) and len(page.first) > 0
   assert isinstance(page.current, str) and len(page.current) > 0
