@@ -83,9 +83,7 @@ describe('LiveV2Client.startSession region wiring', () => {
         body: expect.stringContaining('"sample_rate":16000'),
       })
     )
-    expect(createSessionSpy).toHaveBeenCalledWith(
-      'wss://api.gladia.io/v2/live/ws?token=created'
-    )
+    expect(createSessionSpy).toHaveBeenCalledWith('wss://api.gladia.io/v2/live/ws?token=created')
     expect(await session.getSessionId()).toBe('created-session-id')
 
     session.endSession()

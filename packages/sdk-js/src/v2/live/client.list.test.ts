@@ -99,8 +99,7 @@ describe('LiveV2Client.list', () => {
     // default that would pollute list/get/delete/getFile or pagination URLs.
     const httpClient = (client as unknown as { httpClient: HttpClient }).httpClient
     expect(
-      (httpClient as unknown as { defaultQueryParams?: Record<string, string> })
-        .defaultQueryParams
+      (httpClient as unknown as { defaultQueryParams?: Record<string, string> }).defaultQueryParams
     ).toBeUndefined()
   })
 })
