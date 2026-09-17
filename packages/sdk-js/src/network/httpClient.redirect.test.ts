@@ -33,7 +33,7 @@ async function close(server: http.Server): Promise<void> {
   })
 }
 
-describe('HttpClient cross-origin redirect credentials (SEC-386)', () => {
+describe('HttpClient cross-origin redirect credentials', () => {
   const servers: http.Server[] = []
   const secretKey = 'DUMMY-KEY-REDIRECT-LEAK-TEST'
 
