@@ -6,6 +6,7 @@ import json
 import re
 import time
 from collections.abc import Sequence
+from functools import partial
 from typing import Any, final
 
 import httpx
@@ -14,6 +15,21 @@ from gladiaio_sdk.client_options import HttpRetryOptions, QueryParams
 from gladiaio_sdk.network.helper import matches_status
 
 _schema_field_names_cache: dict[str, frozenset[str]] = {}
+
+
+def _protect_credentials(request: httpx.Request, *, origin: httpx.URL) -> None:
+  """HTTPX calls request hooks before each redirect hop."""
+  if (request.url.scheme, request.url.host, request.url.port) != (
+    origin.scheme,
+    origin.host,
+    origin.port,
+  ):
+    for header in ("x-gladia-key", "authorization", "cookie"):
+      request.headers.pop(header, None)
+
+
+async def _async_protect_credentials(request: httpx.Request, *, origin: httpx.URL) -> None:
+  _protect_credentials(request, origin=origin)
 
 
 def _flatten_json_keys(obj: Any, out: set[str] | None = None) -> set[str]:
@@ -324,7 +340,10 @@ class AsyncHttpClient:
     self._timeout = timeout
 
     self._client = httpx.AsyncClient(
-      base_url=self._base_url, timeout=self._timeout, follow_redirects=True
+      base_url=self._base_url,
+      timeout=self._timeout,
+      follow_redirects=True,
+      event_hooks={"request": [partial(_async_protect_credentials, origin=httpx.URL(base_url))]},
     )
 
   async def close(self) -> None:
@@ -365,6 +384,11 @@ class AsyncHttpClient:
     req_timeout = init.get("request_timeout")
     effective_timeout = self._timeout if req_timeout is None else float(req_timeout)
 
+    # Embed params into URL to mirror JS tests expectations
+    if params:
+      qp = httpx.QueryParams(params)
+      request_url = request_url.copy_with(query=str(qp).encode())
+
     overall_start = asyncio.get_event_loop().time()
     attempt_errors: list[BaseException] = []
 
@@ -374,10 +398,6 @@ class AsyncHttpClient:
     while True:
       attempt += 1
       try:
-        # Embed params into URL to mirror JS tests expectations
-        if params:
-          qp = httpx.QueryParams(params)
-          request_url = request_url.copy_with(query=str(qp).encode())
         response = await self._client.request(
           method,
           request_url,
@@ -453,7 +473,10 @@ class HttpClient:
     self._timeout = timeout
 
     self._client = httpx.Client(
-      base_url=self._base_url, timeout=self._timeout, follow_redirects=True
+      base_url=self._base_url,
+      timeout=self._timeout,
+      follow_redirects=True,
+      event_hooks={"request": [partial(_protect_credentials, origin=httpx.URL(base_url))]},
     )
 
   def close(self) -> None:
@@ -492,6 +515,11 @@ class HttpClient:
     req_timeout = init.get("request_timeout")
     effective_timeout = self._timeout if req_timeout is None else float(req_timeout)
 
+    # Embed params into URL to mirror JS tests expectations
+    if params:
+      qp = httpx.QueryParams(params)
+      request_url = request_url.copy_with(query=str(qp).encode())
+
     overall_start = time.time()
     attempt_errors: list[BaseException] = []
 
@@ -501,10 +529,6 @@ class HttpClient:
     while True:
       attempt += 1
       try:
-        # Embed params into URL to mirror JS tests expectations
-        if params:
-          qp = httpx.QueryParams(params)
-          request_url = request_url.copy_with(query=str(qp).encode())
         response = self._client.request(
           method,
           request_url,
