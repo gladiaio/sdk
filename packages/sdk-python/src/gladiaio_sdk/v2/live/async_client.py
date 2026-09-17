@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, final
+from typing import TYPE_CHECKING, Any, final
 from urllib.parse import urlparse
 
 from gladiaio_sdk.client_options import GladiaClientOptions, QueryParams
@@ -91,12 +91,15 @@ class LiveV2AsyncClient:
     )
     return LiveV2Response.from_dict(resp.json())
 
-  async def list(self, params: LiveV2ListParams | None = None) -> LiveV2ListResponse:
+  async def list(
+    self, params: LiveV2ListParams | dict[str, Any] | None = None
+  ) -> LiveV2ListResponse:
     """List live transcription jobs matching the given filters.
 
     Args:
-      params: Optional filters and pagination. Pass ``url`` from a previous
-        response's ``next`` / ``first`` / ``current`` to follow pagination links.
+      params: Optional filters and pagination as a ``LiveV2ListParams`` instance
+        or a plain dict. Pass ``url`` from a previous response's ``next`` /
+        ``first`` / ``current`` to follow pagination links.
 
     Returns:
       A paginated list of live jobs.

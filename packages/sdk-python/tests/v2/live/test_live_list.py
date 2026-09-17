@@ -111,6 +111,65 @@ def test_list_follows_absolute_url() -> None:
   assert url == next_url
 
 
+def test_list_accepts_dict_params() -> None:
+  client = LiveV2Client(_options())
+  fake = FakeHttpClient()
+  client._http_client = fake  # type: ignore[method-assign]
+
+  client.list(
+    {
+      "offset": 5,
+      "limit": 10,
+      "status": ["done", "error"],
+      "custom_metadata": {"user": "John Doe"},
+      "before_date": "2026-09-10T10:38:56.452Z",
+    }
+  )
+  url, _ = fake.get_calls[0]
+  parsed = urlparse(url)
+  assert parsed.path == "/v2/live"
+  qs = parse_qs(parsed.query)
+  assert qs["offset"] == ["5"]
+  assert qs["limit"] == ["10"]
+  assert qs["status"] == ["done", "error"]
+  assert qs["custom_metadata[user]"] == ["John Doe"]
+  assert qs["before_date"] == ["2026-09-10T10:38:56.452Z"]
+
+
+def test_list_signature_accepts_dict() -> None:
+  annotation = str(LiveV2Client.list.__annotations__["params"])
+  assert "dict[str, Any]" in annotation
+
+
+def test_async_list_signature_accepts_dict() -> None:
+  annotation = str(LiveV2AsyncClient.list.__annotations__["params"])
+  assert "dict[str, Any]" in annotation
+
+
+def test_async_list_accepts_dict_params() -> None:
+  async def _run() -> None:
+    client = LiveV2AsyncClient(_options())
+    fake = FakeAsyncHttpClient()
+    client._http_client = fake  # type: ignore[method-assign]
+
+    await client.list(
+      {
+        "offset": 3,
+        "status": ["done"],
+        "before_date": "2026-09-10T10:38:56.452Z",
+      }
+    )
+    url, _ = fake.get_calls[0]
+    parsed = urlparse(url)
+    assert parsed.path == "/v2/live"
+    qs = parse_qs(parsed.query)
+    assert qs["offset"] == ["3"]
+    assert qs["status"] == ["done"]
+    assert qs["before_date"] == ["2026-09-10T10:38:56.452Z"]
+
+  asyncio.run(_run())
+
+
 def test_async_list_without_params() -> None:
   async def _run() -> None:
     client = LiveV2AsyncClient(_options())

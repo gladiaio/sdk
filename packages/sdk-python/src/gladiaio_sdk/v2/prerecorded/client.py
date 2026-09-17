@@ -222,12 +222,15 @@ class PreRecordedV2Client:
     )
     return PreRecordedV2Response.from_dict(resp.json())
 
-  def list(self, params: PreRecordedV2ListParams | None = None) -> PreRecordedV2ListResponse:
+  def list(
+    self, params: PreRecordedV2ListParams | dict[str, Any] | None = None
+  ) -> PreRecordedV2ListResponse:
     """List pre-recorded transcription jobs matching the given filters.
 
     Args:
-      params: Optional filters and pagination. Pass ``url`` from a previous
-        response's ``next`` / ``first`` / ``current`` to follow pagination links.
+      params: Optional filters and pagination as a ``PreRecordedV2ListParams``
+        instance or a plain dict. Pass ``url`` from a previous response's
+        ``next`` / ``first`` / ``current`` to follow pagination links.
 
     Returns:
       A paginated list of pre-recorded jobs.

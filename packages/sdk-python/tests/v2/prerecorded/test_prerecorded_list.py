@@ -114,6 +114,71 @@ def test_list_follows_absolute_url() -> None:
   assert url == next_url
 
 
+def test_list_accepts_dict_params() -> None:
+  client = PreRecordedV2Client(_options())
+  fake = FakeHttpClient()
+  client._http_client = fake  # type: ignore[method-assign]
+
+  client.list(
+    {
+      "offset": 5,
+      "limit": 10,
+      "status": ["done", "error"],
+      "custom_metadata": {"user": "John Doe"},
+      "after_date": "2026-09-01T00:00:00.000Z",
+    }
+  )
+  url, _ = fake.get_calls[0]
+  parsed = urlparse(url)
+  assert parsed.path == "/v2/pre-recorded"
+  qs = parse_qs(parsed.query)
+  assert qs["offset"] == ["5"]
+  assert qs["limit"] == ["10"]
+  assert qs["status"] == ["done", "error"]
+  assert qs["custom_metadata[user]"] == ["John Doe"]
+  assert qs["after_date"] == ["2026-09-01T00:00:00.000Z"]
+
+
+def test_list_signature_accepts_dict() -> None:
+  from typing import get_args, get_type_hints
+
+  hints = get_type_hints(PreRecordedV2Client.list)
+  args = get_args(hints["params"])
+  assert dict[str, Any] in args
+
+
+def test_async_list_signature_accepts_dict() -> None:
+  from typing import get_args, get_type_hints
+
+  hints = get_type_hints(PreRecordedV2AsyncClient.list)
+  args = get_args(hints["params"])
+  assert dict[str, Any] in args
+
+
+def test_async_list_accepts_dict_params() -> None:
+  async def _run() -> None:
+    client = PreRecordedV2AsyncClient(_options())
+    fake = FakeAsyncHttpClient()
+    client._http_client = fake  # type: ignore[method-assign]
+
+    await client.list(
+      {
+        "offset": 3,
+        "status": ["done"],
+        "after_date": "2026-09-01T00:00:00.000Z",
+      }
+    )
+    url, _ = fake.get_calls[0]
+    parsed = urlparse(url)
+    assert parsed.path == "/v2/pre-recorded"
+    qs = parse_qs(parsed.query)
+    assert qs["offset"] == ["3"]
+    assert qs["status"] == ["done"]
+    assert qs["after_date"] == ["2026-09-01T00:00:00.000Z"]
+
+  asyncio.run(_run())
+
+
 def test_async_list_without_params() -> None:
   async def _run() -> None:
     client = PreRecordedV2AsyncClient(_options())
