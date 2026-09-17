@@ -150,6 +150,49 @@ function isAbortError(error: unknown): boolean {
   return false
 }
 
+const MAX_REDIRECTS = 20
+const CROSS_ORIGIN_SENSITIVE_HEADERS = new Set(['x-gladia-key', 'authorization', 'cookie'])
+
+async function fetchFollowingRedirects(
+  selectedFetch: typeof fetch,
+  url: URL,
+  init: RequestInit
+): Promise<Response> {
+  let headers = init.headers as Headers | undefined
+  let method = init.method
+  let body = init.body
+
+  for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+    const response = await selectedFetch(url, {
+      ...init,
+      method,
+      headers,
+      body,
+      redirect: 'manual',
+    })
+    const location = response.headers.get('location')
+    if (![301, 302, 303, 307, 308].includes(response.status) || !location) return response
+    if (redirects === MAX_REDIRECTS) throw new Error(`Too many redirects for ${init.method} ${url}`)
+
+    const nextUrl = new URL(location, url)
+    if (url.origin !== nextUrl.origin && headers) {
+      headers = Object.fromEntries(
+        Object.entries(headers).filter(
+          ([name]) => !CROSS_ORIGIN_SENSITIVE_HEADERS.has(name.toLowerCase())
+        )
+      )
+    }
+    if (response.status === 303 || ([301, 302].includes(response.status) && method === 'POST')) {
+      method = 'GET'
+      body = undefined
+    }
+    await response.arrayBuffer()
+    url = nextUrl
+  }
+
+  throw new Error('Unreachable redirect state')
+}
+
 export class HttpClient {
   private baseUrl: string | URL
   private defaultHeaders?: Headers
@@ -256,10 +299,13 @@ export class HttpClient {
         }
 
         const selectedFetch = await this.fetchPromise
-        const response = await selectedFetch(url, {
+        const requestHeaders: Headers | undefined = this.defaultHeaders
+          ? deepMergeObjects(this.defaultHeaders, headers)
+          : headers
+        const response = await fetchFollowingRedirects(selectedFetch, url, {
           ...rest,
           method,
-          headers: this.defaultHeaders ? deepMergeObjects(this.defaultHeaders, headers) : headers,
+          headers: requestHeaders,
           signal: controller.signal,
         })
 
