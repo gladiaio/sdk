@@ -427,4 +427,36 @@ describe('HttpClient', () => {
       expect.objectContaining({ method: 'GET' })
     )
   })
+
+  it('strips x-gladia-key on cross-origin redirects', async () => {
+    const OTHER_BASE = 'https://other.com'
+    let calls = 0
+    mockFetch.mockImplementation((url) => {
+      calls += 1
+      if (calls === 1) {
+        return Promise.resolve(
+          new Response('', {
+            status: 302,
+            headers: { location: `${OTHER_BASE}/redirected` },
+          })
+        )
+      }
+      return Promise.resolve(new Response('ok', { status: 200 }))
+    })
+
+    const client = new HttpClient({
+      baseUrl: BASE,
+      retry: { maxAttempts: 1, statusCodes: [], delay: () => 0 },
+      timeout: 2_000,
+      headers: { 'x-gladia-key': 'secret-key' },
+    })
+
+    await client.get('/test')
+
+    expect(calls).toBe(2)
+    // First call to BASE should have the key
+    expect(mockFetch.mock.calls[0][1].headers).toMatchObject({ 'x-gladia-key': 'secret-key' })
+    // Second call to OTHER_BASE should NOT have the key
+    expect(mockFetch.mock.calls[1][1].headers).not.toHaveProperty('x-gladia-key')
+  })
 })

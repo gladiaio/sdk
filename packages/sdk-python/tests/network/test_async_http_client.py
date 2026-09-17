@@ -272,3 +272,28 @@ def test_query_params(monkeypatch):
   assert called["url"] is not None and called["url"].endswith(
     "/query-test?apiKey=test-key&version=1.0"
   )
+
+
+def test_gladia_auth_strips_key_on_cross_origin():
+  from gladiaio_sdk.network.http_client import GladiaAuth
+
+  auth = GladiaAuth("secret-key", "https://example.com")
+
+  # Safe origin
+  req1 = httpx.Request("GET", "https://example.com/safe")
+  # auth_flow is a generator
+  flow1 = auth.auth_flow(req1)
+  try:
+    next(flow1)
+  except StopIteration:
+    pass
+  assert req1.headers["x-gladia-key"] == "secret-key"
+
+  # Unsafe origin
+  req2 = httpx.Request("GET", "https://other.com/unsafe")
+  flow2 = auth.auth_flow(req2)
+  try:
+    next(flow2)
+  except StopIteration:
+    pass
+  assert "x-gladia-key" not in req2.headers

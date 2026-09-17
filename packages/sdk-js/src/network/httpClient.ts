@@ -150,6 +150,16 @@ function isAbortError(error: unknown): boolean {
   return false
 }
 
+function isSameOrigin(url1: string | URL, url2: string | URL): boolean {
+  try {
+    const u1 = new URL(url1)
+    const u2 = new URL(url2)
+    return u1.origin === u2.origin
+  } catch {
+    return false
+  }
+}
+
 export class HttpClient {
   private baseUrl: string | URL
   private defaultHeaders?: Headers
@@ -206,12 +216,12 @@ export class HttpClient {
     url: string | URL,
     init: RequestOptions = {}
   ): Promise<ResponseType> {
-    url = new URL(url, this.baseUrl)
+    const initialUrl = new URL(url, this.baseUrl)
     if (this.defaultQueryParams) {
       for (const [key, value] of Object.entries(this.defaultQueryParams)) {
         // Only set default param if it's not already present in the URL
-        if (!url.searchParams.has(key)) {
-          url.searchParams.set(key, value)
+        if (!initialUrl.searchParams.has(key)) {
+          initialUrl.searchParams.set(key, value)
         }
       }
     }
@@ -226,8 +236,18 @@ export class HttpClient {
     let attempt = 0
     const limit = this.retry.maxAttempts
 
+    const allHeaders = this.defaultHeaders ? deepMergeObjects(this.defaultHeaders, headers) : headers
+    const apiKey = allHeaders?.['x-gladia-key']
+    if (allHeaders && 'x-gladia-key' in allHeaders) {
+      delete allHeaders['x-gladia-key']
+    }
+
     while (true) {
       attempt += 1
+
+      const currentUrl = new URL(initialUrl.toString())
+      let currentMethod: string = method
+      let currentBody = (rest as any).body
 
       // Prepare AbortController that combines user signal and timeout
       const controller = new AbortController()
@@ -256,19 +276,60 @@ export class HttpClient {
         }
 
         const selectedFetch = await this.fetchPromise
-        const response = await selectedFetch(url, {
-          ...rest,
-          method,
-          headers: this.defaultHeaders ? deepMergeObjects(this.defaultHeaders, headers) : headers,
-          signal: controller.signal,
-        })
+
+        let redirectCount = 0
+        const maxRedirects = 10
+        let response: Response
+
+        while (true) {
+          const headersToSend = { ...allHeaders }
+          if (apiKey && isSameOrigin(currentUrl, this.baseUrl)) {
+            headersToSend['x-gladia-key'] = apiKey
+          }
+
+          response = await selectedFetch(currentUrl, {
+            ...rest,
+            method: currentMethod,
+            body: currentBody,
+            headers: headersToSend as any,
+            signal: controller.signal,
+            redirect: 'manual',
+          })
+
+          if (
+            response.status >= 300 &&
+            response.status < 400 &&
+            response.headers.has('location')
+          ) {
+            redirectCount++
+            if (redirectCount > maxRedirects) {
+              throw new Error(`Maximum redirects (${maxRedirects}) exceeded`)
+            }
+            const location = response.headers.get('location')!
+            const nextUrl = new URL(location, currentUrl)
+            currentUrl.href = nextUrl.href
+
+            // Standard redirect behavior:
+            // 303 See Other: always change to GET, strip body
+            // 301/302: commonly change to GET, strip body if it was POST
+            if (
+              response.status === 303 ||
+              ((response.status === 301 || response.status === 302) && currentMethod === 'POST')
+            ) {
+              currentMethod = 'GET'
+              currentBody = undefined
+            }
+            continue
+          }
+          break
+        }
 
         // Clear timeout on successful resolution
         if (timeoutId) clearTimeout(timeoutId)
         if (userSignal) userSignal.removeEventListener('abort', onUserAbort)
 
         if (!response.ok) {
-          const httpErr = await createHttpError(method, url, response)
+          const httpErr = await createHttpError(currentMethod as HttpMethod, currentUrl, response)
 
           // Retry only if status is retryable and attempts remain
           // When limit is 0, retry unlimited times
@@ -303,7 +364,7 @@ export class HttpClient {
           // No retry after timeout
           const elapsed = Date.now() - overallStart
           const timeoutError = new TimeoutError(
-            `Request timed out after ${effectiveTimeout}ms on attempt ${attempt} (duration=${elapsed}ms) for ${method} ${url}`,
+            `Request timed out after ${effectiveTimeout}ms on attempt ${attempt} (duration=${elapsed}ms) for ${currentMethod} ${currentUrl}`,
             effectiveTimeout,
             { cause: err }
           )
@@ -314,7 +375,7 @@ export class HttpClient {
           // User abort should be clear and not retried
           const elapsed = Date.now() - overallStart
           const abortErr = new Error(
-            `Request aborted by the provided AbortSignal after ${elapsed}ms for ${method} ${url}`,
+            `Request aborted by the provided AbortSignal after ${elapsed}ms for ${currentMethod} ${currentUrl}`,
             { cause: err }
           )
           throw abortErr
@@ -340,7 +401,7 @@ export class HttpClient {
             const elapsed = Date.now() - overallStart
             const aggregate = new AggregateError(attemptErrors, 'All retry attempts failed')
             const finalError = new Error(
-              `HTTP request failed after ${attempt} attempts over ${elapsed}ms for ${method} ${url}`,
+              `HTTP request failed after ${attempt} attempts over ${elapsed}ms for ${currentMethod} ${currentUrl}`,
               { cause: aggregate }
             )
             throw finalError
@@ -366,7 +427,7 @@ export class HttpClient {
         const elapsed = Date.now() - overallStart
         const aggregate = new AggregateError(attemptErrors, 'All retry attempts failed')
         const finalError = new Error(
-          `HTTP request failed after ${attempt} attempts over ${elapsed}ms for ${method} ${url}`,
+          `HTTP request failed after ${attempt} attempts over ${elapsed}ms for ${currentMethod} ${currentUrl}`,
           { cause: aggregate }
         )
         throw finalError

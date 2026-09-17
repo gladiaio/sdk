@@ -308,6 +308,20 @@ class TimeoutError(Exception):
 
 
 @final
+class GladiaAuth(httpx.Auth):
+  def __init__(self, api_key: str, base_url: str) -> None:
+    self.api_key = api_key
+    u = httpx.URL(base_url)
+    self.base_origin = (u.scheme, u.host, u.port)
+
+  def auth_flow(self, request: httpx.Request):
+    u = request.url
+    if (u.scheme, u.host, u.port) == self.base_origin:
+      request.headers["x-gladia-key"] = self.api_key
+    yield request
+
+
+@final
 class AsyncHttpClient:
   def __init__(
     self,
@@ -318,11 +332,13 @@ class AsyncHttpClient:
     timeout: float,
   ) -> None:
     self._base_url = base_url
-    self._default_headers = headers
+    self._default_headers = dict(headers)
+    self._api_key = self._default_headers.pop("x-gladia-key", None)
     self._default_query = query_params
     self._retry = retry
     self._timeout = timeout
 
+    self._auth = GladiaAuth(self._api_key, self._base_url) if self._api_key else None
     self._client = httpx.AsyncClient(
       base_url=self._base_url, timeout=self._timeout, follow_redirects=True
     )
@@ -358,7 +374,10 @@ class AsyncHttpClient:
     # Start from default, then keep URL values intact
     params = dict(self._default_query)
     params.update(url_params)
-    headers = {**self._default_headers, **dict(init.get("headers") or {})}
+    all_headers = {**self._default_headers, **dict(init.get("headers") or {})}
+    request_api_key = all_headers.pop("x-gladia-key", self._api_key)
+    auth = GladiaAuth(request_api_key, self._base_url) if request_api_key else None
+
     data = init.get("body")
     json_body = init.get("json")
     files = init.get("files")
@@ -381,11 +400,12 @@ class AsyncHttpClient:
         response = await self._client.request(
           method,
           request_url,
-          headers=headers,
+          headers=all_headers,
           content=data,
           json=json_body,
           files=files,
           timeout=effective_timeout,
+          auth=auth,
         )
 
         if 200 <= response.status_code < 300:
@@ -447,11 +467,13 @@ class HttpClient:
     timeout: float,
   ) -> None:
     self._base_url = base_url
-    self._default_headers = headers
+    self._default_headers = dict(headers)
+    self._api_key = self._default_headers.pop("x-gladia-key", None)
     self._default_query = query_params
     self._retry = retry
     self._timeout = timeout
 
+    self._auth = GladiaAuth(self._api_key, self._base_url) if self._api_key else None
     self._client = httpx.Client(
       base_url=self._base_url, timeout=self._timeout, follow_redirects=True
     )
@@ -485,7 +507,10 @@ class HttpClient:
     # Start from default, then keep URL values intact
     params = dict(self._default_query)
     params.update(url_params)
-    headers = {**self._default_headers, **dict(init.get("headers") or {})}
+    all_headers = {**self._default_headers, **dict(init.get("headers") or {})}
+    request_api_key = all_headers.pop("x-gladia-key", self._api_key)
+    auth = GladiaAuth(request_api_key, self._base_url) if request_api_key else None
+
     data = init.get("body")
     json_body = init.get("json")
     files = init.get("files")
@@ -508,11 +533,12 @@ class HttpClient:
         response = self._client.request(
           method,
           request_url,
-          headers=headers,
+          headers=all_headers,
           content=data,
           json=json_body,
           files=files,
           timeout=effective_timeout,
+          auth=auth,
         )
 
         if 200 <= response.status_code < 300:
