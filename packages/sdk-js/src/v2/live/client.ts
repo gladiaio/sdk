@@ -2,7 +2,14 @@ import { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient } from '../../network/wsClient.js'
 import type { Region } from '../../types.js'
-import type { LiveV2InitRequest, LiveV2InitResponse, LiveV2Response } from './generated-types.js'
+import { buildListUrl } from '../build-list-url.js'
+import type {
+  LiveV2InitRequest,
+  LiveV2InitResponse,
+  LiveV2ListParams,
+  LiveV2ListResponse,
+  LiveV2Response,
+} from './generated-types.js'
 import { LiveV2Session } from './session.js'
 import type { LiveV2ConnectSessionOptions } from './types.js'
 
@@ -20,11 +27,11 @@ export class LiveV2Client {
     httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
     this.liveTimeouts = options.liveTimeouts
     this.region = options.region
+    // Do not put `region` on HttpClient defaults — it is only supported on
+    // session creation (POST /v2/live), applied in LiveV2Session.initSession.
     this.httpClient = new HttpClient({
       baseUrl: httpBaseUrl,
       headers: options.httpHeaders,
-      ...(options.region ? { queryParams: { region: options.region } } : {}),
-
       retry: options.httpRetry,
       timeout: options.httpTimeout,
     })
@@ -74,6 +81,20 @@ export class LiveV2Client {
   async get(jobId: string): Promise<LiveV2Response> {
     return this.httpClient.get<LiveV2Response>(`/v2/live/${jobId}`, {
       requestTimeout: this.liveTimeouts.get,
+    })
+  }
+
+  /**
+   * List live transcription jobs matching the given filters.
+   *
+   * @see https://docs.gladia.io/api-reference/v2/live/list
+   * @param params - Optional filters and pagination. Pass `url` from a previous
+   *   response's `next` / `first` / `current` to follow pagination links.
+   * @returns A paginated list of live jobs.
+   */
+  async list(params?: LiveV2ListParams): Promise<LiveV2ListResponse> {
+    return this.httpClient.get<LiveV2ListResponse>(buildListUrl('/v2/live', params), {
+      requestTimeout: this.liveTimeouts.list,
     })
   }
 

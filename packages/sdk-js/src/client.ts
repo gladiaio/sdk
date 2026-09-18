@@ -75,11 +75,13 @@ const defaultOptions: InternalGladiaClientOptions = {
     create: 60_000,
     delete: 60_000,
     get: 10_000,
+    list: 10_000,
   },
   liveTimeouts: {
     get: 10_000,
     delete: 60_000,
     getFile: 300_000,
+    list: 10_000,
   },
 }
 

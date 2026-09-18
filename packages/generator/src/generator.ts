@@ -1,7 +1,7 @@
 import { BaseGenerator } from './generators/base.ts'
 import { PythonGenerator } from './generators/python.ts'
 import { TypeScriptGenerator } from './generators/typescript.ts'
-import { collectAllReferencedObject } from './helpers.ts'
+import { buildListParamsSchema, collectAllReferencedObject } from './helpers.ts'
 import { fetchSchema } from './schema-fetcher.ts'
 import type {
   LiveV2Schemas,
@@ -47,6 +47,7 @@ export class Generator {
     const initResponseRef = `#/components/schemas/InitStreamingResponse`
     const getResponseRef = `#/components/schemas/StreamingResponse`
     const listResponseRef = `#/components/schemas/ListStreamingResponse`
+    const listParamsKey = 'ListParams'
     const wsMessagesRef: string[] = []
     const callbackMessagesRef: string[] = []
     const webhookMessagesRef: string[] = []
@@ -56,6 +57,14 @@ export class Generator {
     collectAllReferencedObject({ $ref: initResponseRef }, openapi, referencedTypes)
     collectAllReferencedObject({ $ref: getResponseRef }, openapi, referencedTypes)
     collectAllReferencedObject({ $ref: listResponseRef }, openapi, referencedTypes)
+
+    buildListParamsSchema(
+      openapi,
+      '/v2/live',
+      listParamsKey,
+      'Query parameters for listing live transcription jobs',
+      referencedTypes
+    )
 
     for (const key of Object.keys(openapi.components?.schemas ?? {})) {
       if (key.match(/^CallbackLive.*Message$/)) {
@@ -84,6 +93,8 @@ export class Generator {
           acc.getResponse = refObject
         } else if (ref === listResponseRef) {
           acc.listResponse = refObject
+        } else if (ref === listParamsKey) {
+          acc.listParams = refObject
         } else if (wsMessagesRef.includes(ref)) {
           acc.wsMessages.push(refObject)
         } else if (callbackMessagesRef.includes(ref)) {
@@ -104,6 +115,7 @@ export class Generator {
         initResponse: referencedTypes.get(initResponseRef)!,
         getResponse: referencedTypes.get(getResponseRef)!,
         listResponse: referencedTypes.get(listResponseRef)!,
+        listParams: referencedTypes.get(listParamsKey)!,
         wsMessages: [],
         callbackMessages: [],
         webhookMessages: [],
@@ -127,6 +139,7 @@ export class Generator {
     const initResponseRef = `#/components/schemas/InitPreRecordedTranscriptionResponse`
     const resultResponseRef = `#/components/schemas/PreRecordedResponse`
     const listResponseRef = `#/components/schemas/ListPreRecordedResponse`
+    const listParamsKey = 'ListParams'
 
     const rootRefs = [
       uploadResponseRef,
@@ -156,6 +169,14 @@ export class Generator {
       })
     }
 
+    buildListParamsSchema(
+      openapi,
+      '/v2/pre-recorded',
+      listParamsKey,
+      'Query parameters for listing pre-recorded transcription jobs',
+      referencedTypes
+    )
+
     return referencedTypes.entries().reduce<PreRecordedV2Schemas>(
       (acc, [ref, refObject]) => {
         if (ref === uploadRequestKey) {
@@ -170,6 +191,8 @@ export class Generator {
           acc.resultResponse = refObject
         } else if (ref === listResponseRef) {
           acc.listResponse = refObject
+        } else if (ref === listParamsKey) {
+          acc.listParams = refObject
         } else {
           acc.referencedTypes.push(refObject)
         }
@@ -185,6 +208,7 @@ export class Generator {
         initResponse: referencedTypes.get(initResponseRef)!,
         resultResponse: referencedTypes.get(resultResponseRef)!,
         listResponse: referencedTypes.get(listResponseRef)!,
+        listParams: referencedTypes.get(listParamsKey)!,
         referencedTypes: [],
       }
     )

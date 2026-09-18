@@ -81,6 +81,33 @@ test('get: returns job by id', async () => {
   assert(getResult.result != null)
 })
 
+test('list: returns page including the created pre-recorded job', async () => {
+  const client = new GladiaClient().preRecordedV2()
+  const upload = await client.uploadFile(audioPath())
+  const options = {
+    audio_url: upload.audio_url,
+    language_config: { languages: ['en'] },
+  }
+  const initResp = await client.create(options)
+  await client.poll(initResp.id, {
+    interval: POLL_INTERVAL_MS,
+    timeout: POLL_TIMEOUT_MS,
+  })
+  const afterDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const maxPages = 10
+  let pages = 1
+  let page = await client.list({ limit: 20, status: ['done'], after_date: afterDate })
+  let found = page.items.some((item) => item.id === initResp.id)
+  while (!found && page.next && pages < maxPages) {
+    page = await client.list({ url: page.next })
+    found = page.items.some((item) => item.id === initResp.id)
+    pages += 1
+  }
+  assert(found, `expected job ${initResp.id} in list results within ${maxPages} pages`)
+  assert(typeof page.first === 'string' && page.first.length > 0)
+  assert(typeof page.current === 'string' && page.current.length > 0)
+})
+
 test('delete: returns true on success (HTTP 202)', async () => {
   const client = new GladiaClient().preRecordedV2()
   const upload = await client.uploadFile(audioPath())

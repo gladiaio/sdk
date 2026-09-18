@@ -6,6 +6,8 @@ from .core import PreRecordedV2TranscriptionOptions
 from .generated_types import (
   PreRecordedV2InitTranscriptionRequest,
   PreRecordedV2InitTranscriptionResponse,
+  PreRecordedV2ListParams,
+  PreRecordedV2ListResponse,
   PreRecordedV2Response,
 )
 
@@ -14,6 +16,8 @@ __all__ = [
   "PreRecordedV2Client",
   "PreRecordedV2InitTranscriptionRequest",
   "PreRecordedV2InitTranscriptionResponse",
+  "PreRecordedV2ListParams",
+  "PreRecordedV2ListResponse",
   "PreRecordedV2Response",
   "PreRecordedV2TranscriptionOptions",
 ]

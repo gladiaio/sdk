@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, final
+from typing import TYPE_CHECKING, Any, final
 from urllib.parse import urlparse
 
 from gladiaio_sdk.client_options import GladiaClientOptions, QueryParams
@@ -11,7 +11,12 @@ from gladiaio_sdk.v2.live.async_session import LiveV2AsyncSession
 from gladiaio_sdk.v2.live.types import LiveV2ConnectSessionOptions
 
 if TYPE_CHECKING:
-  from gladiaio_sdk.v2.live.generated_types import LiveV2InitRequest, LiveV2Response
+  from gladiaio_sdk.v2.live.generated_types import (
+    LiveV2InitRequest,
+    LiveV2ListParams,
+    LiveV2ListResponse,
+    LiveV2Response,
+  )
 
 
 @final
@@ -85,6 +90,27 @@ class LiveV2AsyncClient:
       endpoint, {"request_timeout": self._options.live_timeouts.get}
     )
     return LiveV2Response.from_dict(resp.json())
+
+  async def list(
+    self, params: LiveV2ListParams | dict[str, Any] | None = None
+  ) -> LiveV2ListResponse:
+    """List live transcription jobs matching the given filters.
+
+    Args:
+      params: Optional filters and pagination as a ``LiveV2ListParams`` instance
+        or a plain dict. Pass ``url`` from a previous response's ``next`` /
+        ``first`` / ``current`` to follow pagination links.
+
+    Returns:
+      A paginated list of live jobs.
+    """
+    from gladiaio_sdk.v2.live.generated_types import LiveV2ListResponse
+
+    endpoint = self._core.build_list_endpoint(params)
+    resp = await self._http_client.get(
+      endpoint, {"request_timeout": self._options.live_timeouts.list}
+    )
+    return LiveV2ListResponse.from_dict(resp.json())
 
   async def delete(self, job_id: str) -> bool:
     """Delete a live job.

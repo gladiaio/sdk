@@ -93,6 +93,38 @@ async def test_get():
 
 
 @pytest.mark.asyncio
+async def test_list():
+  """list returns a page that includes the created pre-recorded job."""
+  from datetime import datetime, timedelta, timezone
+
+  from gladiaio_sdk.v2.prerecorded.generated_types import PreRecordedV2ListParams
+
+  audio_path = _data_path("short_split_infinity_16k.wav")
+  client = GladiaClient().pre_recorded_v2_async()
+  upload = await client.upload_file(audio_path)
+  options = PreRecordedV2InitTranscriptionRequest(
+    audio_url=upload.audio_url,
+    language_config=PreRecordedV2LanguageConfig(languages=["en"]),
+  )
+  init_resp = await client.create(options)
+  await client.poll(init_resp.id, interval=2.0, timeout=POLL_TIMEOUT_S)
+  after_date = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat().replace("+00:00", "Z")
+  max_pages = 10
+  pages = 1
+  page = await client.list(
+    PreRecordedV2ListParams(limit=20, status=["done"], after_date=after_date)
+  )
+  found = any(item.id == init_resp.id for item in page.items)
+  while not found and page.next and pages < max_pages:
+    page = await client.list(PreRecordedV2ListParams(url=page.next))
+    found = any(item.id == init_resp.id for item in page.items)
+    pages += 1
+  assert found, f"expected job {init_resp.id} in list results within {max_pages} pages"
+  assert isinstance(page.first, str) and len(page.first) > 0
+  assert isinstance(page.current, str) and len(page.current) > 0
+
+
+@pytest.mark.asyncio
 async def test_delete():
   """Test async pre-recorded delete returns True when job is correctly removed (HTTP 202).
 

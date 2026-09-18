@@ -183,3 +183,67 @@ function processSchemaOrReference(
     return convertSchemaToRefLess(schemaOrRef, openapi, acc)
   }
 }
+
+/**
+ * Build a synthetic object schema from OpenAPI path operation query parameters.
+ * Also adds an optional `url` field for following pagination `next` links (SDK UX).
+ */
+export function buildListParamsSchema(
+  openapi: OpenAPIObject,
+  pathKey: string,
+  originalName: string,
+  description: string,
+  acc: Map<string, ReferencedSchemaObject>
+): ReferencedSchemaObject {
+  const operation = openapi.paths?.[pathKey]?.get
+  if (!operation) {
+    throw new Error(`Missing GET operation for path ${pathKey}`)
+  }
+
+  const properties: { [propertyName: string]: SchemaOrReference } = {}
+  const parameters = operation.parameters ?? []
+
+  for (const param of parameters) {
+    if (isReferenceObject(param)) {
+      throw new Error(`Parameter $ref not supported for list params: ${param.$ref}`)
+    }
+    if (param.in !== 'query') {
+      continue
+    }
+    if (!param.schema) {
+      throw new Error(`Missing schema for query parameter ${param.name} on ${pathKey}`)
+    }
+
+    const propSchema = processSchemaOrReference(
+      param.schema as SchemaObject | ReferenceObject,
+      openapi,
+      acc
+    )
+    if (param.description) {
+      propSchema.description = param.description
+    }
+    properties[param.name] = propSchema
+  }
+
+  // SDK-only pagination helper: follow absolute `next` / `first` / `current` URLs
+  properties['url'] = {
+    type: 'string',
+    format: 'uri',
+    description:
+      'Absolute pagination URL (`next`, `first`, or `current` from a previous list response). When set, other filters are ignored.',
+  }
+
+  const schema: SchemaObjectRefLess = {
+    type: 'object',
+    properties,
+  }
+
+  const referenced: ReferencedSchemaObject = {
+    originalName,
+    typeName: originalName,
+    description,
+    schema,
+  }
+  acc.set(originalName, referenced)
+  return referenced
+}
