@@ -608,19 +608,6 @@ export interface PreRecordedV2Summarization {
   results: string | null
 }
 
-export interface PreRecordedV2Moderation {
-  /** The audio intelligence model succeeded to get a valid output */
-  success: boolean
-  /** The audio intelligence model returned an empty value */
-  is_empty: boolean
-  /** Time audio intelligence model took to complete the task */
-  exec_time: number
-  /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: PreRecordedV2AddonError | null
-  /** If `moderation` has been enabled, moderated transcription */
-  results: string | null
-}
-
 export interface PreRecordedV2NamedEntityRecognitionResult {
   entity_type: string
   text: string
@@ -748,8 +735,6 @@ export interface PreRecordedV2TranscriptionResult {
   translation?: PreRecordedV2Translation
   /** If `summarization` has been enabled, summarization of the audio speech transcription */
   summarization?: PreRecordedV2Summarization
-  /** If `moderation` has been enabled, moderation of the audio speech transcription */
-  moderation?: PreRecordedV2Moderation
   /** If `named_entity_recognition` has been enabled, the detected entities */
   named_entity_recognition?: PreRecordedV2NamedEntityRecognition
   /** If `name_consistency` has been enabled, Gladia will improve consistency of the names accross the transcription */

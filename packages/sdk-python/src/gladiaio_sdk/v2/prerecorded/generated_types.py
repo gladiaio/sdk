@@ -671,20 +671,6 @@ class PreRecordedV2Summarization(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class PreRecordedV2Moderation(BaseDataClass):
-  # The audio intelligence model succeeded to get a valid output
-  success: bool
-  # The audio intelligence model returned an empty value
-  is_empty: bool
-  # Time audio intelligence model took to complete the task
-  exec_time: float
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: PreRecordedV2AddonError | None = None
-  # If `moderation` has been enabled, moderated transcription
-  results: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class PreRecordedV2NamedEntityRecognitionResult(BaseDataClass):
   entity_type: str
   text: str
@@ -825,8 +811,6 @@ class PreRecordedV2TranscriptionResult(BaseDataClass):
   translation: PreRecordedV2Translation | None = None
   # If `summarization` has been enabled, summarization of the audio speech transcription
   summarization: PreRecordedV2Summarization | None = None
-  # If `moderation` has been enabled, moderation of the audio speech transcription
-  moderation: PreRecordedV2Moderation | None = None
   # If `named_entity_recognition` has been enabled, the detected entities
   named_entity_recognition: PreRecordedV2NamedEntityRecognition | None = None
   # If `name_consistency` has been enabled, Gladia will improve consistency of the names accross
