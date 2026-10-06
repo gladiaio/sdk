@@ -38,6 +38,8 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
+      # npm trusted publishing (OIDC) requires npm >= 11.5.1
+      - run: npm install -g npm@^11.5.1
       - run: bun install
 
       - name: Determine project
@@ -68,5 +70,3 @@ jobs:
           bun run publish -- \
             --projects "$PROJECT" \
             $([ "${{ github.event.inputs['dry-run'] }}" = "true" ] && echo --dryRun || true)
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
