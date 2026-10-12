@@ -21,9 +21,14 @@ from .generated_types import (
   LiveV2InitResponse,
   LiveV2MessagesConfig,
   LiveV2StartSessionMessage,
+  LiveV2UnknownWebSocketMessage,
   LiveV2WebSocketMessage,
   create_live_v2_web_socket_message_from_json,
 )
+
+# Messages emitted on "message": known types, or unknown ones passed through as-is. Listeners are
+# typed with the known types only (like the JS SDK) so `message.type == "..."` keeps narrowing.
+_LiveV2Message = LiveV2WebSocketMessage | LiveV2UnknownWebSocketMessage
 
 EventCallback = Callable[..., Any]
 Handler = TypeVar("Handler", bound=Callable[..., Any])
@@ -71,13 +76,13 @@ def build_live_init_url(region: Region | None = None) -> str:
   return "/v2/live"
 
 
-def parse_ws_message(raw: Any) -> LiveV2WebSocketMessage:
+def parse_ws_message(raw: Any) -> _LiveV2Message:
   text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
   return create_live_v2_web_socket_message_from_json(text)
 
 
 def should_emit_ws_message(
-  message: LiveV2WebSocketMessage,
+  message: _LiveV2Message,
   messages_config: LiveV2MessagesConfig | None,
 ) -> bool:
   return (

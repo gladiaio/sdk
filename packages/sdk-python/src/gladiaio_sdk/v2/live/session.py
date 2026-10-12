@@ -52,7 +52,7 @@ class LiveV2Session(LiveV2SessionEventsMixin):
   - connected(LiveV2ConnectedMessage)
   - ending(LiveV2EndingMessage)
   - ended(LiveV2EndedMessage)
-  - message(LiveV2WebSocketMessage)
+  - message(LiveV2WebSocketMessage, or LiveV2UnknownWebSocketMessage for an unknown type)
   - error(Exception)
   """
 

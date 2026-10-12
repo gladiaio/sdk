@@ -42,6 +42,8 @@ type UnionHelperConfig = {
   helperPrefix: string
   discriminator: string
   unionType: string
+  // When set, unknown messages are parsed into this class instead of raising
+  unknownClass?: string
 }
 
 type ResolvedType = {
@@ -394,6 +396,7 @@ export class PythonGenerator extends BaseGenerator {
           helperPrefix: 'web_socket',
           discriminator: 'type',
           unionType: name,
+          unknownClass: 'LiveV2UnknownWebSocketMessage',
         }
       case 'LiveV2CallbackMessage':
         return {
@@ -428,14 +431,32 @@ export class PythonGenerator extends BaseGenerator {
       return ''
     }
 
+    const { unknownClass } = config
+    const returnType = unknownClass ? `${config.unionType} | ${unknownClass}` : config.unionType
+
     const lines: string[] = []
     lines.push('')
+    if (unknownClass) {
+      lines.push('')
+      lines.push(
+        `# A ${config.sectionTitle} message whose ${config.discriminator} is not (yet) known by the SDK`
+      )
+      lines.push('@dataclass(frozen=True, slots=True)')
+      lines.push(`class ${unknownClass}(BaseDataClass):`)
+      lines.push(`    ${config.discriminator}: str`)
+      lines.push('    session_id: str | None = None')
+      lines.push('    created_at: str | None = None')
+      lines.push('    data: Any = None')
+      lines.push('    extra: CatchAll = field(default_factory=dict, hash=False)')
+      lines.push('')
+      lines.push('')
+    }
     lines.push(`${config.mapName}: dict[str, type[${config.unionType}]] = {`)
     lines.push(...entries)
     lines.push('}')
     lines.push('')
     lines.push(
-      `def create_live_v2_${config.helperPrefix}_message_from_dict(payload: dict[str, Any]) -> ${config.unionType}:`
+      `def create_live_v2_${config.helperPrefix}_message_from_dict(payload: dict[str, Any]) -> ${returnType}:`
     )
     lines.push(`    message_key = payload.get("${config.discriminator}")`)
     lines.push('')
@@ -444,17 +465,23 @@ export class PythonGenerator extends BaseGenerator {
       `        raise ValueError("Missing or invalid '${config.discriminator}' field in ${config.sectionTitle} message payload")`
     )
     lines.push('')
-    lines.push('    try:')
-    lines.push(`        cls = ${config.mapName}[message_key]`)
-    lines.push('    except KeyError as exc:')
-    lines.push(
-      `        raise ValueError(f"Unsupported ${config.sectionTitle} message ${config.discriminator}: {message_key}") from exc`
-    )
+    if (unknownClass) {
+      lines.push(`    cls = ${config.mapName}.get(message_key)`)
+      lines.push('    if cls is None:')
+      lines.push(`        return ${unknownClass}.from_dict(payload)`)
+    } else {
+      lines.push('    try:')
+      lines.push(`        cls = ${config.mapName}[message_key]`)
+      lines.push('    except KeyError as exc:')
+      lines.push(
+        `        raise ValueError(f"Unsupported ${config.sectionTitle} message ${config.discriminator}: {message_key}") from exc`
+      )
+    }
     lines.push('')
     lines.push('    return cls.from_dict(payload)')
     lines.push('')
     lines.push(
-      `def create_live_v2_${config.helperPrefix}_message_from_json(data: str | bytes | bytearray) -> ${config.unionType}:`
+      `def create_live_v2_${config.helperPrefix}_message_from_json(data: str | bytes | bytearray) -> ${returnType}:`
     )
     lines.push('    parsed = json.loads(data)')
     lines.push('    if not isinstance(parsed, dict):')

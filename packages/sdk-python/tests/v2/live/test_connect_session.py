@@ -17,6 +17,7 @@ from gladiaio_sdk.v2.live.client import LiveV2Client
 from gladiaio_sdk.v2.live.generated_types import (
   LiveV2InitRequest,
   LiveV2MessagesConfig,
+  LiveV2UnknownWebSocketMessage,
 )
 from gladiaio_sdk.v2.live.types import LiveV2ConnectSessionOptions
 
@@ -188,6 +189,40 @@ def test_start_session_passes_region_only_on_live_init(monkeypatch):
   assert _wait_for(lambda: session.session_id == "created-session-id")
   assert len(http_client.post_calls) == 1
   assert http_client.post_calls[0][0] == "/v2/live?region=us-west"
+
+  session.end_session()
+  assert session.join(timeout=2)
+
+
+def test_unknown_message_type_is_emitted_as_message(monkeypatch):
+  ws_client = FakeWebSocketClient()
+  monkeypatch.setattr(
+    "gladiaio_sdk.v2.live.client.WebSocketClient",
+    lambda **kwargs: ws_client,
+  )
+
+  client = LiveV2Client(_client_options())
+  session = client.connect_session(
+    LiveV2ConnectSessionOptions(id="session-123", url="wss://api.gladia.io/v2/live/ws?token=abc")
+  )
+  messages: list[Any] = []
+  errors: list[Exception] = []
+  session.on("message", messages.append)
+  session.on("error", errors.append)
+  assert _wait_for(lambda: session.status == "connected")
+
+  payload = {
+    "type": "end_of_turn",
+    "session_id": "session-123",
+    "created_at": "2026-06-25T10:00:00Z",
+    "data": {"channel": 0, "probability": 0.9, "reason": "model"},
+  }
+  ws_client.sessions[0].onmessage({"data": json.dumps(payload)})
+
+  assert errors == []
+  assert len(messages) == 1
+  assert isinstance(messages[0], LiveV2UnknownWebSocketMessage)
+  assert messages[0].to_dict() == payload
 
   session.end_session()
   assert session.join(timeout=2)

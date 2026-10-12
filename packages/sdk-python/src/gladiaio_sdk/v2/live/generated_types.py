@@ -1193,6 +1193,18 @@ LiveV2WebSocketMessage = (
   | LiveV2SpeechStartMessage
   | LiveV2SpeechEndMessage
 )
+
+
+# A websocket message whose type is not (yet) known by the SDK
+@dataclass(frozen=True, slots=True)
+class LiveV2UnknownWebSocketMessage(BaseDataClass):
+  type: str
+  session_id: str | None = None
+  created_at: str | None = None
+  data: Any = None
+  extra: CatchAll = field(default_factory=dict, hash=False)
+
+
 _WS_TYPE_TO_CLASS: dict[str, type[LiveV2WebSocketMessage]] = {
   "audio_chunk": LiveV2AudioChunkAckMessage,
   "end_recording": LiveV2EndRecordingMessage,
@@ -1212,23 +1224,24 @@ _WS_TYPE_TO_CLASS: dict[str, type[LiveV2WebSocketMessage]] = {
 }
 
 
-def create_live_v2_web_socket_message_from_dict(payload: dict[str, Any]) -> LiveV2WebSocketMessage:
+def create_live_v2_web_socket_message_from_dict(
+  payload: dict[str, Any],
+) -> LiveV2WebSocketMessage | LiveV2UnknownWebSocketMessage:
   message_key = payload.get("type")
 
   if not isinstance(message_key, str):
     raise ValueError("Missing or invalid 'type' field in websocket message payload")
 
-  try:
-    cls = _WS_TYPE_TO_CLASS[message_key]
-  except KeyError as exc:
-    raise ValueError(f"Unsupported websocket message type: {message_key}") from exc
+  cls = _WS_TYPE_TO_CLASS.get(message_key)
+  if cls is None:
+    return LiveV2UnknownWebSocketMessage.from_dict(payload)
 
   return cls.from_dict(payload)
 
 
 def create_live_v2_web_socket_message_from_json(
   data: str | bytes | bytearray,
-) -> LiveV2WebSocketMessage:
+) -> LiveV2WebSocketMessage | LiveV2UnknownWebSocketMessage:
   parsed = json.loads(data)
   if not isinstance(parsed, dict):
     raise ValueError("websocket message JSON must represent an object")
