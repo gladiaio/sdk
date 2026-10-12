@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, BinaryIO, Protocol, cast
 from urllib.parse import urlparse
+
+from dataclasses_json import CatchAll
 
 from gladiaio_sdk.v2.core import V2JobCore
 
@@ -100,6 +102,8 @@ class PreRecordedV2TranscriptionOptions(BaseDataClass):
   punctuation_enhanced: bool | None = None
   # Specify the language configuration
   language_config: PreRecordedV2LanguageConfig | None = None
+  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
+  extra: CatchAll = field(default_factory=dict, hash=False)
 
 
 class HttpClientProtocol(Protocol):

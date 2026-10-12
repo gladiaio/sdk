@@ -8,10 +8,10 @@ import { BaseGenerator } from './base.ts'
 const HEADER_BLOCK = `from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from dataclasses_json import DataClassJsonMixin
+from dataclasses_json import CatchAll, DataClassJsonMixin, Undefined, config
 
 
 def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
@@ -21,6 +21,10 @@ def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
 
 
 class BaseDataClass(DataClassJsonMixin):
+  # Keep keys unknown to the SDK in \`extra\` and send them back in to_dict(), so options and
+  # fields added to the API are never silently dropped.
+  dataclass_json_config = config(undefined=Undefined.INCLUDE)["dataclasses_json"]
+
   def to_dict(self, encode_json: bool = True) -> dict[str, Any]:
     dict = super().to_dict(encode_json=encode_json)
     return _filter_none(dict)
@@ -216,11 +220,6 @@ export class PythonGenerator extends BaseGenerator {
       lines.push(`    """${description}"""`)
     }
 
-    if (orderedProps.length === 0) {
-      lines.push('    pass')
-      return lines.join('\n')
-    }
-
     const required_lines: string[] = []
     const optional_lines: string[] = []
     for (const { name, schema: propertySchema, required } of orderedProps) {
@@ -241,6 +240,8 @@ export class PythonGenerator extends BaseGenerator {
 
     lines.push(...required_lines)
     lines.push(...optional_lines)
+    lines.push('    # Fields not (yet) known by the SDK, merged back at the top level by to_dict()')
+    lines.push('    extra: CatchAll = field(default_factory=dict, hash=False)')
 
     return lines.join('\n')
   }
