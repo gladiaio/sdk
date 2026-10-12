@@ -3,6 +3,15 @@ import type { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient, WS_STATES } from '../../network/wsClient.js'
 import { LiveV2Client } from './client.js'
+import type {
+  LiveV2CallbackConfig,
+  LiveV2InitRequest,
+  LiveV2LanguageConfig,
+  LiveV2MessagesConfig,
+  LiveV2PostProcessingConfig,
+  LiveV2PreProcessingConfig,
+  LiveV2RealtimeProcessingConfig,
+} from './generated-types.js'
 
 function makeOptions(
   overrides: Partial<InternalGladiaClientOptions> = {}
@@ -101,6 +110,107 @@ describe('LiveV2Client.startSession region wiring', () => {
         body: expect.stringContaining('"sample_rate":16000'),
       })
     )
+
+    session.endSession()
+  })
+
+  it('sends every init option, known or not, unchanged to POST /v2/live', async () => {
+    // Every known option is set: `Required<...>` flags a new option added to the generated types
+    // and not covered here. The request body must then match the options exactly.
+    const knownOptions = {
+      encoding: 'wav/pcm',
+      bit_depth: 16,
+      sample_rate: 16000,
+      channels: 1,
+      custom_metadata: { user: 'test' },
+      model: 'solaria-1',
+      endpointing: 0.3,
+      maximum_duration_without_endpointing: 5,
+      language_config: {
+        languages: ['en', 'fr'],
+        code_switching: true,
+      } satisfies Required<LiveV2LanguageConfig>,
+      pre_processing: {
+        audio_enhancer: true,
+        speech_threshold: 0.6,
+      } satisfies Required<LiveV2PreProcessingConfig>,
+      realtime_processing: {
+        custom_vocabulary: true,
+        custom_vocabulary_config: {
+          vocabulary: ['Gladia', { value: 'Solaria', intensity: 0.5, pronunciations: ['solaria'] }],
+          default_intensity: 0.4,
+        },
+        custom_spelling: true,
+        custom_spelling_config: { spelling_dictionary: { SQL: ['sequel'] } },
+        translation: true,
+        translation_config: {
+          target_languages: ['es'],
+          model: 'enhanced',
+          match_original_utterances: true,
+          lipsync: true,
+          context_adaptation: true,
+          context: 'A meeting',
+          informal: false,
+        },
+        named_entity_recognition: true,
+        sentiment_analysis: true,
+      } satisfies Required<LiveV2RealtimeProcessingConfig>,
+      post_processing: {
+        summarization: true,
+        summarization_config: { type: 'bullet_points' },
+        chapterization: true,
+      } satisfies Required<LiveV2PostProcessingConfig>,
+      messages_config: {
+        receive_partial_transcripts: true,
+        receive_final_transcripts: true,
+        receive_speech_events: true,
+        receive_pre_processing_events: true,
+        receive_realtime_processing_events: true,
+        receive_post_processing_events: true,
+        receive_acknowledgments: false,
+        receive_errors: true,
+        receive_lifecycle_events: true,
+      } satisfies Required<LiveV2MessagesConfig>,
+      callback: true,
+      callback_config: {
+        url: 'https://example.com/callback',
+        receive_partial_transcripts: true,
+        receive_final_transcripts: true,
+        receive_speech_events: true,
+        receive_pre_processing_events: true,
+        receive_realtime_processing_events: true,
+        receive_post_processing_events: true,
+        receive_acknowledgments: true,
+        receive_errors: true,
+        receive_lifecycle_events: true,
+      } satisfies Required<LiveV2CallbackConfig>,
+    } satisfies Required<LiveV2InitRequest>
+
+    // Options the SDK doesn't know (yet) must be passed through too, at any depth
+    const options = {
+      ...knownOptions,
+      model: 'solaria-3-fast',
+      pii: { mode: 'mask', entities: ['EMAIL'] },
+      end_of_turn: { threshold: 0.5 },
+      realtime_processing: {
+        ...knownOptions.realtime_processing,
+        named_entity_recognition: { threshold: 0.5 },
+        unknown_nested_option: 1,
+      },
+    } as unknown as LiveV2InitRequest
+
+    const client = new LiveV2Client(makeOptions())
+    const session = client.startSession(options)
+
+    await tick()
+
+    expect(postSpy).toHaveBeenCalledTimes(1)
+    const [, { body }] = postSpy.mock.calls[0] as [string, { body: string }]
+    expect(JSON.parse(body)).toEqual({
+      ...options,
+      // Forced on for resume, the only difference allowed
+      messages_config: { ...knownOptions.messages_config, receive_acknowledgments: true },
+    })
 
     session.endSession()
   })

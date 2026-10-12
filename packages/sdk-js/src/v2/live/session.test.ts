@@ -116,6 +116,38 @@ describe('LiveV2Session connectSession', () => {
     })
   })
 
+  it('emits messages of an unknown type on message, not as an error', async () => {
+    const messageSpy = vi.fn()
+    const errorSpy = vi.fn()
+
+    const session = new LiveV2Session({
+      options: {},
+      existingSession: {
+        id: 'session-123',
+        url: 'wss://api.gladia.io/v2/live/ws?token=abc',
+        created_at: '2026-06-25T10:00:00Z',
+      },
+      httpClient,
+      webSocketClient,
+    })
+    session.on('message', messageSpy)
+    session.on('error', errorSpy)
+
+    await tick()
+    mockWsSession.onopen?.({ connection: 1, attempt: 1 })
+
+    const message = {
+      type: 'end_of_turn',
+      session_id: 'session-123',
+      created_at: '2026-06-25T10:00:00Z',
+      data: { channel: 0, probability: 0.9, reason: 'model' },
+    }
+    mockWsSession.onmessage?.({ data: JSON.stringify(message) })
+
+    expect(messageSpy).toHaveBeenCalledWith(message)
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
   it('still calls HTTP init for startSession flow', async () => {
     const startedSpy = vi.fn()
 
