@@ -170,6 +170,41 @@ def test_start_session_still_calls_http_init(monkeypatch):
   assert session.join(timeout=2)
 
 
+def test_start_session_sends_every_option_from_a_dict(monkeypatch):
+  http_client = FakeHttpClient()
+  ws_client = FakeWebSocketClient()
+  monkeypatch.setattr(
+    "gladiaio_sdk.v2.live.client.HttpClient",
+    lambda **kwargs: http_client,
+  )
+  monkeypatch.setattr(
+    "gladiaio_sdk.v2.live.client.WebSocketClient",
+    lambda **kwargs: ws_client,
+  )
+
+  options = {
+    "encoding": "wav/pcm",
+    "model": "solaria-3-fast",
+    "pii": {"mode": "mask", "entities": ["EMAIL"]},
+    "numerals": True,
+    "realtime_processing": {
+      "sentiment_analysis": True,
+      "named_entity_recognition": {"threshold": 0.5},
+    },
+  }
+  client = LiveV2Client(_client_options())
+  session = client.start_session(options)
+
+  assert _wait_for(lambda: len(http_client.post_calls) == 1)
+  assert http_client.post_calls[0][1]["json"] == {
+    **options,
+    "messages_config": {"receive_acknowledgments": True},
+  }
+
+  session.end_session()
+  assert session.join(timeout=2)
+
+
 def test_start_session_passes_region_only_on_live_init(monkeypatch):
   http_client = FakeHttpClient()
   ws_client = FakeWebSocketClient()

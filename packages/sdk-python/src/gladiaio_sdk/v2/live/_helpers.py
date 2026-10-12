@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 from collections.abc import Callable
 from typing import Any, Literal, Protocol, TypeVar, overload
 from urllib.parse import urlencode
@@ -59,14 +58,21 @@ def send_audio_in_chunks(ws: Any, audio: bytes) -> None:
     ws.send(audio[i : i + _MAX_RESUME_CHUNK_BYTES])
 
 
-def with_acknowledgments_enabled(options: LiveV2InitRequest) -> LiveV2InitRequest:
-  """Return init options with acknowledgments forced on for resume logic."""
-  msg_cfg = options.messages_config
-  if msg_cfg:
-    msg_cfg = dataclasses.replace(msg_cfg, receive_acknowledgments=True)
-  else:
-    msg_cfg = LiveV2MessagesConfig(receive_acknowledgments=True)
-  return dataclasses.replace(options, messages_config=msg_cfg)
+def parse_init_options(options: LiveV2InitRequest | dict[str, Any]) -> LiveV2InitRequest:
+  if isinstance(options, dict):
+    return LiveV2InitRequest.from_dict(options)
+  return options
+
+
+def build_init_body(options: LiveV2InitRequest | dict[str, Any]) -> dict[str, Any]:
+  """Return the POST /v2/live body with acknowledgments forced on for resume logic.
+
+  A dict is sent as-is (like the JS SDK) rather than through ``LiveV2InitRequest``, so values the
+  SDK types differently (e.g. an object where it expects a boolean) are not coerced.
+  """
+  body = dict(options) if isinstance(options, dict) else options.to_dict()
+  messages_config = {**(body.get("messages_config") or {}), "receive_acknowledgments": True}
+  return {**body, "messages_config": messages_config}
 
 
 def build_live_init_url(region: Region | None = None) -> str:

@@ -46,7 +46,14 @@ class LiveV2Client:
     self._options = options
     self._core = V2JobCore(base_path="/v2/live", kind="Live")
 
-  def start_session(self, options: LiveV2InitRequest) -> LiveV2Session:
+  def start_session(self, options: LiveV2InitRequest | dict[str, Any]) -> LiveV2Session:
+    """Start a new live session.
+
+    Args:
+      options: The session options as a ``LiveV2InitRequest`` instance or a plain dict. A dict is
+        sent as-is; with a ``LiveV2InitRequest``, options the SDK doesn't type yet can be passed
+        through ``extra``.
+    """
     return LiveV2Session(
       options=options,
       http_client=self._http_client,
