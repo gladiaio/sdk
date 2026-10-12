@@ -107,6 +107,11 @@ export class Generator {
         }
 
         this.renameObjectForLiveV2(refObject)
+        if (refObject.typeName === 'LiveV2Model') {
+          // The API accepts more models than the documented ones (e.g. latency profile variants),
+          // keep the known values for autocompletion but allow any string.
+          refObject.schema['x-open-enum'] = true
+        }
 
         return acc
       },

@@ -113,7 +113,7 @@ export class PythonGenerator extends BaseGenerator {
     }
 
     if (schema.enum) {
-      return this.generateEnum(typeName, schema.enum)
+      return this.generateEnum(typeName, schema.enum, schema['x-open-enum'] === true)
     }
 
     return `# ${typeName} = ${this.getPythonType(schema)}`
@@ -351,11 +351,12 @@ export class PythonGenerator extends BaseGenerator {
     return `Literal[\n${formatted}\n    ]`
   }
 
-  private generateEnum(typeName: string, values: Array<string | number>): string {
+  private generateEnum(typeName: string, values: Array<string | number>, openEnum = false): string {
     const literalItems = values.map((value) =>
       typeof value === 'string' ? `"${value}"` : value.toString()
     )
-    const inline = `Literal[${literalItems.join(', ')}]`
+    // An open enum accepts any string on top of the known values
+    const inline = `Literal[${literalItems.join(', ')}]${openEnum ? ' | str' : ''}`
 
     if (inline.length + typeName.length + 3 <= this.maxLineLength) {
       return `${typeName} = ${inline}`
@@ -365,7 +366,7 @@ export class PythonGenerator extends BaseGenerator {
       .map((item, index) => `    ${item}${index === literalItems.length - 1 ? '' : ','}`)
       .join('\n')
 
-    return `${typeName} = Literal[\n${formatted}\n]`
+    return `${typeName} = Literal[\n${formatted}\n]${openEnum ? ' | str' : ''}`
   }
 
   private isNullable(schemaOrRef: SchemaOrReference): boolean {
