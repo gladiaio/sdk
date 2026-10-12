@@ -1,8 +1,12 @@
+import pytest
+
 from gladiaio_sdk.v2.live.generated_types import (
   LiveV2InitRequest,
   LiveV2MessagesConfig,
   LiveV2StopRecordingAckMessage,
   LiveV2TranscriptMessage,
+  LiveV2UnknownWebSocketMessage,
+  create_live_v2_web_socket_message_from_dict,
 )
 
 
@@ -95,12 +99,9 @@ def test_init_request_keeps_unknown_fields():
   options = LiveV2InitRequest.from_dict({"encoding": "wav/pcm", "pii": True, "numerals": True})
   assert options.to_dict() == {"encoding": "wav/pcm", "pii": True, "numerals": True}
 
-  options = LiveV2InitRequest(encoding="wav/pcm", extra={"end_of_turn": {"threshold": 0.5}})
-  assert options.to_dict() == {"encoding": "wav/pcm", "end_of_turn": {"threshold": 0.5}}
 
-
-def test_extra_does_not_make_dataclasses_unhashable():
-  config = LiveV2MessagesConfig(receive_errors=True, extra={"unknown": {"a": 1}})
+def test_unknown_fields_do_not_make_dataclasses_unhashable():
+  config = LiveV2MessagesConfig.from_dict({"receive_errors": True, "unknown": {"a": 1}})
   assert hash(config) == hash(LiveV2MessagesConfig(receive_errors=True))
   assert config != LiveV2MessagesConfig(receive_errors=True)
 
@@ -125,6 +126,24 @@ def test_nested_unknown_fields_survive_parsing():
   }
   message = LiveV2TranscriptMessage.from_dict(payload)
   assert message.data is not None
-  assert message.data.utterance.extra == {"text_raw": "Hi"}
-  assert message.data.utterance.words[0].extra == {"speaker": 1}
+  # Readable as attributes at runtime, like in the JS SDK; type checkers don't know them
+  assert message.data.utterance.text_raw == "Hi"  # pyright: ignore[reportAttributeAccessIssue]
+  assert message.data.utterance.words[0].speaker == 1  # pyright: ignore[reportAttributeAccessIssue]
+  assert message.to_dict() == payload
+
+
+def test_missing_attribute_still_raises():
+  message = LiveV2MessagesConfig(receive_errors=True)
+  assert not hasattr(message, "text_raw")
+  with pytest.raises(AttributeError, match="'LiveV2MessagesConfig' object has no attribute"):
+    _ = message.text_raw  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def test_unknown_message_type_exposes_its_fields():
+  payload = {"type": "end_of_turn", "session_id": "123", "data": {"probability": 0.9}, "foo": 1}
+  message = create_live_v2_web_socket_message_from_dict(payload)
+  assert isinstance(message, LiveV2UnknownWebSocketMessage)
+  assert message.type == "end_of_turn"
+  assert message.data == {"probability": 0.9}
+  assert message.foo == 1  # pyright: ignore[reportAttributeAccessIssue]
   assert message.to_dict() == payload

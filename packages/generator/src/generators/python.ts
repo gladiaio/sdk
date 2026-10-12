@@ -9,7 +9,7 @@ const HEADER_BLOCK = `from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from dataclasses_json import CatchAll, DataClassJsonMixin, Undefined, config
 
@@ -21,14 +21,31 @@ def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
 
 
 class BaseDataClass(DataClassJsonMixin):
-  # Keep keys unknown to the SDK in \`extra\` and send them back in to_dict(), so options and
-  # fields added to the API are never silently dropped.
+  # Keep keys unknown to the SDK in \`_unknown_fields\` and send them back in to_dict(), so fields
+  # added to the API are never silently dropped.
   dataclass_json_config = config(undefined=Undefined.INCLUDE)["dataclasses_json"]
 
   def to_dict(self, encode_json: bool = True) -> dict[str, Any]:
     dict = super().to_dict(encode_json=encode_json)
     return _filter_none(dict)
+
+  if not TYPE_CHECKING:
+    # Unknown fields are readable as attributes (e.g. \`utterance.text_raw\`), like in the JS SDK.
+    # Hidden from type checkers so typos on known fields are still reported.
+    def __getattr__(self, name: str) -> Any:
+      try:
+        return object.__getattribute__(self, "_unknown_fields")[name]
+      except (AttributeError, KeyError):
+        raise AttributeError(
+          f"'{type(self).__name__}' object has no attribute '{name}'"
+        ) from None
 `
+
+// Catch-all for fields not (yet) known by the SDK, see BaseDataClass in HEADER_BLOCK
+const UNKNOWN_FIELDS_COMMENT =
+  '    # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()'
+const UNKNOWN_FIELDS_FIELD =
+  '    _unknown_fields: CatchAll = field(default_factory=dict, hash=False)'
 
 type OrderedProperty = {
   name: string
@@ -242,8 +259,8 @@ export class PythonGenerator extends BaseGenerator {
 
     lines.push(...required_lines)
     lines.push(...optional_lines)
-    lines.push('    # Fields not (yet) known by the SDK, merged back at the top level by to_dict()')
-    lines.push('    extra: CatchAll = field(default_factory=dict, hash=False)')
+    lines.push(UNKNOWN_FIELDS_COMMENT)
+    lines.push(UNKNOWN_FIELDS_FIELD)
 
     return lines.join('\n')
   }
@@ -447,7 +464,8 @@ export class PythonGenerator extends BaseGenerator {
       lines.push('    session_id: str | None = None')
       lines.push('    created_at: str | None = None')
       lines.push('    data: Any = None')
-      lines.push('    extra: CatchAll = field(default_factory=dict, hash=False)')
+      lines.push(UNKNOWN_FIELDS_COMMENT)
+      lines.push(UNKNOWN_FIELDS_FIELD)
       lines.push('')
       lines.push('')
     }

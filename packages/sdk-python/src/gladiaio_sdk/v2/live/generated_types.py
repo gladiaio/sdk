@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from dataclasses_json import CatchAll, DataClassJsonMixin, Undefined, config
 
@@ -16,13 +16,22 @@ def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
 
 
 class BaseDataClass(DataClassJsonMixin):
-  # Keep keys unknown to the SDK in `extra` and send them back in to_dict(), so options and
-  # fields added to the API are never silently dropped.
+  # Keep keys unknown to the SDK in `_unknown_fields` and send them back in to_dict(), so fields
+  # added to the API are never silently dropped.
   dataclass_json_config = config(undefined=Undefined.INCLUDE)["dataclasses_json"]
 
   def to_dict(self, encode_json: bool = True) -> dict[str, Any]:
     dict = super().to_dict(encode_json=encode_json)
     return _filter_none(dict)
+
+  if not TYPE_CHECKING:
+    # Unknown fields are readable as attributes (e.g. `utterance.text_raw`), like in the JS SDK.
+    # Hidden from type checkers so typos on known fields are still reported.
+    def __getattr__(self, name: str) -> Any:
+      try:
+        return object.__getattribute__(self, "_unknown_fields")[name]
+      except (AttributeError, KeyError):
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'") from None
 
 
 # Shared Types Types
@@ -146,8 +155,8 @@ class LiveV2LanguageConfig(BaseDataClass):
   # auto-detected on first utterance and then used for the rest of the transcription. If one
   # language is set, this option will be ignored.
   code_switching: bool | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,8 +166,8 @@ class LiveV2PreProcessingConfig(BaseDataClass):
   # Sensitivity configuration for Speech Threshold. A value close to 1 will apply stricter
   # thresholds, making it less likely to detect background sounds as speech.
   speech_threshold: float | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,8 +181,8 @@ class LiveV2CustomVocabularyEntry(BaseDataClass):
   # Specify the language in which it will be pronounced when sound comparison occurs. Default to
   # transcription language.
   language: LiveV2TranscriptionLanguageCode | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,16 +192,16 @@ class LiveV2CustomVocabularyConfig(BaseDataClass):
   vocabulary: list[LiveV2CustomVocabularyEntry | str]
   # Default intensity for the custom vocabulary
   default_intensity: float | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2CustomSpellingConfig(BaseDataClass):
   # The list of spelling applied on the audio transcription
   spelling_dictionary: dict[str, list[str]]
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 LiveV2TranslationLanguageCode = Literal[
@@ -318,8 +327,8 @@ class LiveV2TranslationConfig(BaseDataClass):
   context: str | None = None
   # Forces the translation to use informal language forms when available in the target language.
   informal: bool | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -340,8 +349,8 @@ class LiveV2RealtimeProcessingConfig(BaseDataClass):
   named_entity_recognition: bool | None = None
   # If true, enable sentiment analysis for the transcription.
   sentiment_analysis: bool | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 LiveV2SummaryType = Literal["general", "bullet_points", "concise"]
@@ -351,8 +360,8 @@ LiveV2SummaryType = Literal["general", "bullet_points", "concise"]
 class LiveV2SummarizationConfig(BaseDataClass):
   # The type of summarization to apply
   type: LiveV2SummaryType | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -363,8 +372,8 @@ class LiveV2PostProcessingConfig(BaseDataClass):
   summarization_config: LiveV2SummarizationConfig | None = None
   # Deprecated: this parameter is ignored.
   chapterization: bool | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -387,8 +396,8 @@ class LiveV2MessagesConfig(BaseDataClass):
   receive_errors: bool | None = None
   # If true, lifecycle events will be sent to websocket.
   receive_lifecycle_events: bool | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -413,8 +422,8 @@ class LiveV2CallbackConfig(BaseDataClass):
   receive_errors: bool | None = None
   # If true, lifecycle events will be sent to the defined callback.
   receive_lifecycle_events: bool | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -429,8 +438,8 @@ class LiveV2FileResponse(BaseDataClass):
   audio_duration: float | None = None
   # Number of channels in the audio file
   number_of_channels: int | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -470,8 +479,8 @@ class LiveV2RequestParamsResponse(BaseDataClass):
   callback: bool | None = None
   # Specify the callback configuration
   callback_config: LiveV2CallbackConfig | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -484,8 +493,8 @@ class LiveV2TranscriptionMetadata(BaseDataClass):
   billing_time: float
   # Duration of the transcription in seconds
   transcription_time: float
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -496,8 +505,8 @@ class LiveV2AddonError(BaseDataClass):
   exception: str
   # Detailed message of the addon error
   message: str
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -512,8 +521,8 @@ class LiveV2Sentences(BaseDataClass):
   error: LiveV2AddonError | None = None
   # If `sentences` has been enabled, transcription as sentences.
   results: list[str] | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 LiveV2SubtitlesFormat = Literal["srt", "vtt"]
@@ -525,8 +534,8 @@ class LiveV2Subtitle(BaseDataClass):
   format: LiveV2SubtitlesFormat
   # Transcription on the asked subtitle format
   subtitles: str
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -539,8 +548,8 @@ class LiveV2Word(BaseDataClass):
   end: float
   # Confidence on the transcribed word (1 = 100% confident)
   confidence: float
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -561,8 +570,8 @@ class LiveV2Utterance(BaseDataClass):
   language: LiveV2TranscriptionLanguageCode
   # If `diarization` enabled, speaker identification number
   speaker: int | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -577,8 +586,8 @@ class LiveV2Transcription(BaseDataClass):
   sentences: list[LiveV2Sentences] | None = None
   # If `subtitles` has been enabled, subtitles results
   subtitles: list[LiveV2Subtitle] | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -595,8 +604,8 @@ class LiveV2TranslationResult(BaseDataClass):
   sentences: list[LiveV2Sentences] | None = None
   # If `subtitles` has been enabled, subtitles results for this translation
   subtitles: list[LiveV2Subtitle] | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -611,8 +620,8 @@ class LiveV2Translation(BaseDataClass):
   error: LiveV2AddonError | None = None
   # List of translated transcriptions, one for each `target_languages`
   results: list[LiveV2TranslationResult] | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -627,8 +636,8 @@ class LiveV2Summarization(BaseDataClass):
   error: LiveV2AddonError | None = None
   # If `summarization` has been enabled, summary of the transcription
   results: str | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -637,8 +646,8 @@ class LiveV2NamedEntityRecognitionResult(BaseDataClass):
   text: str
   start: float
   end: float
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -653,8 +662,8 @@ class LiveV2NamedEntityRecognition(BaseDataClass):
   error: LiveV2AddonError | None = None
   # If `named_entity_recognition` has been enabled, the detected entities.
   results: list[LiveV2NamedEntityRecognitionResult] | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -670,8 +679,8 @@ class LiveV2SentimentAnalysis(BaseDataClass):
   results: str
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: LiveV2AddonError | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -690,16 +699,16 @@ class LiveV2TranscriptionResultWithMessages(BaseDataClass):
   sentiment_analysis: LiveV2SentimentAnalysis | None = None
   # Real-Time messages sent by the server during the live transcription
   messages: list[str] | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2Error(BaseDataClass):
   # The error message
   message: str
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -708,16 +717,16 @@ class LiveV2AudioChunkAckData(BaseDataClass):
   byte_range: list[int]
   # Range in seconds of the audio chunk (relative to the whole session)
   time_range: list[float]
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2EndRecordingMessageData(BaseDataClass):
   # Total audio duration in seconds
   recording_duration: float
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -732,8 +741,8 @@ class LiveV2TranslationData(BaseDataClass):
   target_language: LiveV2TranslationLanguageCode
   # The translated utterance
   translated_utterance: LiveV2Utterance
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -744,8 +753,8 @@ class LiveV2NamedEntityRecognitionData(BaseDataClass):
   utterance: LiveV2Utterance
   # The NER results
   results: list[LiveV2NamedEntityRecognitionResult]
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -762,16 +771,16 @@ class LiveV2TranscriptionResult(BaseDataClass):
   named_entity_recognition: LiveV2NamedEntityRecognition | None = None
   # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
   sentiment_analysis: LiveV2SentimentAnalysis | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2PostSummarizationMessageData(BaseDataClass):
   # The summarization
   results: str
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -782,8 +791,8 @@ class LiveV2SentimentAnalysisResult(BaseDataClass):
   start: float
   end: float
   channel: float
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -794,8 +803,8 @@ class LiveV2SentimentAnalysisData(BaseDataClass):
   utterance: LiveV2Utterance
   # The sentiment analysis results
   results: list[LiveV2SentimentAnalysisResult]
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -804,8 +813,8 @@ class LiveV2StopRecordingAckData(BaseDataClass):
   recording_duration: float
   # Audio duration left to process in seconds
   recording_left_to_process: float
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -816,8 +825,8 @@ class LiveV2TranscriptMessageData(BaseDataClass):
   is_final: bool
   # The transcribed utterance
   utterance: LiveV2Utterance
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -826,16 +835,16 @@ class LiveV2SpeechMessageData(BaseDataClass):
   time: float
   # Channel of the speech event
   channel: float
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2EventPayload(BaseDataClass):
   # Id of the job
   id: str
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Init Session Types
@@ -878,8 +887,8 @@ class LiveV2InitRequest(BaseDataClass):
   callback: bool | None = None
   # Specify the callback configuration
   callback_config: LiveV2CallbackConfig | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -891,8 +900,8 @@ class LiveV2InitResponse(BaseDataClass):
   # The websocket url to connect to for sending audio data. The url will contain the temporary
   # token to authenticate the session.
   url: str
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Job Management Types
@@ -925,8 +934,8 @@ class LiveV2Response(BaseDataClass):
   request_params: LiveV2RequestParamsResponse | None = None
   # Live transcription's result when status is "done"
   result: LiveV2TranscriptionResultWithMessages | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -939,8 +948,8 @@ class LiveV2ListResponse(BaseDataClass):
   items: list[LiveV2Response]
   # URL to fetch the next page
   next: str | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -965,8 +974,8 @@ class LiveV2ListParams(BaseDataClass):
   # Absolute pagination URL (`next`, `first`, or `current` from a previous list response). When
   # set, other filters are ignored.
   url: str | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # WebSocket Messages Types
@@ -983,8 +992,8 @@ class LiveV2AudioChunkAckMessage(BaseDataClass):
   error: LiveV2Error | None = None
   # The message data. "null" if the action was not successfully acknowledged
   data: LiveV2AudioChunkAckData | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -996,8 +1005,8 @@ class LiveV2EndRecordingMessage(BaseDataClass):
   type: Literal["end_recording"]
   # The message data
   data: LiveV2EndRecordingMessageData
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1007,8 +1016,8 @@ class LiveV2EndSessionMessage(BaseDataClass):
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
   type: Literal["end_session"]
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1022,8 +1031,8 @@ class LiveV2TranslationMessage(BaseDataClass):
   error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
   data: LiveV2TranslationData | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1037,8 +1046,8 @@ class LiveV2NamedEntityRecognitionMessage(BaseDataClass):
   error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
   data: LiveV2NamedEntityRecognitionData | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1050,8 +1059,8 @@ class LiveV2PostFinalTranscriptMessage(BaseDataClass):
   type: Literal["post_final_transcript"]
   # The message data
   data: LiveV2TranscriptionResult
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1065,8 +1074,8 @@ class LiveV2PostSummarizationMessage(BaseDataClass):
   error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
   data: LiveV2PostSummarizationMessageData | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1078,8 +1087,8 @@ class LiveV2PostTranscriptMessage(BaseDataClass):
   type: Literal["post_transcript"]
   # The message data
   data: LiveV2Transcription
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1093,8 +1102,8 @@ class LiveV2SentimentAnalysisMessage(BaseDataClass):
   error: LiveV2Error | None = None
   # The message data. "null" if the addon failed
   data: LiveV2SentimentAnalysisData | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1104,8 +1113,8 @@ class LiveV2StartRecordingMessage(BaseDataClass):
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
   type: Literal["start_recording"]
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1115,8 +1124,8 @@ class LiveV2StartSessionMessage(BaseDataClass):
   # Date of creation of the message. The date is formatted as an ISO 8601 string
   created_at: str
   type: Literal["start_session"]
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1132,8 +1141,8 @@ class LiveV2StopRecordingAckMessage(BaseDataClass):
   error: LiveV2Error | None = None
   # The message data. "null" if the action was not successfully acknowledged
   data: LiveV2StopRecordingAckData | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1145,8 +1154,8 @@ class LiveV2TranscriptMessage(BaseDataClass):
   type: Literal["transcript"]
   # The message data
   data: LiveV2TranscriptMessageData
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1158,8 +1167,8 @@ class LiveV2SpeechStartMessage(BaseDataClass):
   type: Literal["speech_start"]
   # The message data
   data: LiveV2SpeechMessageData
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1171,8 +1180,8 @@ class LiveV2SpeechEndMessage(BaseDataClass):
   type: Literal["speech_end"]
   # The message data
   data: LiveV2SpeechMessageData
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Union of all websocket messages
@@ -1202,7 +1211,8 @@ class LiveV2UnknownWebSocketMessage(BaseDataClass):
   session_id: str | None = None
   created_at: str | None = None
   data: Any = None
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 _WS_TYPE_TO_CLASS: dict[str, type[LiveV2WebSocketMessage]] = {
@@ -1257,8 +1267,8 @@ class LiveV2CallbackAudioChunkAckMessage(BaseDataClass):
   event: Literal["live.audio_chunk"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2AudioChunkAckMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1268,8 +1278,8 @@ class LiveV2CallbackEndRecordingMessage(BaseDataClass):
   event: Literal["live.end_recording"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2EndRecordingMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1279,8 +1289,8 @@ class LiveV2CallbackEndSessionMessage(BaseDataClass):
   event: Literal["live.end_session"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2EndSessionMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1290,8 +1300,8 @@ class LiveV2CallbackTranslationMessage(BaseDataClass):
   event: Literal["live.translation"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2TranslationMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1301,8 +1311,8 @@ class LiveV2CallbackNamedEntityRecognitionMessage(BaseDataClass):
   event: Literal["live.named_entity_recognition"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2NamedEntityRecognitionMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1312,8 +1322,8 @@ class LiveV2CallbackPostFinalTranscriptMessage(BaseDataClass):
   event: Literal["live.post_final_transcript"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2PostFinalTranscriptMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1323,8 +1333,8 @@ class LiveV2CallbackPostSummarizationMessage(BaseDataClass):
   event: Literal["live.post_summarization"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2PostSummarizationMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1334,8 +1344,8 @@ class LiveV2CallbackPostTranscriptMessage(BaseDataClass):
   event: Literal["live.post_transcript"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2PostTranscriptMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1345,8 +1355,8 @@ class LiveV2CallbackSentimentAnalysisMessage(BaseDataClass):
   event: Literal["live.sentiment_analysis"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2SentimentAnalysisMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1356,8 +1366,8 @@ class LiveV2CallbackStartRecordingMessage(BaseDataClass):
   event: Literal["live.start_recording"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2StartRecordingMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1367,8 +1377,8 @@ class LiveV2CallbackStartSessionMessage(BaseDataClass):
   event: Literal["live.start_session"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2StartSessionMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1378,8 +1388,8 @@ class LiveV2CallbackStopRecordingAckMessage(BaseDataClass):
   event: Literal["live.stop_recording"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2StopRecordingAckMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1389,8 +1399,8 @@ class LiveV2CallbackTranscriptMessage(BaseDataClass):
   event: Literal["live.transcript"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2TranscriptMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1400,8 +1410,8 @@ class LiveV2CallbackSpeechStartMessage(BaseDataClass):
   event: Literal["live.speech_start"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2SpeechStartMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1411,8 +1421,8 @@ class LiveV2CallbackSpeechEndMessage(BaseDataClass):
   event: Literal["live.speech_end"]
   # The live message payload as sent to the WebSocket
   payload: LiveV2SpeechEndMessage
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Union of all callback messages
@@ -1481,32 +1491,32 @@ def create_live_v2_callback_message_from_json(
 class LiveV2WebhookStartSessionMessage(BaseDataClass):
   event: Literal["live.start_session"]
   payload: LiveV2EventPayload
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2WebhookStartRecordingMessage(BaseDataClass):
   event: Literal["live.start_recording"]
   payload: LiveV2EventPayload
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2WebhookEndRecordingMessage(BaseDataClass):
   event: Literal["live.end_recording"]
   payload: LiveV2EventPayload
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class LiveV2WebhookEndSessionMessage(BaseDataClass):
   event: Literal["live.end_session"]
   payload: LiveV2EventPayload
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Union of all webhook messages

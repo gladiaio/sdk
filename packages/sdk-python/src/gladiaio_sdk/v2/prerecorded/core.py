@@ -102,8 +102,8 @@ class PreRecordedV2TranscriptionOptions(BaseDataClass):
   punctuation_enhanced: bool | None = None
   # Specify the language configuration
   language_config: PreRecordedV2LanguageConfig | None = None
-  # Fields not (yet) known by the SDK, merged back at the top level by to_dict()
-  extra: CatchAll = field(default_factory=dict, hash=False)
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 class HttpClientProtocol(Protocol):

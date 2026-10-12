@@ -51,8 +51,7 @@ class LiveV2AsyncClient:
 
     Args:
       options: The session options as a ``LiveV2InitRequest`` instance or a plain dict. A dict is
-        sent as-is; with a ``LiveV2InitRequest``, options the SDK doesn't type yet can be passed
-        through ``extra``.
+        sent as-is, so it can hold options the SDK doesn't type yet.
     """
     return LiveV2AsyncSession(
       options=options,
