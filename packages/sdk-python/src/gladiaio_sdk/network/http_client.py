@@ -12,7 +12,7 @@ from typing import Any, final
 import httpx
 
 from gladiaio_sdk.client_options import HttpRetryOptions, QueryParams
-from gladiaio_sdk.network.helper import matches_status
+from gladiaio_sdk.network.helper import build_url, matches_status
 
 _schema_field_names_cache: dict[str, frozenset[str]] = {}
 
@@ -369,9 +369,8 @@ class AsyncHttpClient:
     return await self._request("DELETE", url, init or {})
 
   async def _request(self, method: str, url: str, init: dict[str, Any]) -> httpx.Response:
-    # Merge query params and base URL
-    base = httpx.URL(self._base_url)
-    request_url = base.join(url)
+    # Concatenate base and endpoint paths so an api_url path prefix (proxy, router) is kept
+    request_url = httpx.URL(build_url(self._base_url, url))
     # Preserve URL params; add defaults only if missing
     url_params = dict(httpx.QueryParams(request_url.query.decode()))
     # Start from default, then keep URL values intact
@@ -500,9 +499,8 @@ class HttpClient:
     return self._request("DELETE", url, init or {})
 
   def _request(self, method: str, url: str, init: dict[str, Any]) -> httpx.Response:
-    # Merge query params and base URL
-    base = httpx.URL(self._base_url)
-    request_url = base.join(url)
+    # Concatenate base and endpoint paths so an api_url path prefix (proxy, router) is kept
+    request_url = httpx.URL(build_url(self._base_url, url))
     # Preserve URL params; add defaults only if missing
     url_params = dict(httpx.QueryParams(request_url.query.decode()))
     # Start from default, then keep URL values intact
