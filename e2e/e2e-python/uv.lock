@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10, <4"
 
 [[package]]
@@ -83,7 +83,7 @@ wheels = [
 
 [[package]]
 name = "gladiaio-sdk"
-version = "2.1.0"
+version = "2.2.0"
 source = { editable = "../../packages/sdk-python" }
 dependencies = [
     { name = "dataclasses-json" },

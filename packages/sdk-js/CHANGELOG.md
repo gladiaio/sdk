@@ -1,3 +1,11 @@
+## 2.2.0 (2026-10-13)
+
+### 🩹 Fixes
+
+- only follow list pagination urls on the configured API
+- keep the api_url path prefix in HTTP requests
+- **sdk-python:** pass unknown live init fields and websocket messages through
+
 ## 2.1.0 (2026-09-21)
 
 ### 🩹 Fixes
