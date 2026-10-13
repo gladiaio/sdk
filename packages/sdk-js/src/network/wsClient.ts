@@ -1,4 +1,4 @@
-import { sleep } from '../helpers.js'
+import { buildUrl, sleep } from '../helpers.js'
 import type { WebSocketRetryOptions } from '../types.js'
 import { newWebSocket, WS_STATES, type IsoWS } from './iso-ws.js'
 
@@ -85,7 +85,7 @@ export class WebSocketClient {
     return new WebSocketSession({
       retry: this.retry,
       timeout: this.timeout,
-      url: new URL(url, this.baseUrl),
+      url: buildUrl(this.baseUrl, url),
     })
   }
 }

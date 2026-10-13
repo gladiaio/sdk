@@ -28,6 +28,28 @@ export function getEnv<T extends string>(envVariableName: string, defaultValue?:
   return (process.env[envVariableName] ?? defaultValue) as T | undefined
 }
 
+/**
+ * Join `baseUrl` and `url`, keeping the base path as a prefix.
+ *
+ * Absolute `url` values are returned unchanged. Otherwise the paths are concatenated (unlike
+ * `new URL(url, baseUrl)`, where `/v2/live` would replace a proxy prefix such as `/gladia`) and
+ * the query strings of both are kept.
+ */
+export function buildUrl(baseUrl: string | URL, url: string | URL): URL {
+  if (url instanceof URL || /^(https?|wss?):\/\//i.test(url)) {
+    return new URL(url)
+  }
+
+  const base = new URL(baseUrl)
+  // Only the path, query and fragment of a relative url are used
+  const relative = new URL(url, 'http://localhost')
+  const result = new URL(base)
+  result.pathname = `${base.pathname.replace(/\/+$/, '')}/${relative.pathname.replace(/^\/+/, '')}`
+  result.search = [base.search.slice(1), relative.search.slice(1)].filter(Boolean).join('&')
+  result.hash = relative.hash || base.hash
+  return result
+}
+
 export async function sleep(ms: number): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, ms))
 }

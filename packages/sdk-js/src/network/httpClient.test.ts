@@ -427,4 +427,67 @@ describe('HttpClient', () => {
       expect.objectContaining({ method: 'GET' })
     )
   })
+
+  describe('with an api url path prefix', () => {
+    const requestedUrl = async (
+      baseUrl: string,
+      url: string,
+      queryParams?: Record<string, string>
+    ) => {
+      mockFetch.mockResolvedValue(new Response('ok', { status: 200 }))
+      const client = new HttpClient({
+        baseUrl,
+        retry: { maxAttempts: 1, statusCodes: [], delay: () => 0 },
+        timeout: 10_000,
+        queryParams,
+      })
+      await client.get(url)
+      return (mockFetch.mock.calls[0]![0] as URL).href
+    }
+
+    it.each(['http://localhost:8001/gladia', 'http://localhost:8001/gladia/'])(
+      'keeps the prefix of %s',
+      async (baseUrl) => {
+        for (const path of [
+          '/v2/live',
+          '/v2/live/abc-123',
+          '/v2/pre-recorded',
+          '/v2/pre-recorded/abc-123/file',
+          '/v2/upload',
+        ]) {
+          mockFetch.mockClear()
+          expect(await requestedUrl(baseUrl, path)).toBe(`http://localhost:8001/gladia${path}`)
+        }
+      }
+    )
+
+    it.each(['https://api.gladia.io', 'https://api.gladia.io/'])(
+      'leaves %s without path unchanged',
+      async (baseUrl) => {
+        expect(await requestedUrl(baseUrl, '/v2/live/abc-123')).toBe(
+          'https://api.gladia.io/v2/live/abc-123'
+        )
+      }
+    )
+
+    it('merges the base and endpoint query strings', async () => {
+      const url = new URL(
+        await requestedUrl(
+          'http://localhost:8001/gladia?tenant=acme',
+          '/v2/pre-recorded?status=done&status=error',
+          { version: '1' }
+        )
+      )
+      expect(url.pathname).toBe('/gladia/v2/pre-recorded')
+      expect(url.searchParams.get('tenant')).toBe('acme')
+      expect(url.searchParams.getAll('status')).toEqual(['done', 'error'])
+      expect(url.searchParams.get('version')).toBe('1')
+    })
+
+    it('keeps an absolute url as is', async () => {
+      expect(
+        await requestedUrl('http://localhost:8001/gladia', 'http://localhost:8001/other/v2/live')
+      ).toBe('http://localhost:8001/other/v2/live')
+    })
+  })
 })
