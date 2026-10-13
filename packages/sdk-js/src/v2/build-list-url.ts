@@ -1,8 +1,9 @@
 /**
  * Build a list endpoint URL from a collection path and optional list params.
  *
- * When `params.url` is set, that absolute pagination URL is returned as-is and
- * other filters are ignored.
+ * When `params.url` is set, only its query string is kept and appended to
+ * `basePath` (other filters are ignored). Its scheme, host and path are never
+ * used, so a pagination link can only ever target the configured API.
  */
 
 export type ListUrlParams = {
@@ -22,7 +23,7 @@ export function buildListUrl(basePath: string, params?: ListUrlParams | null): s
   }
 
   if (params.url) {
-    return params.url
+    return buildPaginationUrl(basePath, params.url)
   }
 
   const search = new URLSearchParams()
@@ -58,4 +59,9 @@ export function buildListUrl(basePath: string, params?: ListUrlParams | null): s
 
   const query = search.toString()
   return query ? `${basePath}?${query}` : basePath
+}
+
+function buildPaginationUrl(basePath: string, url: string): string {
+  // The links returned by the API always target the collection, so only their query is needed.
+  return `${basePath}${new URL(url, 'http://localhost').search}`
 }

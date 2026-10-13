@@ -7,7 +7,7 @@ describe('buildListUrl', () => {
     expect(buildListUrl('/v2/live', undefined)).toBe('/v2/live')
   })
 
-  it('returns absolute url unchanged when url is set', () => {
+  it('keeps only the query string of the pagination url when url is set', () => {
     const next = 'https://api.gladia.io/v2/pre-recorded?status=done&offset=20&limit=20'
     expect(
       buildListUrl('/v2/pre-recorded', {
@@ -16,7 +16,36 @@ describe('buildListUrl', () => {
         limit: 5,
         status: ['error'],
       })
-    ).toBe(next)
+    ).toBe('/v2/pre-recorded?status=done&offset=20&limit=20')
+  })
+
+  it('never keeps the origin of the pagination url', () => {
+    expect(
+      buildListUrl('/v2/live', { url: 'http://attacker.example/v2/live?offset=20&limit=20' })
+    ).toBe('/v2/live?offset=20&limit=20')
+    expect(buildListUrl('/v2/live', { url: '//attacker.example/v2/live?offset=20' })).toBe(
+      '/v2/live?offset=20'
+    )
+  })
+
+  it('accepts relative, prefixed and trailing-slash pagination urls', () => {
+    expect(buildListUrl('/v2/live', { url: '/v2/live?offset=20' })).toBe('/v2/live?offset=20')
+    expect(
+      buildListUrl('/v2/live', { url: 'https://proxy.example/gladia/v2/live/?offset=20' })
+    ).toBe('/v2/live?offset=20')
+    expect(buildListUrl('/v2/live', { url: 'https://api.gladia.io/v2/live' })).toBe('/v2/live')
+  })
+
+  it('always targets the collection, whatever the path of the pagination url', () => {
+    expect(buildListUrl('/v2/live', { url: 'http://169.254.169.254/latest/meta-data/' })).toBe(
+      '/v2/live'
+    )
+    expect(
+      buildListUrl('/v2/pre-recorded', {
+        url: 'https://api.gladia.io/v2/transcription?status=done&offset=20&limit=20',
+      })
+    ).toBe('/v2/pre-recorded?status=done&offset=20&limit=20')
+    expect(buildListUrl('/v2/live', { url: '?offset=20' })).toBe('/v2/live?offset=20')
   })
 
   it('serializes scalar filters', () => {
