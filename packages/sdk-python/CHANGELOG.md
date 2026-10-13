@@ -1,3 +1,9 @@
+## 2.1.0 (2026-09-18)
+
+### 🩹 Fixes
+
+- prevent API key leaks on cross-origin redirects
+
 ## 1.0.2 (2026-04-16)
 
 ### 🩹 Fixes
