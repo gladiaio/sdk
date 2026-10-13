@@ -118,3 +118,14 @@ def test_default_query_params_are_added_with_prefix(request_url):
 def test_absolute_url_is_kept_as_is(request_url):
   url = request_url("http://localhost:8001/gladia", "http://localhost:8001/other/v2/live")
   assert url == "http://localhost:8001/other/v2/live"
+
+
+def test_repeated_query_keys_are_kept(request_url):
+  url = request_url(
+    "http://localhost:8001/gladia",
+    "/v2/pre-recorded?status=done&status=error",
+    {"version": "1", "status": "queued"},
+  )
+  parsed = httpx.URL(url)
+  assert parsed.params.get_list("status") == ["done", "error"]
+  assert parsed.params["version"] == "1"
