@@ -13,7 +13,7 @@ def test_build_list_endpoint_without_params() -> None:
   assert core.build_list_endpoint(None) == "/v2/pre-recorded"
 
 
-def test_build_list_endpoint_follows_absolute_url() -> None:
+def test_build_list_endpoint_keeps_only_query_of_pagination_url() -> None:
   core = V2JobCore(base_path="/v2/live", kind="Live")
   next_url = "https://api.gladia.io/v2/live?offset=20&limit=20&status=done"
   assert (
@@ -24,8 +24,43 @@ def test_build_list_endpoint_follows_absolute_url() -> None:
         "status": ["error"],
       }
     )
-    == next_url
+    == "/v2/live?offset=20&limit=20&status=done"
   )
+
+
+def test_build_list_endpoint_never_keeps_origin_of_pagination_url() -> None:
+  core = V2JobCore(base_path="/v2/live", kind="Live")
+  assert (
+    core.build_list_endpoint({"url": "http://attacker.example/v2/live?offset=20&limit=20"})
+    == "/v2/live?offset=20&limit=20"
+  )
+  assert (
+    core.build_list_endpoint({"url": "//attacker.example/v2/live?offset=20"})
+    == "/v2/live?offset=20"
+  )
+
+
+def test_build_list_endpoint_accepts_relative_prefixed_and_trailing_slash_urls() -> None:
+  core = V2JobCore(base_path="/v2/live", kind="Live")
+  assert core.build_list_endpoint({"url": "/v2/live?offset=20"}) == "/v2/live?offset=20"
+  assert (
+    core.build_list_endpoint({"url": "https://proxy.example/gladia/v2/live/?offset=20"})
+    == "/v2/live?offset=20"
+  )
+  assert core.build_list_endpoint({"url": "https://api.gladia.io/v2/live"}) == "/v2/live"
+
+
+def test_build_list_endpoint_always_targets_the_collection() -> None:
+  live = V2JobCore(base_path="/v2/live", kind="Live")
+  prerecorded = V2JobCore(base_path="/v2/pre-recorded", kind="Pre-recorded")
+  assert live.build_list_endpoint({"url": "http://169.254.169.254/latest/meta-data/"}) == "/v2/live"
+  assert (
+    prerecorded.build_list_endpoint(
+      {"url": "https://api.gladia.io/v2/transcription?status=done&offset=20&limit=20"}
+    )
+    == "/v2/pre-recorded?status=done&offset=20&limit=20"
+  )
+  assert live.build_list_endpoint({"url": "?offset=20"}) == "/v2/live?offset=20"
 
 
 def test_build_list_endpoint_serializes_scalars() -> None:

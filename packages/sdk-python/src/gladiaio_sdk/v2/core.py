@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any, cast
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 
 class V2JobCore:
@@ -27,8 +27,9 @@ class V2JobCore:
   def build_list_endpoint(self, params: Mapping[str, Any] | object | None = None) -> str:
     """Build the collection list URL, including optional query filters.
 
-    When ``params`` contains ``url``, that absolute pagination URL is returned
-    as-is and other filters are ignored.
+    When ``params`` contains ``url``, only its query string is kept and appended
+    to the collection path (other filters are ignored). Its scheme, host and path
+    are never used, so a pagination link can only ever target the configured API.
     """
     if not params:
       return self._base_path
@@ -42,9 +43,9 @@ class V2JobCore:
     else:
       raise TypeError(f"Unsupported list params type: {type(params)!r}")
 
-    absolute_url = data.get("url")
-    if absolute_url:
-      return str(absolute_url)
+    pagination_url = data.get("url")
+    if pagination_url:
+      return self._build_pagination_endpoint(str(pagination_url))
 
     pairs: list[tuple[str, str]] = []
 
@@ -70,6 +71,11 @@ class V2JobCore:
       return self._base_path
 
     return f"{self._base_path}?{urlencode(pairs)}"
+
+  def _build_pagination_endpoint(self, url: str) -> str:
+    # The links returned by the API always target the collection, so only their query is needed.
+    query = urlsplit(url).query
+    return f"{self._base_path}?{query}" if query else self._base_path
 
   def is_job_complete(self, status: str) -> bool:
     return status in ("done", "error")

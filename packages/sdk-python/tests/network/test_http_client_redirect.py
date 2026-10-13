@@ -6,6 +6,7 @@ Production trigger: GET /v2/.../file → 302 to signed object storage.
 from __future__ import annotations
 
 import asyncio
+import json
 import threading
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -191,3 +192,100 @@ def test_live_get_file_does_not_forward_x_gladia_key_on_cross_origin_redirect(
 
   assert len(redirect_pair.captured) == 1
   assert "x-gladia-key" not in redirect_pair.captured[0].headers
+
+
+def test_sync_http_client_does_not_send_x_gladia_key_to_another_origin(
+  redirect_pair: RedirectPair,
+) -> None:
+  client = HttpClient(
+    base_url=redirect_pair.origin_base,
+    headers={"x-gladia-key": SECRET_KEY},
+    query_params={},
+    retry=_no_retry(),
+    timeout=5.0,
+  )
+  try:
+    response = client.get(f"{redirect_pair.sink_origin}/exfil")
+    assert response.status_code == 200
+  finally:
+    client.close()
+
+  assert redirect_pair.origin_captured == []
+  assert len(redirect_pair.captured) == 1
+  assert "x-gladia-key" not in redirect_pair.captured[0].headers
+
+
+def test_async_http_client_does_not_send_x_gladia_key_to_another_origin(
+  redirect_pair: RedirectPair,
+) -> None:
+  async def run() -> None:
+    client = AsyncHttpClient(
+      base_url=redirect_pair.origin_base,
+      headers={"x-gladia-key": SECRET_KEY},
+      query_params={},
+      retry=_no_retry(),
+      timeout=5.0,
+    )
+    try:
+      response = await client.get(f"{redirect_pair.sink_origin}/exfil")
+      assert response.status_code == 200
+    finally:
+      await client.close()
+
+  asyncio.run(run())
+
+  assert redirect_pair.origin_captured == []
+  assert len(redirect_pair.captured) == 1
+  assert "x-gladia-key" not in redirect_pair.captured[0].headers
+
+
+@pytest.fixture
+def list_api():
+  captured: list[CapturedRequest] = []
+
+  class ListHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:  # noqa: N802
+      captured.append(
+        CapturedRequest(
+          path=self.path,
+          headers={k.lower(): v for k, v in self.headers.items()},
+        )
+      )
+      body = json.dumps({"first": "", "current": "", "next": None, "items": []}).encode()
+      self.send_response(200)
+      self.send_header("Content-Type", "application/json")
+      self.send_header("Content-Length", str(len(body)))
+      self.end_headers()
+      self.wfile.write(body)
+
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
+      return
+
+  server = HTTPServer(("127.0.0.1", 0), ListHandler)
+  thread = threading.Thread(target=server.serve_forever, daemon=True)
+  thread.start()
+  try:
+    yield f"http://127.0.0.1:{server.server_address[1]}", captured
+  finally:
+    server.shutdown()
+    server.server_close()
+    thread.join(timeout=2)
+
+
+def test_list_pagination_url_is_sent_to_the_configured_api_only(
+  redirect_pair: RedirectPair,
+  list_api: tuple[str, list[CapturedRequest]],
+) -> None:
+  api_url, api_captured = list_api
+  gladia = GladiaClient(
+    api_key=SECRET_KEY,
+    api_url=api_url,
+    http_retry=_no_retry(),
+    http_timeout=5.0,
+  )
+  gladia.live().list({"url": f"{redirect_pair.sink_origin}/v2/live?offset=20&limit=20"})
+
+  assert redirect_pair.captured == []
+  assert len(api_captured) == 1
+  assert api_captured[0].path == "/v2/live?offset=20&limit=20"
+  assert api_captured[0].headers["x-gladia-key"] == SECRET_KEY

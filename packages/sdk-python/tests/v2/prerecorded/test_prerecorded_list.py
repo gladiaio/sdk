@@ -111,7 +111,7 @@ def test_list_follows_absolute_url() -> None:
 
   client.list(PreRecordedV2ListParams(url=next_url, offset=0, status=["error"]))
   url, _ = fake.get_calls[0]
-  assert url == next_url
+  assert url == "/v2/pre-recorded?offset=20&limit=20&status=done"
 
 
 def test_list_accepts_dict_params() -> None:
