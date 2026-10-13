@@ -26,15 +26,16 @@ from ...network import (
 )
 from ._helpers import (
   LiveV2SessionEventsMixin,
+  build_init_body,
   build_live_init_url,
   emit_session_ending_events,
   emit_started_if_needed,
   maybe_emit_start_session_message,
+  parse_init_options,
   parse_ws_message,
   send_audio_in_chunks,
   should_emit_ws_message,
   trim_acknowledged_audio_buffer,
-  with_acknowledgments_enabled,
 )
 from .generated_types import (
   LiveV2InitRequest,
@@ -52,20 +53,22 @@ class LiveV2Session(LiveV2SessionEventsMixin):
   - connected(LiveV2ConnectedMessage)
   - ending(LiveV2EndingMessage)
   - ended(LiveV2EndedMessage)
-  - message(LiveV2WebSocketMessage)
+  - message(LiveV2WebSocketMessage, or LiveV2UnknownWebSocketMessage for an unknown type)
   - error(Exception)
   """
 
   def __init__(
     self,
     *,
-    options: LiveV2InitRequest,
+    options: LiveV2InitRequest | dict[str, Any],
     http_client: HttpClient,
     ws_client: WebSocketClient,
     existing_session: LiveV2InitResponse | None = None,
     region: Region | None = None,
   ) -> None:
-    self._options = options
+    # Raw options are kept for the init body, the parsed ones to read the messages config
+    self._init_options = options
+    self._options = parse_init_options(options)
     self._http_client = http_client
     self._ws_client = ws_client
     self._existing_session = existing_session
@@ -135,8 +138,9 @@ class LiveV2Session(LiveV2SessionEventsMixin):
   # Internals
   def _init_session(self) -> LiveV2InitResponse:
     try:
-      options = with_acknowledgments_enabled(self._options)
-      resp = self._http_client.post(build_live_init_url(self._region), json=options.to_dict())
+      resp = self._http_client.post(
+        build_live_init_url(self._region), json=build_init_body(self._init_options)
+      )
       return LiveV2InitResponse.from_json(resp.content)
     except Exception as err:
       _ = self._event_emitter.emit("error", err)

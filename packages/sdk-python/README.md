@@ -153,6 +153,17 @@ live_session.stop_recording()
 
 Use **`LiveV2InitRequest`** fields for realtime/post-processing options — see **[Live STT features](https://docs.gladia.io/chapters/live-stt/features)** and the [live init API](https://docs.gladia.io/api-reference/v2/live/init).
 
+To use options the SDK doesn't type yet, pass a plain `dict` to **`start_session`**. It is sent as-is, like in the JS SDK:
+
+```python
+live_client.start_session({"encoding": "wav/pcm", "numerals": True})
+```
+
+Likewise, nothing the API sends is dropped:
+
+- A message of a type the SDK doesn't know yet is emitted on **`message`** as a **`LiveV2UnknownWebSocketMessage`** (check for it with `isinstance`).
+- Fields the SDK doesn't know yet are readable as attributes, e.g. `utterance.text_raw`. Type checkers don't know them (like TypeScript), so add a `# type: ignore` comment where you read one.
+
 ### Async live
 
 Same session API; use **`live_async()`** and run under **`asyncio.run`** or your app loop:

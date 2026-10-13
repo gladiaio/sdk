@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 from collections.abc import Callable
 from typing import Any, Literal, Protocol, TypeVar, overload
 from urllib.parse import urlencode
@@ -21,9 +20,14 @@ from .generated_types import (
   LiveV2InitResponse,
   LiveV2MessagesConfig,
   LiveV2StartSessionMessage,
+  LiveV2UnknownWebSocketMessage,
   LiveV2WebSocketMessage,
   create_live_v2_web_socket_message_from_json,
 )
+
+# Messages emitted on "message": known types, or unknown ones passed through as-is. Listeners are
+# typed with the known types only (like the JS SDK) so `message.type == "..."` keeps narrowing.
+_LiveV2Message = LiveV2WebSocketMessage | LiveV2UnknownWebSocketMessage
 
 EventCallback = Callable[..., Any]
 Handler = TypeVar("Handler", bound=Callable[..., Any])
@@ -54,14 +58,21 @@ def send_audio_in_chunks(ws: Any, audio: bytes) -> None:
     ws.send(audio[i : i + _MAX_RESUME_CHUNK_BYTES])
 
 
-def with_acknowledgments_enabled(options: LiveV2InitRequest) -> LiveV2InitRequest:
-  """Return init options with acknowledgments forced on for resume logic."""
-  msg_cfg = options.messages_config
-  if msg_cfg:
-    msg_cfg = dataclasses.replace(msg_cfg, receive_acknowledgments=True)
-  else:
-    msg_cfg = LiveV2MessagesConfig(receive_acknowledgments=True)
-  return dataclasses.replace(options, messages_config=msg_cfg)
+def parse_init_options(options: LiveV2InitRequest | dict[str, Any]) -> LiveV2InitRequest:
+  if isinstance(options, dict):
+    return LiveV2InitRequest.from_dict(options)
+  return options
+
+
+def build_init_body(options: LiveV2InitRequest | dict[str, Any]) -> dict[str, Any]:
+  """Return the POST /v2/live body with acknowledgments forced on for resume logic.
+
+  A dict is sent as-is (like the JS SDK) rather than through ``LiveV2InitRequest``, so values the
+  SDK types differently (e.g. an object where it expects a boolean) are not coerced.
+  """
+  body = dict(options) if isinstance(options, dict) else options.to_dict()
+  messages_config = {**(body.get("messages_config") or {}), "receive_acknowledgments": True}
+  return {**body, "messages_config": messages_config}
 
 
 def build_live_init_url(region: Region | None = None) -> str:
@@ -71,13 +82,13 @@ def build_live_init_url(region: Region | None = None) -> str:
   return "/v2/live"
 
 
-def parse_ws_message(raw: Any) -> LiveV2WebSocketMessage:
+def parse_ws_message(raw: Any) -> _LiveV2Message:
   text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
   return create_live_v2_web_socket_message_from_json(text)
 
 
 def should_emit_ws_message(
-  message: LiveV2WebSocketMessage,
+  message: _LiveV2Message,
   messages_config: LiveV2MessagesConfig | None,
 ) -> bool:
   return (

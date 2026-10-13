@@ -2,10 +2,10 @@
 # Generated from OpenAPI schema.
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Literal
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Literal
 
-from dataclasses_json import DataClassJsonMixin
+from dataclasses_json import CatchAll, DataClassJsonMixin, Undefined, config
 
 
 def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
@@ -15,9 +15,22 @@ def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
 
 
 class BaseDataClass(DataClassJsonMixin):
+  # Keep keys unknown to the SDK in `_unknown_fields` and send them back in to_dict(), so fields
+  # added to the API are never silently dropped.
+  dataclass_json_config = config(undefined=Undefined.INCLUDE)["dataclasses_json"]
+
   def to_dict(self, encode_json: bool = True) -> dict[str, Any]:
     dict = super().to_dict(encode_json=encode_json)
     return _filter_none(dict)
+
+  if not TYPE_CHECKING:
+    # Unknown fields are readable as attributes (e.g. `utterance.text_raw`), like in the JS SDK.
+    # Hidden from type checkers so typos on known fields are still reported.
+    def __getattr__(self, name: str) -> Any:
+      try:
+        return object.__getattribute__(self, "_unknown_fields")[name]
+      except (AttributeError, KeyError):
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'") from None
 
 
 # Shared Types Types
@@ -37,6 +50,8 @@ class PreRecordedV2AudioUploadMetadata(BaseDataClass):
   number_of_channels: int
   # Uploaded audio source
   source: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 PreRecordedV2TranscriptionLanguageCode = Literal[
@@ -153,6 +168,8 @@ class PreRecordedV2CustomVocabularyEntry(BaseDataClass):
   # Specify the language in which it will be pronounced when sound comparison occurs. Default to
   # transcription language.
   language: PreRecordedV2TranscriptionLanguageCode | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +179,8 @@ class PreRecordedV2CustomVocabularyConfig(BaseDataClass):
   vocabulary: list[PreRecordedV2CustomVocabularyEntry | str]
   # Default intensity for the custom vocabulary
   default_intensity: float | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 PreRecordedV2CallbackMethod = Literal["POST", "PUT"]
@@ -173,6 +192,8 @@ class PreRecordedV2CallbackConfig(BaseDataClass):
   url: str
   # The HTTP method to be used. Allowed values are `POST` or `PUT` (default: `POST`)
   method: PreRecordedV2CallbackMethod | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 PreRecordedV2SubtitlesFormat = Literal["srt", "vtt"]
@@ -195,6 +216,8 @@ class PreRecordedV2SubtitlesConfig(BaseDataClass):
   # Style of the subtitles. Compliance mode refers to :
   # https://loc.gov/preservation/digital/formats//fdd/fdd000569.shtml#:~:text=SRT%20files%20are%20basic%20text,alongside%2C%20example%3A%20%22MyVideo123
   style: PreRecordedV2SubtitlesStyle | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,6 +228,8 @@ class PreRecordedV2DiarizationConfig(BaseDataClass):
   min_speakers: int | None = None
   # Maximum number of speakers in the audio
   max_speakers: int | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 PreRecordedV2TranslationLanguageCode = Literal[
@@ -330,6 +355,8 @@ class PreRecordedV2TranslationConfig(BaseDataClass):
   context: str | None = None
   # Forces the translation to use informal language forms when available in the target language.
   informal: bool | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 PreRecordedV2SummaryType = Literal["general", "bullet_points", "concise"]
@@ -339,12 +366,16 @@ PreRecordedV2SummaryType = Literal["general", "bullet_points", "concise"]
 class PreRecordedV2SummarizationConfig(BaseDataClass):
   # The type of summarization to apply
   type: PreRecordedV2SummaryType | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2CustomSpellingConfig(BaseDataClass):
   # The list of spelling applied on the audio transcription
   spelling_dictionary: dict[str, list[str]]
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -354,6 +385,8 @@ class PreRecordedV2AudioToLlmListConfig(BaseDataClass):
   # The model to use for the prompt execution. You can find the list of supported models
   # [here](https://openrouter.ai/models).
   model: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 PreRecordedV2PiiRedactionEntityType = Literal[
@@ -448,6 +481,8 @@ class PreRecordedV2PiiRedactionConfig(BaseDataClass):
   entity_types: PreRecordedV2PiiRedactionEntityType | None = None
   # The type of processed text to return (marker or mask)
   processed_text_type: Literal["MARKER", "MASK"] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -459,6 +494,8 @@ class PreRecordedV2LanguageConfig(BaseDataClass):
   # auto-detected on first utterance and then used for the rest of the transcription. If one
   # language is set, this option will be ignored.
   code_switching: bool | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 PreRecordedV2TranscriptionModel = Literal["solaria-1", "solaria-3", "solaria-fusion"]
@@ -476,6 +513,8 @@ class PreRecordedV2FileResponse(BaseDataClass):
   audio_duration: float | None = None
   # Number of channels in the audio file
   number_of_channels: int | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -534,6 +573,8 @@ class PreRecordedV2RequestParamsResponse(BaseDataClass):
   language_config: PreRecordedV2LanguageConfig | None = None
   # The model used to process the audio. "solaria-1" is used by default.
   model: PreRecordedV2TranscriptionModel | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -546,6 +587,8 @@ class PreRecordedV2TranscriptionMetadata(BaseDataClass):
   billing_time: float
   # Duration of the transcription in seconds
   transcription_time: float
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -556,6 +599,8 @@ class PreRecordedV2AddonError(BaseDataClass):
   exception: str
   # Detailed message of the addon error
   message: str
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -570,6 +615,8 @@ class PreRecordedV2Sentences(BaseDataClass):
   error: PreRecordedV2AddonError | None = None
   # If `sentences` has been enabled, transcription as sentences.
   results: list[str] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -578,6 +625,8 @@ class PreRecordedV2Subtitle(BaseDataClass):
   format: PreRecordedV2SubtitlesFormat
   # Transcription on the asked subtitle format
   subtitles: str
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -590,6 +639,8 @@ class PreRecordedV2Word(BaseDataClass):
   end: float
   # Confidence on the transcribed word (1 = 100% confident)
   confidence: float
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -610,6 +661,8 @@ class PreRecordedV2Utterance(BaseDataClass):
   language: PreRecordedV2TranscriptionLanguageCode
   # If `diarization` enabled, speaker identification number
   speaker: int | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -624,6 +677,8 @@ class PreRecordedV2Transcription(BaseDataClass):
   sentences: list[PreRecordedV2Sentences] | None = None
   # If `subtitles` has been enabled, subtitles results
   subtitles: list[PreRecordedV2Subtitle] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -640,6 +695,8 @@ class PreRecordedV2TranslationResult(BaseDataClass):
   sentences: list[PreRecordedV2Sentences] | None = None
   # If `subtitles` has been enabled, subtitles results for this translation
   subtitles: list[PreRecordedV2Subtitle] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -654,6 +711,8 @@ class PreRecordedV2Translation(BaseDataClass):
   error: PreRecordedV2AddonError | None = None
   # List of translated transcriptions, one for each `target_languages`
   results: list[PreRecordedV2TranslationResult] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -668,6 +727,8 @@ class PreRecordedV2Summarization(BaseDataClass):
   error: PreRecordedV2AddonError | None = None
   # If `summarization` has been enabled, summary of the transcription
   results: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -676,6 +737,8 @@ class PreRecordedV2NamedEntityRecognitionResult(BaseDataClass):
   text: str
   start: float
   end: float
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -690,6 +753,8 @@ class PreRecordedV2NamedEntityRecognition(BaseDataClass):
   error: PreRecordedV2AddonError | None = None
   # If `named_entity_recognition` has been enabled, the detected entities.
   results: list[PreRecordedV2NamedEntityRecognitionResult] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -705,6 +770,8 @@ class PreRecordedV2NamesConsistency(BaseDataClass):
   # Deprecated, If `name_consistency` has been enabled, Gladia will improve the consistency of the
   # names across the transcription
   results: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -720,6 +787,8 @@ class PreRecordedV2StructuredDataExtraction(BaseDataClass):
   # If `structured_data_extraction` has been enabled, results of the AI structured data extraction
   # for the defined classes.
   results: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -735,6 +804,8 @@ class PreRecordedV2SentimentAnalysis(BaseDataClass):
   results: str
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: PreRecordedV2AddonError | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -743,6 +814,8 @@ class PreRecordedV2AudioToLlmResult(BaseDataClass):
   prompt: str | None = None
   # The result of the AI analysis
   response: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -757,6 +830,8 @@ class PreRecordedV2AudioToLlm(BaseDataClass):
   error: PreRecordedV2AddonError | None = None
   # The result from a specific prompt
   results: PreRecordedV2AudioToLlmResult | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -771,6 +846,8 @@ class PreRecordedV2AudioToLlmList(BaseDataClass):
   error: PreRecordedV2AddonError | None = None
   # If `audio_to_llm` has been enabled, results of the AI custom analysis
   results: list[PreRecordedV2AudioToLlm] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -785,6 +862,8 @@ class PreRecordedV2DisplayMode(BaseDataClass):
   error: PreRecordedV2AddonError | None = None
   # If `display_mode` has been enabled, proposes an alternative display output.
   results: list[str] | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -799,6 +878,8 @@ class PreRecordedV2Diarization(BaseDataClass):
   results: list[PreRecordedV2Utterance]
   # `null` if `success` is `true`. Contains the error details of the failed model
   error: PreRecordedV2AddonError | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -830,6 +911,8 @@ class PreRecordedV2TranscriptionResult(BaseDataClass):
   display_mode: PreRecordedV2DisplayMode | None = None
   # If `diarization` has been requested and an error has occurred, the result will appear here
   diarization: PreRecordedV2Diarization | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Upload Types
@@ -839,6 +922,8 @@ class PreRecordedV2UploadRequest(BaseDataClass):
 
   # The URL of the audio or video file to be uploaded.
   audio_url: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -847,6 +932,8 @@ class PreRecordedV2AudioUploadResponse(BaseDataClass):
   audio_url: str
   # Uploaded audio file detected metadata
   audio_metadata: PreRecordedV2AudioUploadMetadata
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Init Session Types
@@ -909,6 +996,8 @@ class PreRecordedV2InitTranscriptionRequest(BaseDataClass):
   language_config: PreRecordedV2LanguageConfig | None = None
   # The model used to process the audio. "solaria-1" is used by default.
   model: PreRecordedV2TranscriptionModel | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -917,6 +1006,8 @@ class PreRecordedV2InitTranscriptionResponse(BaseDataClass):
   id: str
   # Prebuilt URL with your transcription `id` to fetch the result
   result_url: str
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # Result Types
@@ -949,6 +1040,8 @@ class PreRecordedV2Response(BaseDataClass):
   request_params: PreRecordedV2RequestParamsResponse | None = None
   # Pre-recorded transcription's result when status is "done"
   result: PreRecordedV2TranscriptionResult | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 # List Types
@@ -962,6 +1055,8 @@ class PreRecordedV2ListResponse(BaseDataClass):
   items: list[PreRecordedV2Response]
   # URL to fetch the next page
   next: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -986,3 +1081,5 @@ class PreRecordedV2ListParams(BaseDataClass):
   # Absolute pagination URL (`next`, `first`, or `current` from a previous list response). When
   # set, other filters are ignored.
   url: str | None = None
+  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
+  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)

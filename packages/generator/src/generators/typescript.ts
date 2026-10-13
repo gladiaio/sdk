@@ -133,7 +133,9 @@ export class TypeScriptGenerator extends BaseGenerator {
     } else {
       // Generate string union type
       const values = schema.enum.map((value) => `'${value}'`).join(' | ')
-      return `export type ${name} = ${values};`
+      // `string & {}` keeps autocompletion on the known values while accepting any string
+      const openEnum = schema['x-open-enum'] ? ' | (string & {})' : ''
+      return `export type ${name} = ${values}${openEnum};`
     }
   }
 

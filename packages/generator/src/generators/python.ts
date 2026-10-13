@@ -8,10 +8,10 @@ import { BaseGenerator } from './base.ts'
 const HEADER_BLOCK = `from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Any, Literal
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Literal
 
-from dataclasses_json import DataClassJsonMixin
+from dataclasses_json import CatchAll, DataClassJsonMixin, Undefined, config
 
 
 def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
@@ -21,10 +21,31 @@ def _filter_none(_dict: dict[str, Any]) -> dict[str, Any]:
 
 
 class BaseDataClass(DataClassJsonMixin):
+  # Keep keys unknown to the SDK in \`_unknown_fields\` and send them back in to_dict(), so fields
+  # added to the API are never silently dropped.
+  dataclass_json_config = config(undefined=Undefined.INCLUDE)["dataclasses_json"]
+
   def to_dict(self, encode_json: bool = True) -> dict[str, Any]:
     dict = super().to_dict(encode_json=encode_json)
     return _filter_none(dict)
+
+  if not TYPE_CHECKING:
+    # Unknown fields are readable as attributes (e.g. \`utterance.text_raw\`), like in the JS SDK.
+    # Hidden from type checkers so typos on known fields are still reported.
+    def __getattr__(self, name: str) -> Any:
+      try:
+        return object.__getattribute__(self, "_unknown_fields")[name]
+      except (AttributeError, KeyError):
+        raise AttributeError(
+          f"'{type(self).__name__}' object has no attribute '{name}'"
+        ) from None
 `
+
+// Catch-all for fields not (yet) known by the SDK, see BaseDataClass in HEADER_BLOCK
+const UNKNOWN_FIELDS_COMMENT =
+  '    # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()'
+const UNKNOWN_FIELDS_FIELD =
+  '    _unknown_fields: CatchAll = field(default_factory=dict, hash=False)'
 
 type OrderedProperty = {
   name: string
@@ -38,6 +59,8 @@ type UnionHelperConfig = {
   helperPrefix: string
   discriminator: string
   unionType: string
+  // When set, unknown messages are parsed into this class instead of raising
+  unknownClass?: string
 }
 
 type ResolvedType = {
@@ -109,7 +132,7 @@ export class PythonGenerator extends BaseGenerator {
     }
 
     if (schema.enum) {
-      return this.generateEnum(typeName, schema.enum)
+      return this.generateEnum(typeName, schema.enum, schema['x-open-enum'] === true)
     }
 
     return `# ${typeName} = ${this.getPythonType(schema)}`
@@ -216,11 +239,6 @@ export class PythonGenerator extends BaseGenerator {
       lines.push(`    """${description}"""`)
     }
 
-    if (orderedProps.length === 0) {
-      lines.push('    pass')
-      return lines.join('\n')
-    }
-
     const required_lines: string[] = []
     const optional_lines: string[] = []
     for (const { name, schema: propertySchema, required } of orderedProps) {
@@ -241,6 +259,8 @@ export class PythonGenerator extends BaseGenerator {
 
     lines.push(...required_lines)
     lines.push(...optional_lines)
+    lines.push(UNKNOWN_FIELDS_COMMENT)
+    lines.push(UNKNOWN_FIELDS_FIELD)
 
     return lines.join('\n')
   }
@@ -350,11 +370,12 @@ export class PythonGenerator extends BaseGenerator {
     return `Literal[\n${formatted}\n    ]`
   }
 
-  private generateEnum(typeName: string, values: Array<string | number>): string {
+  private generateEnum(typeName: string, values: Array<string | number>, openEnum = false): string {
     const literalItems = values.map((value) =>
       typeof value === 'string' ? `"${value}"` : value.toString()
     )
-    const inline = `Literal[${literalItems.join(', ')}]`
+    // An open enum accepts any string on top of the known values
+    const inline = `Literal[${literalItems.join(', ')}]${openEnum ? ' | str' : ''}`
 
     if (inline.length + typeName.length + 3 <= this.maxLineLength) {
       return `${typeName} = ${inline}`
@@ -364,7 +385,7 @@ export class PythonGenerator extends BaseGenerator {
       .map((item, index) => `    ${item}${index === literalItems.length - 1 ? '' : ','}`)
       .join('\n')
 
-    return `${typeName} = Literal[\n${formatted}\n]`
+    return `${typeName} = Literal[\n${formatted}\n]${openEnum ? ' | str' : ''}`
   }
 
   private isNullable(schemaOrRef: SchemaOrReference): boolean {
@@ -392,6 +413,7 @@ export class PythonGenerator extends BaseGenerator {
           helperPrefix: 'web_socket',
           discriminator: 'type',
           unionType: name,
+          unknownClass: 'LiveV2UnknownWebSocketMessage',
         }
       case 'LiveV2CallbackMessage':
         return {
@@ -426,14 +448,33 @@ export class PythonGenerator extends BaseGenerator {
       return ''
     }
 
+    const { unknownClass } = config
+    const returnType = unknownClass ? `${config.unionType} | ${unknownClass}` : config.unionType
+
     const lines: string[] = []
     lines.push('')
+    if (unknownClass) {
+      lines.push('')
+      lines.push(
+        `# A ${config.sectionTitle} message whose ${config.discriminator} is not (yet) known by the SDK`
+      )
+      lines.push('@dataclass(frozen=True, slots=True)')
+      lines.push(`class ${unknownClass}(BaseDataClass):`)
+      lines.push(`    ${config.discriminator}: str`)
+      lines.push('    session_id: str | None = None')
+      lines.push('    created_at: str | None = None')
+      lines.push('    data: Any = None')
+      lines.push(UNKNOWN_FIELDS_COMMENT)
+      lines.push(UNKNOWN_FIELDS_FIELD)
+      lines.push('')
+      lines.push('')
+    }
     lines.push(`${config.mapName}: dict[str, type[${config.unionType}]] = {`)
     lines.push(...entries)
     lines.push('}')
     lines.push('')
     lines.push(
-      `def create_live_v2_${config.helperPrefix}_message_from_dict(payload: dict[str, Any]) -> ${config.unionType}:`
+      `def create_live_v2_${config.helperPrefix}_message_from_dict(payload: dict[str, Any]) -> ${returnType}:`
     )
     lines.push(`    message_key = payload.get("${config.discriminator}")`)
     lines.push('')
@@ -442,17 +483,23 @@ export class PythonGenerator extends BaseGenerator {
       `        raise ValueError("Missing or invalid '${config.discriminator}' field in ${config.sectionTitle} message payload")`
     )
     lines.push('')
-    lines.push('    try:')
-    lines.push(`        cls = ${config.mapName}[message_key]`)
-    lines.push('    except KeyError as exc:')
-    lines.push(
-      `        raise ValueError(f"Unsupported ${config.sectionTitle} message ${config.discriminator}: {message_key}") from exc`
-    )
+    if (unknownClass) {
+      lines.push(`    cls = ${config.mapName}.get(message_key)`)
+      lines.push('    if cls is None:')
+      lines.push(`        return ${unknownClass}.from_dict(payload)`)
+    } else {
+      lines.push('    try:')
+      lines.push(`        cls = ${config.mapName}[message_key]`)
+      lines.push('    except KeyError as exc:')
+      lines.push(
+        `        raise ValueError(f"Unsupported ${config.sectionTitle} message ${config.discriminator}: {message_key}") from exc`
+      )
+    }
     lines.push('')
     lines.push('    return cls.from_dict(payload)')
     lines.push('')
     lines.push(
-      `def create_live_v2_${config.helperPrefix}_message_from_json(data: str | bytes | bytearray) -> ${config.unionType}:`
+      `def create_live_v2_${config.helperPrefix}_message_from_json(data: str | bytes | bytearray) -> ${returnType}:`
     )
     lines.push('    parsed = json.loads(data)')
     lines.push('    if not isinstance(parsed, dict):')

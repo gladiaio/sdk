@@ -46,7 +46,13 @@ class LiveV2AsyncClient:
     self._options = options
     self._core = V2JobCore(base_path="/v2/live", kind="Live")
 
-  def start_session(self, options: LiveV2InitRequest) -> LiveV2AsyncSession:
+  def start_session(self, options: LiveV2InitRequest | dict[str, Any]) -> LiveV2AsyncSession:
+    """Start a new live session.
+
+    Args:
+      options: The session options as a ``LiveV2InitRequest`` instance or a plain dict. A dict is
+        sent as-is, so it can hold options the SDK doesn't type yet.
+    """
     return LiveV2AsyncSession(
       options=options,
       http_client=self._http_client,
