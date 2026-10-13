@@ -90,7 +90,21 @@ describe('LiveV2Client.list', () => {
     const client = new LiveV2Client(makeOptions())
     await client.list({ url: next, offset: 0, status: ['error'] })
     const [url] = getSpy.mock.calls[0]
-    expect(String(url)).toBe(next)
+    expect(String(url)).toBe('/v2/live?offset=20&limit=20&status=done')
+  })
+
+  it('never sends a pagination url to another origin', async () => {
+    const client = new LiveV2Client(makeOptions())
+    await client.list({ url: 'http://attacker.example/v2/live?offset=20' })
+    const [url] = getSpy.mock.calls[0]
+    expect(String(url)).toBe('/v2/live?offset=20')
+  })
+
+  it('sends a pagination url with another path to the collection', async () => {
+    const client = new LiveV2Client(makeOptions())
+    await client.list({ url: 'http://169.254.169.254/latest/meta-data/?offset=20' })
+    const [url] = getSpy.mock.calls[0]
+    expect(String(url)).toBe('/v2/live?offset=20')
   })
 
   it('does not configure region as an HttpClient default query param', () => {
