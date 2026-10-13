@@ -1,4 +1,4 @@
-import { deepMergeObjects, sleep } from '../helpers.js'
+import { buildUrl, deepMergeObjects, sleep } from '../helpers.js'
 import type { HttpRetryOptions, QueryParams } from '../types.js'
 import { initFetch } from './iso-fetch.js'
 import type { Headers } from './types.js'
@@ -249,7 +249,7 @@ export class HttpClient {
     url: string | URL,
     init: RequestOptions = {}
   ): Promise<ResponseType> {
-    url = new URL(url, this.baseUrl)
+    url = buildUrl(this.baseUrl, url)
     if (this.defaultQueryParams) {
       for (const [key, value] of Object.entries(this.defaultQueryParams)) {
         // Only set default param if it's not already present in the URL

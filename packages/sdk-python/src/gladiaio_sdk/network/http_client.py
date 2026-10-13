@@ -12,7 +12,7 @@ from typing import Any, final
 import httpx
 
 from gladiaio_sdk.client_options import HttpRetryOptions, QueryParams
-from gladiaio_sdk.network.helper import matches_status
+from gladiaio_sdk.network.helper import build_url, matches_status
 
 _schema_field_names_cache: dict[str, frozenset[str]] = {}
 
@@ -30,6 +30,19 @@ def _protect_credentials(request: httpx.Request, *, origin: httpx.URL) -> None:
 
 async def _async_protect_credentials(request: httpx.Request, *, origin: httpx.URL) -> None:
   _protect_credentials(request, origin=origin)
+
+
+def _merge_query_params(defaults: QueryParams, url: httpx.URL) -> httpx.QueryParams:
+  """Add default query params missing from ``url``; URL values win and repeated keys are kept."""
+  url_params = httpx.QueryParams(url.query.decode())
+  params: list[tuple[str, str]] = []
+  for key, value in defaults.items():
+    if key in url_params:
+      params.extend((key, v) for v in url_params.get_list(key))
+    else:
+      params.append((key, value))
+  params.extend((key, value) for key, value in url_params.multi_items() if key not in defaults)
+  return httpx.QueryParams(tuple(params))
 
 
 def _flatten_json_keys(obj: Any, out: set[str] | None = None) -> set[str]:
@@ -369,14 +382,9 @@ class AsyncHttpClient:
     return await self._request("DELETE", url, init or {})
 
   async def _request(self, method: str, url: str, init: dict[str, Any]) -> httpx.Response:
-    # Merge query params and base URL
-    base = httpx.URL(self._base_url)
-    request_url = base.join(url)
-    # Preserve URL params; add defaults only if missing
-    url_params = dict(httpx.QueryParams(request_url.query.decode()))
-    # Start from default, then keep URL values intact
-    params = dict(self._default_query)
-    params.update(url_params)
+    # Concatenate base and endpoint paths so an api_url path prefix (proxy, router) is kept
+    request_url = httpx.URL(build_url(self._base_url, url))
+    params = _merge_query_params(self._default_query, request_url)
     headers = {**self._default_headers, **dict(init.get("headers") or {})}
     data = init.get("body")
     json_body = init.get("json")
@@ -386,8 +394,7 @@ class AsyncHttpClient:
 
     # Embed params into URL to mirror JS tests expectations
     if params:
-      qp = httpx.QueryParams(params)
-      request_url = request_url.copy_with(query=str(qp).encode())
+      request_url = request_url.copy_with(query=str(params).encode())
 
     overall_start = asyncio.get_event_loop().time()
     attempt_errors: list[BaseException] = []
@@ -500,14 +507,9 @@ class HttpClient:
     return self._request("DELETE", url, init or {})
 
   def _request(self, method: str, url: str, init: dict[str, Any]) -> httpx.Response:
-    # Merge query params and base URL
-    base = httpx.URL(self._base_url)
-    request_url = base.join(url)
-    # Preserve URL params; add defaults only if missing
-    url_params = dict(httpx.QueryParams(request_url.query.decode()))
-    # Start from default, then keep URL values intact
-    params = dict(self._default_query)
-    params.update(url_params)
+    # Concatenate base and endpoint paths so an api_url path prefix (proxy, router) is kept
+    request_url = httpx.URL(build_url(self._base_url, url))
+    params = _merge_query_params(self._default_query, request_url)
     headers = {**self._default_headers, **dict(init.get("headers") or {})}
     data = init.get("body")
     json_body = init.get("json")
@@ -517,8 +519,7 @@ class HttpClient:
 
     # Embed params into URL to mirror JS tests expectations
     if params:
-      qp = httpx.QueryParams(params)
-      request_url = request_url.copy_with(query=str(qp).encode())
+      request_url = request_url.copy_with(query=str(params).encode())
 
     overall_start = time.time()
     attempt_errors: list[BaseException] = []
