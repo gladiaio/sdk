@@ -127,4 +127,52 @@ describe('HttpClient cross-origin redirect credentials', () => {
     expect(captured).toHaveLength(1)
     expect(captured[0]?.headers['x-gladia-key']).toBeUndefined()
   })
+
+  it('does not send x-gladia-key when the initial request targets another origin', async () => {
+    const { captured, originCaptured, originBase, sinkOrigin } = await startRedirectPair()
+
+    const client = new HttpClient({
+      baseUrl: originBase,
+      headers: {
+        'x-gladia-key': secretKey,
+        'x-gladia-version': 'SdkJavascript/test',
+      },
+      retry: { maxAttempts: 1, statusCodes: [], delay: () => 0 },
+      timeout: 5_000,
+    })
+
+    const response = await client.get(`${sinkOrigin}/exfil`, { rawResponse: true })
+    expect(response.status).toBe(200)
+
+    expect(originCaptured).toHaveLength(0)
+    expect(captured).toHaveLength(1)
+    expect(captured[0]?.headers['x-gladia-key']).toBeUndefined()
+    expect(captured[0]?.headers['x-gladia-version']).toBe('SdkJavascript/test')
+  })
+
+  it('sends list pagination urls to the configured API only', async () => {
+    const { captured, sinkOrigin } = await startRedirectPair()
+    const apiCaptured: CapturedRequest[] = []
+    const api = http.createServer((req, res) => {
+      apiCaptured.push({ url: req.url ?? '', headers: req.headers })
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ first: '', current: '', next: null, items: [] }))
+    })
+    servers.push(api)
+    const apiAddr = await listen(api)
+
+    const gladia = new GladiaClient({
+      apiKey: secretKey,
+      apiUrl: `http://127.0.0.1:${apiAddr.port}`,
+      httpRetry: { maxAttempts: 1, statusCodes: [], delay: () => 0 },
+      httpTimeout: 5_000,
+    })
+
+    await gladia.live().list({ url: `${sinkOrigin}/v2/live?offset=20&limit=20` })
+
+    expect(captured).toHaveLength(0)
+    expect(apiCaptured).toHaveLength(1)
+    expect(apiCaptured[0]?.url).toBe('/v2/live?offset=20&limit=20')
+    expect(apiCaptured[0]?.headers['x-gladia-key']).toBe(secretKey)
+  })
 })

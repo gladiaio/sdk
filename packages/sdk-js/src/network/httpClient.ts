@@ -153,16 +153,29 @@ function isAbortError(error: unknown): boolean {
 const MAX_REDIRECTS = 20
 const CROSS_ORIGIN_SENSITIVE_HEADERS = new Set(['x-gladia-key', 'authorization', 'cookie'])
 
+function stripSensitiveHeaders(headers: Headers): Headers {
+  return Object.fromEntries(
+    Object.entries(headers).filter(
+      ([name]) => !CROSS_ORIGIN_SENSITIVE_HEADERS.has(name.toLowerCase())
+    )
+  )
+}
+
 async function fetchFollowingRedirects(
   selectedFetch: typeof fetch,
   url: URL,
-  init: RequestInit
+  init: RequestInit,
+  trustedOrigin: string
 ): Promise<Response> {
   let headers = init.headers as Headers | undefined
   let method = init.method
   let body = init.body
 
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+    // Credentials are only ever sent to the configured API origin, including on the first request.
+    if (url.origin !== trustedOrigin && headers) {
+      headers = stripSensitiveHeaders(headers)
+    }
     const response = await selectedFetch(url, {
       ...init,
       method,
@@ -176,11 +189,7 @@ async function fetchFollowingRedirects(
 
     const nextUrl = new URL(location, url)
     if (url.origin !== nextUrl.origin && headers) {
-      headers = Object.fromEntries(
-        Object.entries(headers).filter(
-          ([name]) => !CROSS_ORIGIN_SENSITIVE_HEADERS.has(name.toLowerCase())
-        )
-      )
+      headers = stripSensitiveHeaders(headers)
     }
     if (response.status === 303 || ([301, 302].includes(response.status) && method === 'POST')) {
       method = 'GET'
@@ -302,12 +311,17 @@ export class HttpClient {
         const requestHeaders: Headers | undefined = this.defaultHeaders
           ? deepMergeObjects(this.defaultHeaders, headers)
           : headers
-        const response = await fetchFollowingRedirects(selectedFetch, url, {
-          ...rest,
-          method,
-          headers: requestHeaders,
-          signal: controller.signal,
-        })
+        const response = await fetchFollowingRedirects(
+          selectedFetch,
+          url,
+          {
+            ...rest,
+            method,
+            headers: requestHeaders,
+            signal: controller.signal,
+          },
+          new URL(this.baseUrl).origin
+        )
 
         // Clear timeout on successful resolution
         if (timeoutId) clearTimeout(timeoutId)
