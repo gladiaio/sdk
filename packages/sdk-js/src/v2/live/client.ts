@@ -11,7 +11,7 @@ import type {
   LiveV2Response,
 } from './generated-types.js'
 import { LiveV2Session } from './session.js'
-import type { LiveV2ConnectSessionOptions } from './types.js'
+import type { LiveV2ConnectSessionOptions, LiveV2EnterpriseInitOptions } from './types.js'
 
 /**
  * Client used to interact with Gladia Live Speech-To-Text API.
@@ -45,7 +45,7 @@ export class LiveV2Client {
     })
   }
 
-  startSession(options: LiveV2InitRequest): LiveV2Session {
+  startSession(options: LiveV2InitRequest & LiveV2EnterpriseInitOptions): LiveV2Session {
     return new LiveV2Session({
       options,
       region: this.region,

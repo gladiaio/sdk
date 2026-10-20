@@ -214,4 +214,22 @@ describe('LiveV2Client.startSession region wiring', () => {
 
     session.endSession()
   })
+
+  it('types the Gladia Enterprise options and sends them as they are', async () => {
+    // `finals` is typed (no cast): a typo is a compile error, the value goes through untouched
+    const client = new LiveV2Client(makeOptions())
+    const session = client.startSession({ encoding: 'wav/pcm', finals: 'sentence' })
+
+    await tick()
+
+    expect(postSpy).toHaveBeenCalledTimes(1)
+    const [, { body }] = postSpy.mock.calls[0] as [string, { body: string }]
+    expect(JSON.parse(body)).toEqual({
+      encoding: 'wav/pcm',
+      finals: 'sentence',
+      messages_config: { receive_acknowledgments: true },
+    })
+
+    session.endSession()
+  })
 })

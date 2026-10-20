@@ -159,6 +159,27 @@ To use options the SDK doesn't type yet, pass a plain `dict` to **`start_session
 live_client.start_session({"encoding": "wav/pcm", "numerals": True})
 ```
 
+### Gladia Enterprise options
+
+Options only the Gladia Enterprise API knows (the `api_url` of your deployment) are typed on
+**`LiveV2EnterpriseInitRequest`**, a `LiveV2InitRequest` with more fields. Gladia's cloud API refuses them.
+
+```python
+from gladiaio_sdk import LiveV2EnterpriseInitRequest
+
+live_client.start_session(
+    LiveV2EnterpriseInitRequest(
+        encoding="wav/pcm",
+        sample_rate=16000,
+        finals="sentence",  # which event closes a final: a sentence, not the whole turn
+    )
+)
+```
+
+| field | values | |
+|---|---|---|
+| `finals` | `"end_of_turn"`, `"sentence_or_end_of_turn"`, `"sentence"`, `"endpointing"` | which event closes a final transcript: the speaker's turn (voice agents), a sentence (meeting recorders, subtitles), or the `endpointing` silence alone (the cloud API's behaviour) |
+
 Likewise, nothing the API sends is dropped:
 
 - A message of a type the SDK doesn't know yet is emitted on **`message`** as a **`LiveV2UnknownWebSocketMessage`** (check for it with `isinstance`).
