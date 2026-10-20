@@ -3,6 +3,7 @@ import type { InternalGladiaClientOptions } from '../../internal_types.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient, WS_STATES } from '../../network/wsClient.js'
 import { LiveV2Client } from './client.js'
+import { resetEnterpriseWarnings } from './enterprise.js'
 import type {
   LiveV2CallbackConfig,
   LiveV2InitRequest,
@@ -215,9 +216,9 @@ describe('LiveV2Client.startSession region wiring', () => {
     session.endSession()
   })
 
-  it('types the Gladia Enterprise options and sends them as they are', async () => {
+  it('types the Gladia Enterprise options and sends them as they are to an Enterprise API', async () => {
     // `finals` is typed (no cast): a typo is a compile error, the value goes through untouched
-    const client = new LiveV2Client(makeOptions())
+    const client = new LiveV2Client(makeOptions({ apiUrl: 'https://eu1.api.gladia.io' }))
     const session = client.startSession({ encoding: 'wav/pcm', finals: 'sentence' })
 
     await tick()
@@ -231,5 +232,31 @@ describe('LiveV2Client.startSession region wiring', () => {
     })
 
     session.endSession()
+  })
+
+  it("drops the Gladia Enterprise options towards Gladia's cloud API, with one warning", async () => {
+    // the cloud API refuses an unknown field (400 "property finals should not exist"): the same
+    // code must run on both, so the field is dropped there, once warned
+    resetEnterpriseWarnings()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const client = new LiveV2Client(makeOptions({ apiUrl: 'https://api.gladia.io' }))
+    const first = client.startSession({ encoding: 'wav/pcm', finals: 'sentence' })
+    await tick()
+    const second = client.startSession({ encoding: 'wav/pcm', finals: 'endpointing' })
+    await tick()
+
+    expect(postSpy).toHaveBeenCalledTimes(2)
+    for (const call of postSpy.mock.calls) {
+      const [, { body }] = call as [string, { body: string }]
+      expect(JSON.parse(body)).toEqual({
+        encoding: 'wav/pcm',
+        messages_config: { receive_acknowledgments: true },
+      })
+    }
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]?.[0]).toContain('"finals" is a Gladia Enterprise option')
+
+    first.endSession()
+    second.endSession()
   })
 })

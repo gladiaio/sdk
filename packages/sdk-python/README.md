@@ -162,7 +162,9 @@ live_client.start_session({"encoding": "wav/pcm", "numerals": True})
 ### Gladia Enterprise options
 
 Options only the Gladia Enterprise API knows (the `api_url` of your deployment) are typed on
-**`LiveV2EnterpriseInitRequest`**, a `LiveV2InitRequest` with more fields. Gladia's cloud API refuses them.
+**`LiveV2EnterpriseInitRequest`**, a `LiveV2InitRequest` with more fields. The same code runs against
+Gladia's cloud API: towards `api.gladia.io` the SDK drops these fields before `POST /v2/live` (the cloud API
+would refuse them) and warns once per field.
 
 ```python
 from gladiaio_sdk import LiveV2EnterpriseInitRequest

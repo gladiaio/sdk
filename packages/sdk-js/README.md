@@ -135,7 +135,9 @@ Options the SDK does not type yet are sent as they are: pass them with a cast.
 ### Gladia Enterprise options
 
 Options only the Gladia Enterprise API knows (the `apiUrl` of your deployment) are typed on
-`LiveV2EnterpriseInitOptions`, accepted by `startSession` next to the usual ones. Gladia's cloud API refuses them.
+`LiveV2EnterpriseInitOptions`, accepted by `startSession` next to the usual ones. The same code runs against
+Gladia's cloud API: towards `api.gladia.io` the SDK drops these fields before `POST /v2/live` (the cloud API
+would refuse them) and warns once per field.
 
 ```javascript
 const liveSession = gladiaClient.liveV2().startSession({
