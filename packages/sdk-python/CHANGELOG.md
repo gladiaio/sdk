@@ -1,3 +1,9 @@
+## 2.2.1 (2026-10-23)
+
+### 🩹 Fixes
+
+- **sdk-python:** require certifi >= 2026.10.19 to distrust the compromised ca
+
 ## 2.2.0 (2026-10-13)
 
 ### 🩹 Fixes

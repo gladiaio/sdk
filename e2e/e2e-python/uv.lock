@@ -83,7 +83,7 @@ wheels = [
 
 [[package]]
 name = "gladiaio-sdk"
-version = "2.2.0"
+version = "2.2.1"
 source = { editable = "../../packages/sdk-python" }
 dependencies = [
     { name = "certifi" },
