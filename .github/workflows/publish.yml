@@ -121,7 +121,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      id-token: write # PyPI trusted publishing (uv publish)
+      id-token: write # npm and PyPI trusted publishing (OIDC)
     env:
       PROJECT: ${{ needs.context.outputs.project }}
       RELEASE_TAG: ${{ needs.context.outputs.project }}@${{ needs.verify.outputs.version }}
@@ -137,9 +137,11 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
+      # Node 24 ships npm >= 11.5, which publishes with the GitHub OIDC token when the package
+      # trusts this workflow (with provenance), and falls back to NPM_TOKEN otherwise.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
           package-manager-cache: false
       - run: bun install
 

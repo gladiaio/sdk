@@ -4,7 +4,11 @@
   "version": "2.2.0",
   "author": "Gladia",
   "license": "MIT",
-  "repository": "github:gladiaio/sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gladiaio/sdk.git",
+    "directory": "packages/sdk-js"
+  },
   "keywords": [
     "gladia",
     "sdk",
