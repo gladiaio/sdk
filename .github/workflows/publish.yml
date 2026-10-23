@@ -1,62 +1,154 @@
 name: Publish
 
+# Runs when a `release/<project>@X.Y.Z` pull request opened by the Release workflow is merged:
+# verifies the merge commit, publishes the project to npm or PyPI, then creates the
+# `<project>@X.Y.Z` tag and GitHub release on that commit.
+# Run it manually to retry a failed publish of the current version of a project.
+
 on:
+  pull_request:
+    branches: [main]
+    types: [closed]
   workflow_dispatch:
     inputs:
       project:
-        description: "Target project to publish"
+        description: 'Target project to publish'
         type: choice
         required: true
         options:
           - sdk-js
           - sdk-python
       dry-run:
-        description: "Dry run (no publish)"
+        description: 'Dry run (no publish)'
         type: boolean
         required: false
         default: false
-  push:
-    tags:
-      - "sdk-*@*"
+
+permissions:
+  contents: read
 
 jobs:
-  publish:
-    permissions:
-      contents: read
-      id-token: write
-    name: Publish packages
+  context:
+    if: >-
+      github.event_name == 'workflow_dispatch' || (
+        github.event.pull_request.merged == true &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        startsWith(github.event.pull_request.head.ref, 'release/sdk-')
+      )
+    name: Read release context
     runs-on: ubuntu-latest
+    outputs:
+      project: ${{ steps.release.outputs.project }}
+      expected-version: ${{ steps.release.outputs.expected-version }}
+      sha: ${{ steps.release.outputs.sha }}
     steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
+      - id: release
+        env:
+          INPUT_PROJECT: ${{ inputs.project }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "project=${INPUT_PROJECT}" >> "$GITHUB_OUTPUT"
+            echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tag="${HEAD_BRANCH#release/}"
+          if [[ ! "$tag" =~ ^(sdk-js|sdk-python)@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Branch ${HEAD_BRANCH} is not release/<project>@MAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
+          echo "project=${tag%%@*}" >> "$GITHUB_OUTPUT"
+          echo "expected-version=${tag#*@}" >> "$GITHUB_OUTPUT"
+          echo "sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
 
-      - uses: oven-sh/setup-bun@v2
+  verify:
+    needs: context
+    name: Verify
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      PROJECT: ${{ needs.context.outputs.project }}
+      EXPECTED_VERSION: ${{ needs.context.outputs.expected-version }}
+      NX_DAEMON: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+          fetch-depth: 0
+          lfs: true
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           package-manager-cache: false
       - run: bun install
 
-      - name: Determine project
-        id: determine-project
-        run: |
-          if [ -n "${{ github.event.inputs.project }}" ]; then
-            PROJECT="${{ github.event.inputs.project }}"
-          else
-            REF="${{ github.ref_name }}" # e.g. sdk-js@0.5.2
-            PROJECT="${REF%%@*}"       # keeps left side of '@'
-          fi
-          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
-          echo "Publishing $PROJECT"
-
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
+      - name: Install Python deps
+        run: bun nx run-many -t sync
 
+      - name: Verify version
+        id: version
+        run: |
+          case "$PROJECT" in
+            sdk-js) version="$(jq -r .version packages/sdk-js/package.json)" ;;
+            sdk-python) version="$(cd packages/sdk-python && uv version --short)" ;;
+          esac
+          if [ -n "$EXPECTED_VERSION" ] && [ "$version" != "$EXPECTED_VERSION" ]; then
+            echo "${PROJECT} is at ${version} on disk, expected ${EXPECTED_VERSION}." >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Run all the checks
+        run: bun nx run-many -t build,test,format:check,lint:check,type:check,version:check -p "$PROJECT"
+
+  publish:
+    needs: [context, verify]
+    name: Publish ${{ needs.context.outputs.project }}
+    runs-on: ubuntu-latest
+    # Job-level so that closing unrelated PRs does not cancel a pending publish.
+    concurrency:
+      group: '${{ github.workflow }}-${{ needs.context.outputs.project }}'
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      id-token: write # npm and PyPI trusted publishing (OIDC)
+    env:
+      PROJECT: ${{ needs.context.outputs.project }}
+      RELEASE_TAG: ${{ needs.context.outputs.project }}@${{ needs.verify.outputs.version }}
+      RELEASE_SHA: ${{ needs.context.outputs.sha }}
+      DRY_RUN: ${{ inputs.dry-run && 'true' || 'false' }}
+      NX_DAEMON: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+      # Node 24 ships npm >= 11.5, which publishes with the GitHub OIDC token when the package
+      # trusts this workflow (with provenance), and falls back to NPM_TOKEN otherwise.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: bun install
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
       - name: Install Python deps
         run: bun nx run-many -t sync
 
@@ -67,6 +159,24 @@ jobs:
         run: |
           bun run publish -- \
             --projects "$PROJECT" \
-            $([ "${{ github.event.inputs['dry-run'] }}" = "true" ] && echo --dryRun || true)
+            $([ "$DRY_RUN" = "true" ] && echo --dryRun || true)
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Creates the tag on the exact commit that was verified and published. Release notes
+      # only cover the PRs merged since this project's previous release.
+      - name: Create GitHub release
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_TAG} already exists, skipping the GitHub release."
+            exit 0
+          fi
+          previous_tag="$(git tag --list "${PROJECT}@*" --sort=-v:refname | head -n 1)"
+          gh release create "$RELEASE_TAG" \
+            --target "$RELEASE_SHA" \
+            --title "$RELEASE_TAG" \
+            --generate-notes \
+            ${previous_tag:+--notes-start-tag "$previous_tag"}

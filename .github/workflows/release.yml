@@ -1,107 +1,112 @@
 name: Release
 
+# Opens a `release/<project>@X.Y.Z` pull request bumping the version files, lockfiles and
+# changelog of one project. Merging it runs the Publish workflow.
+
 on:
   workflow_dispatch:
     inputs:
       project:
-        description: "Target project to release"
+        description: Target project to release
         type: choice
-        required: false
+        required: true
         options:
-          - ""
           - sdk-js
           - sdk-python
-        default: ""
       version:
-        description: "Version bump type"
-        type: choice
-        required: false
-        options:
-          - ""
-          - major
-          - minor
-          - patch
-        default: ""
-      first-release:
-        description: "Is this the first release?"
-        type: boolean
-        required: false
-        default: false
-      dry-run:
-        description: "Dry run (no changes pushed)"
-        type: boolean
-        required: false
-        default: false
+        description: Semantic version to release (for example, 1.2.3)
+        type: string
+        required: true
 
 concurrency:
-  group: "${{ github.workflow }}"
+  group: '${{ github.workflow }}'
   cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   release:
-    permissions:
-      contents: write
-      id-token: write
-    name: Release packages
+    name: Open release pull request
     runs-on: ubuntu-latest
     steps:
       - name: Fetch 1password key
         id: secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@70062d7a876d3eb6334754fa26efd2fbd90c32f2 # v5.0.1
         with:
           export-env: false
         env:
           SDK_PUBLISHER_PRIVATE_KEY: op://infra_automation/sdkreleasemanager/private key
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SA_TOKEN_INFRA_AUTOMATION }}
 
+      # A GitHub App token instead of GITHUB_TOKEN, so that CI runs on the release PR.
       - name: Generate a token
         id: generate-token-sdk-publisher
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: "2089066"
+          client-id: '2089066'
           private-key: ${{ steps.secrets.outputs.SDK_PUBLISHER_PRIVATE_KEY }}
-          owner: "gladiaio"
-          repositories: "sdk"
+          owner: gladiaio
+          repositories: sdk
 
-      - name: Get GitHub App User ID
-        id: get-user-id
-        run: echo "user-id=$(gh api "/users/${{ steps.generate-token-sdk-publisher.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
-
-      - run: |
-          git config --global user.name '${{ steps.generate-token-sdk-publisher.outputs.app-slug }}'
-          git config --global user.email '${{ steps.generate-token-sdk-publisher.outputs.app-slug }}@gladia.io'
-
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: main
           fetch-depth: 0
           token: ${{ steps.generate-token-sdk-publisher.outputs.token }}
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           package-manager-cache: false
       - run: bun install
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           enable-cache: true
       - name: Install Python deps
         run: bun nx run-many -t sync
 
-      - name: Make the release
-        id: release
+      - name: Create release pull request
+        env:
+          GH_TOKEN: ${{ steps.generate-token-sdk-publisher.outputs.token }}
+          APP_SLUG: ${{ steps.generate-token-sdk-publisher.outputs.app-slug }}
+          PROJECT: ${{ inputs.project }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+          NX_DAEMON: 'false'
         run: |
-          bun run release -- --verbose \
-            $([ -n "${{ github.event.inputs.project }}" ] && echo --projects "${{ github.event.inputs.project }}" || true) \
-            $([ -n "${{ github.event.inputs.version }}" ] && echo --specifier "${{ github.event.inputs.version }}" || true) \
-            $([ "${{ github.event.inputs['first-release'] }}" = "true" ] && echo --firstRelease || true) \
-            $([ "${{ github.event.inputs['dry-run'] }}" = "true" ] && echo --dryRun || true)
+          version="${REQUESTED_VERSION#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version '${REQUESTED_VERSION}': expected MAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
+          tag="${PROJECT}@${version}"
+          branch="release/${tag}"
 
-      - name: Push the commit and tags
-        run: git push --follow-tags
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists." >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code --heads origin "refs/heads/${branch}" >/dev/null 2>&1; then
+            echo "Branch ${branch} already exists." >&2
+            exit 1
+          fi
+
+          # Bumps the manifest, version file, lockfiles and changelog; does not commit.
+          bun run release -- --project "$PROJECT" --version "$version"
+
+          git switch -c "$branch"
+          git config user.name "$APP_SLUG"
+          git config user.email "${APP_SLUG}@gladia.io"
+          git add -A
+          git commit -m "chore(release): ${tag}"
+          git push origin "$branch"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "chore(release): ${tag}" \
+            --body "Bumps ${PROJECT} to ${version}. Merging this PR publishes ${tag} and creates its tag and GitHub release."

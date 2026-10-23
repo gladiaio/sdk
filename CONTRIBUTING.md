@@ -115,3 +115,25 @@ But you can also call the package manager directly:
 ```sh
 (cd packages/javascript && bun add --dev ws)
 ```
+
+## Release
+
+Each SDK is released independently through a pull request, since `main` only accepts pull requests.
+
+1. Pick the version with [semver](https://semver.org) from the commits since the last release of the project: any breaking change → major, any `feat` → minor, otherwise patch.
+
+   ```sh
+   git log --oneline "$(git tag --list 'sdk-js@*' --sort=-v:refname | head -n 1)"..HEAD -- packages/sdk-js
+   ```
+
+2. Run **Actions > Release > Run workflow** with the project (`sdk-js` or `sdk-python`) and the version (for example `2.3.0`). It opens a `chore(release): sdk-js@2.3.0` pull request from the `release/sdk-js@2.3.0` branch, which bumps the manifest, the version file, the lockfiles and the changelog.
+3. Review and merge the pull request once CI is green.
+4. Merging it runs the **Publish** workflow: it checks that the merged version matches the branch, runs the checks, publishes the package to npm or PyPI, and creates the `sdk-js@2.3.0` tag and GitHub release on the merge commit.
+
+If publishing fails, fix the cause and run **Actions > Publish > Run workflow** on `main` with the project to retry. It skips the GitHub release if the tag already exists.
+
+To bump the version locally without the workflow (it does not commit), run:
+
+```sh
+bun run release -- --project sdk-js --version 2.3.0
+```
