@@ -11,7 +11,7 @@ import type {
   LiveV2Response,
 } from './generated-types.js'
 import { LiveV2Session } from './session.js'
-import type { LiveV2ConnectSessionOptions } from './types.js'
+import type { LiveV2ConnectSessionOptions, LiveV2EnterpriseInitOptions } from './types.js'
 
 /**
  * Client used to interact with Gladia Live Speech-To-Text API.
@@ -21,12 +21,14 @@ export class LiveV2Client {
   private webSocketClient: WebSocketClient
   private readonly liveTimeouts: InternalGladiaClientOptions['liveTimeouts']
   private readonly region?: Region
+  private readonly apiUrl: string
 
   constructor(options: InternalGladiaClientOptions) {
     const httpBaseUrl = new URL(options.apiUrl)
     httpBaseUrl.protocol = httpBaseUrl.protocol.replace(/^ws/, 'http')
     this.liveTimeouts = options.liveTimeouts
     this.region = options.region
+    this.apiUrl = options.apiUrl
     // Do not put `region` on HttpClient defaults — it is only supported on
     // session creation (POST /v2/live), applied in LiveV2Session.initSession.
     this.httpClient = new HttpClient({
@@ -45,10 +47,11 @@ export class LiveV2Client {
     })
   }
 
-  startSession(options: LiveV2InitRequest): LiveV2Session {
+  startSession(options: LiveV2InitRequest & LiveV2EnterpriseInitOptions): LiveV2Session {
     return new LiveV2Session({
       options,
       region: this.region,
+      apiUrl: this.apiUrl,
       httpClient: this.httpClient,
       webSocketClient: this.webSocketClient,
     })

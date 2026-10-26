@@ -58,6 +58,7 @@ class LiveV2Client:
       http_client=self._http_client,
       ws_client=self._ws_client,
       region=self._options.region,
+      api_url=self._options.api_url,
     )
 
   def connect_session(self, options: LiveV2ConnectSessionOptions) -> LiveV2Session:

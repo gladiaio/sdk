@@ -3,6 +3,7 @@ import { concatArrayBuffer, toUint8Array } from '../../helpers.js'
 import { HttpClient } from '../../network/httpClient.js'
 import { WebSocketClient, WebSocketSession, WS_STATES } from '../../network/wsClient.js'
 import type { Region } from '../../types.js'
+import { initBodyFor } from './enterprise.js'
 import type {
   LiveV2InitRequest,
   LiveV2InitResponse,
@@ -38,10 +39,12 @@ export class LiveV2Session {
   private _status: LiveV2SessionStatus = 'starting'
 
   private readonly region?: Region
+  private readonly apiUrl?: string
 
   constructor({
     options,
     region,
+    apiUrl,
     existingSession,
     httpClient,
     webSocketClient,
@@ -49,12 +52,15 @@ export class LiveV2Session {
     options: LiveV2InitRequest
     /** Region query param for POST /v2/live only. Ignored when attaching to an existing session. */
     region?: Region
+    /** The API the init goes to: Gladia's cloud API gets no Enterprise field (enterprise.ts). */
+    apiUrl?: string
     existingSession?: LiveV2InitResponse
     httpClient: HttpClient
     webSocketClient: WebSocketClient
   }) {
     this.sessionOptions = options
     this.region = region
+    this.apiUrl = apiUrl
     this.httpClient = httpClient
     this.webSocketClient = webSocketClient
     this.abortController = new AbortController()
@@ -148,14 +154,19 @@ export class LiveV2Session {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...this.sessionOptions,
-          messages_config: {
-            ...this.sessionOptions.messages_config,
-            // Force ack reception for resume
-            receive_acknowledgments: true,
-          },
-        } satisfies LiveV2InitRequest),
+        body: JSON.stringify(
+          initBodyFor(
+            {
+              ...this.sessionOptions,
+              messages_config: {
+                ...this.sessionOptions.messages_config,
+                // Force ack reception for resume
+                receive_acknowledgments: true,
+              },
+            } satisfies LiveV2InitRequest,
+            this.apiUrl
+          )
+        ),
       })
     } catch (error) {
       if (!this.abortController.signal.aborted) {
