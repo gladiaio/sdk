@@ -370,8 +370,6 @@ class LiveV2PostProcessingConfig(BaseDataClass):
   summarization: bool | None = None
   # Summarization configuration, if `summarization` is enabled
   summarization_config: LiveV2SummarizationConfig | None = None
-  # Deprecated: this parameter is ignored.
-  chapterization: bool | None = None
   # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
   _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
 

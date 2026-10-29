@@ -302,8 +302,6 @@ export interface LiveV2PostProcessingConfig {
   summarization?: boolean
   /** Summarization configuration, if `summarization` is enabled */
   summarization_config?: LiveV2SummarizationConfig
-  /** Deprecated: this parameter is ignored. */
-  chapterization?: boolean
 }
 
 export interface LiveV2MessagesConfig {

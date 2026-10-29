@@ -158,7 +158,6 @@ describe('LiveV2Client.startSession region wiring', () => {
       post_processing: {
         summarization: true,
         summarization_config: { type: 'bullet_points' },
-        chapterization: true,
       } satisfies Required<LiveV2PostProcessingConfig>,
       messages_config: {
         receive_partial_transcripts: true,
