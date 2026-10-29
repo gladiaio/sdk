@@ -641,19 +641,6 @@ export interface PreRecordedV2NamesConsistency {
   results: string | null
 }
 
-export interface PreRecordedV2StructuredDataExtraction {
-  /** The audio intelligence model succeeded to get a valid output */
-  success: boolean
-  /** The audio intelligence model returned an empty value */
-  is_empty: boolean
-  /** Time audio intelligence model took to complete the task */
-  exec_time: number
-  /** `null` if `success` is `true`. Contains the error details of the failed model */
-  error: PreRecordedV2AddonError | null
-  /** If `structured_data_extraction` has been enabled, results of the AI structured data extraction for the defined classes. */
-  results: string | null
-}
-
 export interface PreRecordedV2SentimentAnalysis {
   /** The audio intelligence model succeeded to get a valid output */
   success: boolean
@@ -739,8 +726,6 @@ export interface PreRecordedV2TranscriptionResult {
   named_entity_recognition?: PreRecordedV2NamedEntityRecognition
   /** If `name_consistency` has been enabled, Gladia will improve consistency of the names accross the transcription */
   name_consistency?: PreRecordedV2NamesConsistency
-  /** If `structured_data_extraction` has been enabled, structured data extraction results */
-  structured_data_extraction?: PreRecordedV2StructuredDataExtraction
   /** If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription */
   sentiment_analysis?: PreRecordedV2SentimentAnalysis
   /** If `audio_to_llm` has been enabled, audio to llm results of the audio speech transcription */
