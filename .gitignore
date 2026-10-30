@@ -12,3 +12,6 @@ __pycache__/
 coverage/
 reports/
 *.tsbuildinfo
+.claude/worktrees
+.nx/polygraph
+.nx/self-healing
