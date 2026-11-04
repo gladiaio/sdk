@@ -477,8 +477,14 @@ PreRecordedV2PiiRedactionEntityType = Literal[
 
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2PiiRedactionConfig(BaseDataClass):
-  # The entity types to redact
-  entity_types: PreRecordedV2PiiRedactionEntityType | None = None
+  # The presets and entity types to redact. When omitted or empty, the full default detection set
+  # is redacted. When non-empty, only the listed presets and entity types are redacted (not the
+  # default set plus these). Each preset covers different entity types: for instance
+  # `HEALTH_INFORMATION` only covers clinical content and does not redact names, contact details
+  # or SSN, which `HIPAA_SAFE_HARBOR` does. See
+  # https://docs.gladia.io/chapters/audio-intelligence/pii-redaction for the content of each
+  # preset.
+  entity_types: list[PreRecordedV2PiiRedactionEntityType] | None = None
   # The type of processed text to return (marker or mask)
   processed_text_type: Literal["MARKER", "MASK"] | None = None
   # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
