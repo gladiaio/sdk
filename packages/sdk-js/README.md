@@ -137,6 +137,26 @@ See all the [supported languages here](https://docs.gladia.io/chapters/language/
 
 Pass the **options** argument to enable features from **[Audio intelligence](https://docs.gladia.io/chapters/live-stt/audio-intelligence)** such as diarization, translation, PII redaction, and much more.
 
+### Events as XML in the transcript (Gladia Enterprise)
+
+With `xml_events: true` in the session's configuration (Gladia Enterprise), every live event but the
+transcripts (speech start and end, end of turn, translation, entities, sentiment, errors) arrives as a
+final transcript whose text is one short XML tag, such as
+`<end_of_turn channel="0" probability="0.97" reason="model" end="3.84"/>`. `parseXmlEvent` reads a tag
+back:
+
+```ts
+import { parseXmlEvent, type LiveV2InitRequest } from '@gladiaio/sdk'
+
+const session = client.liveV2().startSession({ encoding: 'wav/pcm', xml_events: true } as LiveV2InitRequest)
+
+session.on('message', (message) => {
+  const event = parseXmlEvent(message) // undefined for speech and other messages
+  if (event) console.log(event.tag, event.attributes, event.text)
+  else if (message.type === 'transcript' && message.data.is_final) console.log(message.data.utterance.text)
+})
+```
+
 ### Waiting for the session to finish
 
 To **`await`** shutdown after **`stopRecording()`**, wait on the **`ended`** event:

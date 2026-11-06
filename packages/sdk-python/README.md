@@ -229,6 +229,29 @@ asyncio.run(main())
 
 When you need the session id from an async session: **`await live_session.get_session_id()`**. For a sync session, use **`live_session.session_id`** after **`started`**.
 
+### Events as XML in the transcript (Gladia Enterprise)
+
+With `"xml_events": True` in the session's configuration (Gladia Enterprise), every live event but the
+transcripts (speech start and end, end of turn, translation, entities, sentiment, errors) arrives as a
+final transcript whose text is one short XML tag, such as
+`<end_of_turn channel="0" probability="0.97" reason="model" end="3.84"/>`. Pass the configuration as a
+dict: `xml_events` is not in the typed `LiveV2InitRequest`. `parse_xml_event` reads a tag back:
+
+```python
+from gladiaio_sdk import parse_xml_event
+
+session = client.live_v2().start_session({"encoding": "wav/pcm", "xml_events": True})
+
+
+@session.on("message")
+def on_message(message):
+  event = parse_xml_event(message)  # None for speech and other messages
+  if event is not None:
+    print(event.tag, event.attributes, event.text)  # end_of_turn {'channel': '0', ...} None
+  elif message.type == "transcript" and message.data.is_final:
+    print(message.data.utterance.text)
+```
+
 ## Documentation
 
 - [Pre-recorded quickstart](https://docs.gladia.io/chapters/pre-recorded-stt/quickstart)

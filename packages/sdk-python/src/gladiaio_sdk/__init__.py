@@ -22,6 +22,12 @@ from .v2.live.types import (
   LiveV2EndedMessage,
   LiveV2EndingMessage,
 )
+from .v2.live.xml_events import (
+  XML_EVENT_ID_PREFIX,
+  LiveV2XmlEvent,
+  is_xml_event,
+  parse_xml_event,
+)
 from .v2.prerecorded.async_client import PreRecordedV2AsyncClient
 from .v2.prerecorded.client import PreRecordedV2Client
 from .v2.prerecorded.core import PreRecordedV2TranscriptionOptions
@@ -36,6 +42,10 @@ __all__: list[str] = [
   "LiveV2ConnectedMessage",
   "LiveV2EndedMessage",
   "LiveV2EndingMessage",
+  "LiveV2XmlEvent",
+  "XML_EVENT_ID_PREFIX",
+  "is_xml_event",
+  "parse_xml_event",
   "HttpError",
   "TimeoutError",
   "GladiaClientOptions",
