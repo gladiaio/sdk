@@ -302,8 +302,6 @@ export interface LiveV2PostProcessingConfig {
   summarization?: boolean
   /** Summarization configuration, if `summarization` is enabled */
   summarization_config?: LiveV2SummarizationConfig
-  /** Deprecated: this parameter is ignored. */
-  chapterization?: boolean
 }
 
 export interface LiveV2MessagesConfig {
@@ -379,7 +377,7 @@ Note: No need to add WAV headers to raw audio as the API supports both formats. 
   channels?: number
   /** The model used to process the audio. "solaria-1" is used by default. */
   model?: LiveV2Model
-  /** The endpointing duration in seconds. Endpointing is the duration of silence which will cause an utterance to be considered as finished */
+  /** The endpointing duration in seconds. Endpointing is the duration of silence which will cause an utterance to be considered as finished. Only whole milliseconds are supported: the value is rounded to the nearest millisecond (e.g. 0.3825 becomes 0.383) */
   endpointing?: number
   /** The maximum duration in seconds without endpointing. If endpointing is not detected after this duration, current utterance will be considered as finished */
   maximum_duration_without_endpointing?: number
@@ -699,7 +697,7 @@ Note: No need to add WAV headers to raw audio as the API supports both formats. 
   custom_metadata?: Record<string, any>
   /** The model used to process the audio. "solaria-1" is used by default. */
   model?: LiveV2Model
-  /** The endpointing duration in seconds. Endpointing is the duration of silence which will cause an utterance to be considered as finished */
+  /** The endpointing duration in seconds. Endpointing is the duration of silence which will cause an utterance to be considered as finished. Only whole milliseconds are supported: the value is rounded to the nearest millisecond (e.g. 0.3825 becomes 0.383) */
   endpointing?: number
   /** The maximum duration in seconds without endpointing. If endpointing is not detected after this duration, current utterance will be considered as finished */
   maximum_duration_without_endpointing?: number

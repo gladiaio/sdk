@@ -477,8 +477,14 @@ PreRecordedV2PiiRedactionEntityType = Literal[
 
 @dataclass(frozen=True, slots=True)
 class PreRecordedV2PiiRedactionConfig(BaseDataClass):
-  # The entity types to redact
-  entity_types: PreRecordedV2PiiRedactionEntityType | None = None
+  # The presets and entity types to redact. When omitted or empty, the full default detection set
+  # is redacted. When non-empty, only the listed presets and entity types are redacted (not the
+  # default set plus these). Each preset covers different entity types: for instance
+  # `HEALTH_INFORMATION` only covers clinical content and does not redact names, contact details
+  # or SSN, which `HIPAA_SAFE_HARBOR` does. See
+  # https://docs.gladia.io/chapters/audio-intelligence/pii-redaction for the content of each
+  # preset.
+  entity_types: list[PreRecordedV2PiiRedactionEntityType] | None = None
   # The type of processed text to return (marker or mask)
   processed_text_type: Literal["MARKER", "MASK"] | None = None
   # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
@@ -775,23 +781,6 @@ class PreRecordedV2NamesConsistency(BaseDataClass):
 
 
 @dataclass(frozen=True, slots=True)
-class PreRecordedV2StructuredDataExtraction(BaseDataClass):
-  # The audio intelligence model succeeded to get a valid output
-  success: bool
-  # The audio intelligence model returned an empty value
-  is_empty: bool
-  # Time audio intelligence model took to complete the task
-  exec_time: float
-  # `null` if `success` is `true`. Contains the error details of the failed model
-  error: PreRecordedV2AddonError | None = None
-  # If `structured_data_extraction` has been enabled, results of the AI structured data extraction
-  # for the defined classes.
-  results: str | None = None
-  # Fields not (yet) known by the SDK, readable as attributes and merged back by to_dict()
-  _unknown_fields: CatchAll = field(default_factory=dict, hash=False)
-
-
-@dataclass(frozen=True, slots=True)
 class PreRecordedV2SentimentAnalysis(BaseDataClass):
   # The audio intelligence model succeeded to get a valid output
   success: bool
@@ -897,8 +886,6 @@ class PreRecordedV2TranscriptionResult(BaseDataClass):
   # If `name_consistency` has been enabled, Gladia will improve consistency of the names accross
   # the transcription
   name_consistency: PreRecordedV2NamesConsistency | None = None
-  # If `structured_data_extraction` has been enabled, structured data extraction results
-  structured_data_extraction: PreRecordedV2StructuredDataExtraction | None = None
   # If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
   sentiment_analysis: PreRecordedV2SentimentAnalysis | None = None
   # If `audio_to_llm` has been enabled, audio to llm results of the audio speech transcription
