@@ -237,7 +237,7 @@ describe('LiveV2Client.startSession region wiring', () => {
     // the cloud API refuses an unknown field (400 "property finals should not exist"): the same
     // code must run on both, so the field is dropped there, once warned
     resetEnterpriseWarnings()
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const client = new LiveV2Client(makeOptions({ apiUrl: 'https://api.gladia.io' }))
     const first = client.startSession({ encoding: 'wav/pcm', finals: 'sentence' })
     await tick()
