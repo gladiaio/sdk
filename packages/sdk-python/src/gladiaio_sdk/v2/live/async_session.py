@@ -36,6 +36,7 @@ from ._helpers import (
   should_emit_ws_message,
   trim_acknowledged_audio_buffer,
 )
+from .enterprise_types import init_body_for
 from .generated_types import (
   LiveV2InitRequest,
   LiveV2InitResponse,
@@ -64,6 +65,7 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     ws_client: WebSocketClient,
     existing_session: LiveV2InitResponse | None = None,
     region: Region | None = None,
+    api_url: str | None = None,
   ) -> None:
     # Raw options are kept for the init body, the parsed ones to read the messages config
     self._init_options = options
@@ -71,6 +73,8 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
     self._http_client = http_client
     self._ws_client = ws_client
     self._region: Region | None = region
+    # The API the init goes to: Gladia's cloud API gets no Enterprise field (enterprise_types.py)
+    self._api_url = api_url
 
     self._abort = asyncio.Event()
     self._event_emitter = AsyncIOEventEmitter()
@@ -128,7 +132,8 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
   async def _init_session(self) -> LiveV2InitResponse:
     try:
       resp = await self._http_client.post(
-        build_live_init_url(self._region), json=build_init_body(self._init_options)
+        build_live_init_url(self._region),
+        json=init_body_for(build_init_body(self._init_options), self._api_url),
       )
       return LiveV2InitResponse.from_json(resp.content)
     except Exception as err:

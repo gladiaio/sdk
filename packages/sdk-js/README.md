@@ -128,10 +128,33 @@ liveSession.on('error', (err) => {
 liveSession.once('ended', () => {
   console.log(`Session ${liveSession.sessionId} ended`)
 })
-
-liveSession.sendAudio(/* <audio_chunk> */)
-liveSession.stopRecording()
 ```
+
+Options the SDK does not type yet are sent as they are: pass them with a cast.
+
+### Gladia Enterprise options
+
+Options only the Gladia Enterprise API knows (the `apiUrl` of your deployment) are typed on
+`LiveV2EnterpriseInitOptions`, accepted by `startSession` next to the usual ones. The same code runs against
+Gladia's cloud API: towards `api.gladia.io` the SDK drops these fields before `POST /v2/live` (the cloud API
+would refuse them) and warns once per field.
+
+```javascript
+const liveSession = gladiaClient.liveV2().startSession({
+  encoding: 'wav/pcm',
+  sample_rate: 16000,
+  finals: 'sentence', // which event closes a final: a sentence, not the whole turn
+})
+```
+
+| field    | values                                                                      |                                                                                                                                                                                     |
+| -------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `finals` | `'end_of_turn'`, `'sentence_or_end_of_turn'`, `'sentence'`, `'endpointing'` | which event closes a final transcript: the speaker's turn (voice agents), a sentence (meeting recorders, subtitles), or the `endpointing` silence alone (the cloud API's behaviour) |
+
+liveSession.sendAudio(/_ <audio_chunk> _/)
+liveSession.stopRecording()
+
+````
 
 See all the [supported languages here](https://docs.gladia.io/chapters/language/supported-languages) !
 
@@ -159,7 +182,7 @@ async function runLive() {
 }
 
 runLive().catch(console.error)
-```
+````
 
 When you need the session id as soon as the backend has created the session:
 

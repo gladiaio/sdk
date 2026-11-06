@@ -15,6 +15,7 @@ from .network import HttpError, TimeoutError
 from .v2.live.async_client import LiveV2AsyncClient
 from .v2.live.async_session import LiveV2AsyncSession
 from .v2.live.client import LiveV2Client
+from .v2.live.enterprise_types import LiveV2EnterpriseFinals, LiveV2EnterpriseInitRequest
 from .v2.live.types import (
   LiveV2ConnectedMessage,
   LiveV2ConnectingMessage,
@@ -36,6 +37,8 @@ __all__: list[str] = [
   "LiveV2ConnectedMessage",
   "LiveV2EndedMessage",
   "LiveV2EndingMessage",
+  "LiveV2EnterpriseFinals",
+  "LiveV2EnterpriseInitRequest",
   "HttpError",
   "TimeoutError",
   "GladiaClientOptions",
