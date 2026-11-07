@@ -98,6 +98,22 @@ def should_emit_ws_message(
   )
 
 
+def get_acknowledged_byte_end(data: Any) -> int:
+  """Return the end of the acknowledged byte range of an audio_chunk message.
+
+  The value comes from the server: reject anything that is not a non-negative integer
+  instead of raising an unexpected exception in the WebSocket reader.
+  """
+  byte_range = getattr(data, "byte_range", None)
+  if isinstance(byte_range, (list, tuple)) and len(byte_range) >= 2:
+    byte_end = byte_range[1]
+    if isinstance(byte_end, float) and byte_end.is_integer():
+      byte_end = int(byte_end)
+    if isinstance(byte_end, int) and not isinstance(byte_end, bool) and byte_end >= 0:
+      return byte_end
+  raise ValueError("Invalid audio_chunk acknowledgment: bad byte_range")
+
+
 def trim_acknowledged_audio_buffer(
   audio_buffer: bytes,
   bytes_sent: int,

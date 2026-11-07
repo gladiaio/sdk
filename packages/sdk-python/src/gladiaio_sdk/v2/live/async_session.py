@@ -29,6 +29,7 @@ from ._helpers import (
   build_live_init_url,
   emit_session_ending_events,
   emit_started_if_needed,
+  get_acknowledged_byte_end,
   maybe_emit_start_session_message,
   parse_init_options,
   parse_ws_message,
@@ -201,7 +202,11 @@ class LiveV2AsyncSession(LiveV2SessionEventsMixin):
       if getattr(message, "type", None) == "audio_chunk":
         data = getattr(message, "data", None)
         if getattr(message, "acknowledged", False) and data:
-          byte_end = int((data.byte_range)[1])
+          try:
+            byte_end = get_acknowledged_byte_end(data)
+          except ValueError as ack_err:
+            _ = self._event_emitter.emit("error", ack_err)
+            return
           self._audio_buffer, self._bytes_sent = trim_acknowledged_audio_buffer(
             self._audio_buffer,
             self._bytes_sent,

@@ -12,6 +12,7 @@ import pytest
 
 from gladiaio_sdk.client_options import GladiaClientOptions, WebSocketRetryOptions
 from gladiaio_sdk.network import WS_STATES
+from gladiaio_sdk.v2.live._helpers import get_acknowledged_byte_end
 from gladiaio_sdk.v2.live.async_client import LiveV2AsyncClient
 from gladiaio_sdk.v2.live.client import LiveV2Client
 from gladiaio_sdk.v2.live.generated_types import (
@@ -315,3 +316,78 @@ def test_async_connect_session_skips_http_init_and_connects(monkeypatch):
   )
 
   asyncio.run(_run_async_connect_session_test(http_client, ws_client))
+
+
+def _connected_session(monkeypatch: pytest.MonkeyPatch) -> tuple[Any, FakeWebSocketClient]:
+  ws_client = FakeWebSocketClient()
+  monkeypatch.setattr(
+    "gladiaio_sdk.v2.live.client.WebSocketClient",
+    lambda **kwargs: ws_client,
+  )
+  client = LiveV2Client(_client_options())
+  session = client.connect_session(
+    LiveV2ConnectSessionOptions(id="session-123", url="wss://api.gladia.io/v2/live/ws?token=abc")
+  )
+  assert _wait_for(lambda: session.status == "connected")
+  return session, ws_client
+
+
+def _audio_chunk_ack(byte_range: Any) -> str:
+  return json.dumps(
+    {
+      "type": "audio_chunk",
+      "session_id": "session-123",
+      "created_at": "2026-06-25T10:00:00Z",
+      "acknowledged": True,
+      "data": {"byte_range": byte_range, "time_range": [0.0, 0.1]},
+    }
+  )
+
+
+@pytest.mark.parametrize(
+  "raw",
+  [
+    "not json {",
+    "null",
+    "42",
+    '"text"',
+    json.dumps({"data": {}}),
+    _audio_chunk_ack([0]),
+    _audio_chunk_ack([0, "x"]),
+    _audio_chunk_ack([0, -1]),
+    _audio_chunk_ack(None),
+  ],
+)
+def test_malformed_message_emits_error_without_raising(monkeypatch, raw):
+  session, ws_client = _connected_session(monkeypatch)
+  errors: list[Exception] = []
+  messages: list[Any] = []
+  session.on("error", errors.append)
+  session.on("message", messages.append)
+
+  # Raising here would escape into the WebSocket reader and stall the session
+  ws_client.sessions[0].onmessage({"data": raw})
+  assert len(errors) == 1
+
+  # The session keeps processing the next messages
+  payload = {"type": "end_of_turn", "session_id": "session-123", "data": {}}
+  ws_client.sessions[0].onmessage({"data": json.dumps(payload)})
+  assert any(getattr(message, "type", None) == "end_of_turn" for message in messages)
+  assert session.status == "connected"
+
+  session.end_session()
+  assert session.join(timeout=2)
+
+
+def test_get_acknowledged_byte_end() -> None:
+  class Data:
+    def __init__(self, byte_range: Any) -> None:
+      self.byte_range = byte_range
+
+  assert get_acknowledged_byte_end(Data([0, 42])) == 42
+  assert get_acknowledged_byte_end(Data((0, 42.0))) == 42
+  for bad in (None, [], [0], [0, None], [0, "42"], [0, -1], [0, 1.5], [0, True]):
+    with pytest.raises(ValueError):
+      get_acknowledged_byte_end(Data(bad))
+  with pytest.raises(ValueError):
+    get_acknowledged_byte_end(object())
