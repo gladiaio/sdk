@@ -1,7 +1,26 @@
 import type { OpenAPIObject } from './types.ts'
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+
+/**
+ * The schema drives code generation, so only fetch it over HTTPS.
+ * Plain HTTP is accepted for a local API (loopback host) only.
+ */
+export function assertAllowedSchemaUrl(url: string): void {
+  const { protocol, hostname } = new URL(url)
+  if (protocol === 'https:') {
+    return
+  }
+  if (protocol === 'http:' && LOOPBACK_HOSTS.has(hostname)) {
+    return
+  }
+  throw new Error(`Refusing to fetch the OpenAPI schema from ${protocol}//${hostname}: use https`)
+}
+
 export async function fetchSchema(url: string): Promise<OpenAPIObject> {
   try {
+    assertAllowedSchemaUrl(url)
+
     const response = await fetch(url)
 
     if (!response.ok) {

@@ -1,7 +1,13 @@
 import { snakeCase } from 'case-anything'
 import * as fs from 'fs'
 import * as path from 'path'
-import { isReferencedSchemaObject } from '../helpers.ts'
+import {
+  assertSafePythonIdentifier,
+  isReferencedSchemaObject,
+  normalizeCommentText,
+  toPythonDocstringText,
+  toPythonStringLiteral,
+} from '../helpers.ts'
 import type { ReferencedSchemaObject, SchemaOrReference } from '../types.ts'
 import { BaseGenerator } from './base.ts'
 
@@ -127,6 +133,7 @@ export class PythonGenerator extends BaseGenerator {
     description,
     schema,
   }: ReferencedSchemaObject): string {
+    assertSafePythonIdentifier(typeName, 'type')
     if (schema.type === 'object' && schema.properties) {
       return this.generateDataclass(typeName, description, schema)
     }
@@ -144,7 +151,11 @@ export class PythonGenerator extends BaseGenerator {
     sectionComment?: string
   ): string {
     const comment = sectionComment ? `${this.generateSingleLineComment(sectionComment)}\n` : ''
-    const unionMembers = schemas.map(({ typeName }) => typeName)
+    assertSafePythonIdentifier(name, 'type')
+    const unionMembers = schemas.map(({ typeName }) => {
+      assertSafePythonIdentifier(typeName, 'type')
+      return typeName
+    })
     const inline = `${name} = ${unionMembers.join(' | ')}`
 
     const helperConfig = this.getUnionHelperConfig(name)
@@ -186,7 +197,8 @@ export class PythonGenerator extends BaseGenerator {
   private formatComment(text: string, prefix: string): string {
     const maxCommentLength = this.maxLineLength - prefix.length
 
-    return text
+    // Schema text may hold any line terminator: normalize them so every line gets the prefix
+    return normalizeCommentText(text)
       .split('\n')
       .map((line) => {
         if (line.length <= maxCommentLength) {
@@ -236,7 +248,7 @@ export class PythonGenerator extends BaseGenerator {
     lines.push(`class ${typeName}(BaseDataClass):`)
 
     if (description) {
-      lines.push(`    """${description}"""`)
+      lines.push(`    """${toPythonDocstringText(description)}"""`)
     }
 
     const required_lines: string[] = []
@@ -250,6 +262,7 @@ export class PythonGenerator extends BaseGenerator {
         _line.push(...this.formatComment((propertySchema as any).description, '    # ').split('\n'))
       }
 
+      assertSafePythonIdentifier(name, 'property')
       if (isOptional) {
         _line.push(`    ${name}: ${annotation} | None = None`)
       } else {
@@ -301,6 +314,7 @@ export class PythonGenerator extends BaseGenerator {
 
   private getPythonType(schemaOrRef: SchemaOrReference): string {
     if (isReferencedSchemaObject(schemaOrRef)) {
+      assertSafePythonIdentifier(schemaOrRef.typeName, 'type')
       return schemaOrRef.typeName
     }
 
@@ -355,7 +369,7 @@ export class PythonGenerator extends BaseGenerator {
 
   private generateInlineEnum(values: Array<string | number>): string {
     const literalItems = values.map((value) =>
-      typeof value === 'string' ? `"${value}"` : value.toString()
+      typeof value === 'string' ? toPythonStringLiteral(value) : this.formatNumericLiteral(value)
     )
     const inline = `Literal[${literalItems.join(', ')}]`
 
@@ -372,7 +386,7 @@ export class PythonGenerator extends BaseGenerator {
 
   private generateEnum(typeName: string, values: Array<string | number>, openEnum = false): string {
     const literalItems = values.map((value) =>
-      typeof value === 'string' ? `"${value}"` : value.toString()
+      typeof value === 'string' ? toPythonStringLiteral(value) : this.formatNumericLiteral(value)
     )
     // An open enum accepts any string on top of the known values
     const inline = `Literal[${literalItems.join(', ')}]${openEnum ? ' | str' : ''}`
@@ -386,6 +400,13 @@ export class PythonGenerator extends BaseGenerator {
       .join('\n')
 
     return `${typeName} = Literal[\n${formatted}\n]${openEnum ? ' | str' : ''}`
+  }
+
+  private formatNumericLiteral(value: unknown): string {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`Invalid enum value in OpenAPI schema: ${JSON.stringify(value)}`)
+    }
+    return String(value)
   }
 
   private isNullable(schemaOrRef: SchemaOrReference): boolean {
@@ -529,7 +550,8 @@ export class PythonGenerator extends BaseGenerator {
       return undefined
     }
 
-    return `    "${literalValue}": ${schema.typeName},`
+    assertSafePythonIdentifier(schema.typeName, 'type')
+    return `    ${toPythonStringLiteral(literalValue)}: ${schema.typeName},`
   }
 
   private extractSingleLiteral(schemaOrRef: SchemaOrReference): string | undefined {

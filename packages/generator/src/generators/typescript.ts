@@ -1,5 +1,12 @@
 import { kebabCase } from 'case-anything'
-import { isReferencedSchemaObject } from '../helpers.ts'
+import {
+  assertSafeIdentifier,
+  isNumericLiteral,
+  isReferencedSchemaObject,
+  isSafeIdentifier,
+  toJsDocText,
+  toTypeScriptStringLiteral,
+} from '../helpers.ts'
 import type { ReferencedSchemaObject, SchemaOrReference } from '../types.ts'
 import { BaseGenerator } from './base.ts'
 
@@ -45,6 +52,7 @@ export class TypeScriptGenerator extends BaseGenerator {
   }
 
   override generateTypeDefinition(schema: ReferencedSchemaObject): string {
+    assertSafeIdentifier(schema.typeName, 'type')
     if (schema.schema.type === 'object' && schema.schema.properties) {
       return this.generateInterface(schema)
     } else if (schema.schema.enum) {
@@ -65,7 +73,13 @@ export class TypeScriptGenerator extends BaseGenerator {
       content += this.generateSingleLineComment(sectionComment) + '\n'
     }
 
-    const unionTypes = schemas.map(({ typeName }) => typeName).join(' | ')
+    assertSafeIdentifier(name, 'type')
+    const unionTypes = schemas
+      .map(({ typeName }) => {
+        assertSafeIdentifier(typeName, 'type')
+        return typeName
+      })
+      .join(' | ')
     content += `export type ${name} = ${unionTypes};`
 
     return content
@@ -91,7 +105,7 @@ export class TypeScriptGenerator extends BaseGenerator {
   }: ReferencedSchemaObject): string {
     let content = ''
     if (description) {
-      content += `/** ${description} */\n`
+      content += `/** ${toJsDocText(description)} */\n`
     }
     content += `export interface ${name} {\n`
 
@@ -108,9 +122,9 @@ export class TypeScriptGenerator extends BaseGenerator {
           : propSchemaOrRef.nullable
         const type = this.getTypeScriptType(propSchemaOrRef)
         if (propSchemaOrRef.description) {
-          content += `  /** ${propSchemaOrRef.description} */\n`
+          content += `  /** ${toJsDocText(propSchemaOrRef.description)} */\n`
         }
-        content += `  ${propName}${optional}: ${type}${isNullable ? ' | null' : ''};\n`
+        content += `  ${this.formatPropertyName(propName)}${optional}: ${type}${isNullable ? ' | null' : ''};\n`
       }
     }
 
@@ -124,7 +138,7 @@ export class TypeScriptGenerator extends BaseGenerator {
     }
 
     // Check if all enum values are numeric
-    const allNumeric = schema.enum.every((value) => !isNaN(Number(value)))
+    const allNumeric = schema.enum.every(isNumericLiteral)
 
     if (allNumeric) {
       // Generate numeric union type
@@ -132,15 +146,25 @@ export class TypeScriptGenerator extends BaseGenerator {
       return `export type ${name} = ${values};`
     } else {
       // Generate string union type
-      const values = schema.enum.map((value) => `'${value}'`).join(' | ')
+      const values = schema.enum
+        .map((value) => toTypeScriptStringLiteral(String(value)))
+        .join(' | ')
       // `string & {}` keeps autocompletion on the known values while accepting any string
       const openEnum = schema['x-open-enum'] ? ' | (string & {})' : ''
       return `export type ${name} = ${values}${openEnum};`
     }
   }
 
+  /**
+   * Property names that are not plain identifiers are emitted as quoted keys.
+   */
+  private formatPropertyName(name: string): string {
+    return isSafeIdentifier(name) ? name : toTypeScriptStringLiteral(name)
+  }
+
   private getTypeScriptType(schemaOrRef: SchemaOrReference): string {
     if (isReferencedSchemaObject(schemaOrRef)) {
+      assertSafeIdentifier(schemaOrRef.typeName, 'type')
       return schemaOrRef.typeName
     }
 
@@ -157,11 +181,11 @@ export class TypeScriptGenerator extends BaseGenerator {
 
     if (schema.enum) {
       // Handle enum types inline
-      const allNumeric = schema.enum.every((value) => !isNaN(Number(value)))
+      const allNumeric = schema.enum.every(isNumericLiteral)
       if (allNumeric) {
         return schema.enum.map((value) => String(value)).join(' | ')
       } else {
-        return schema.enum.map((value) => `'${value}'`).join(' | ')
+        return schema.enum.map((value) => toTypeScriptStringLiteral(String(value))).join(' | ')
       }
     }
 
@@ -191,7 +215,7 @@ export class TypeScriptGenerator extends BaseGenerator {
           for (const [propName, propSchemaOrRef] of Object.entries(schema.properties)) {
             const isRequired = schema.required?.includes(propName) ?? false
             const optional = isRequired ? '' : '?'
-            objectDefinitionWithDefinedProperties += `${propName}${optional}: ${this.getTypeScriptType(
+            objectDefinitionWithDefinedProperties += `${this.formatPropertyName(propName)}${optional}: ${this.getTypeScriptType(
               propSchemaOrRef
             )}; `
           }
