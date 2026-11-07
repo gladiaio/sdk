@@ -267,7 +267,15 @@ export class LiveV2Session {
     }
 
     this.webSocketSession.onmessage = (event) => {
-      const message = this.parseMessage(event.data.toString())
+      // This runs inside the WebSocket library's callback: a throw here would be uncaught
+      // and could crash the host process, so malformed messages become `error` events.
+      let message: LiveV2WebSocketMessage
+      try {
+        message = this.parseMessage(event.data.toString())
+      } catch (error) {
+        this.emit('error', error instanceof Error ? error : new Error(String(error)))
+        return
+      }
 
       // We forced the acknowledgment reception for resume so we must not emit them if user don't want them
       if (
@@ -280,10 +288,19 @@ export class LiveV2Session {
 
       if (message.type === 'audio_chunk') {
         if (message.acknowledged && message.data) {
-          const byteEnd = message.data.byte_range[1]
-          const slice = this.audioBuffer?.slice(byteEnd - this.bytesSent)
-          this.audioBuffer = slice?.byteLength ? slice : null
-          this.bytesSent = byteEnd
+          const byteEnd: unknown = Array.isArray(message.data.byte_range)
+            ? message.data.byte_range[1]
+            : undefined
+          if (typeof byteEnd !== 'number' || !Number.isSafeInteger(byteEnd) || byteEnd < 0) {
+            this.emit('error', new Error('Invalid audio_chunk acknowledgment: bad byte_range'))
+            return
+          }
+          // Only drop newly acknowledged bytes, never more than what is buffered
+          if (byteEnd > this.bytesSent) {
+            const slice = this.audioBuffer?.slice(byteEnd - this.bytesSent)
+            this.audioBuffer = slice?.byteLength ? slice : null
+            this.bytesSent = byteEnd
+          }
         }
       }
     }

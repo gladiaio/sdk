@@ -148,6 +148,92 @@ describe('LiveV2Session connectSession', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
+  async function connectedSession() {
+    const messageSpy = vi.fn()
+    const errorSpy = vi.fn()
+    const session = new LiveV2Session({
+      options: {},
+      existingSession: {
+        id: 'session-123',
+        url: 'wss://api.gladia.io/v2/live/ws?token=abc',
+        created_at: '2026-06-25T10:00:00Z',
+      },
+      httpClient,
+      webSocketClient,
+    })
+    session.on('message', messageSpy)
+    session.on('error', errorSpy)
+    await tick()
+    mockWsSession.onopen?.({ connection: 1, attempt: 1 })
+    return { session, messageSpy, errorSpy }
+  }
+
+  it.each(['not json {', 'null', '42', '"text"', '{"data":{}}'])(
+    'emits an error instead of throwing on malformed message %s',
+    async (data) => {
+      const { session, messageSpy, errorSpy } = await connectedSession()
+
+      expect(() => mockWsSession.onmessage?.({ data })).not.toThrow()
+      expect(errorSpy).toHaveBeenCalledTimes(1)
+      expect(errorSpy.mock.calls[0][0]).toBeInstanceOf(Error)
+      expect(messageSpy).not.toHaveBeenCalled()
+
+      // The session keeps processing the next messages
+      const next = { type: 'end_of_turn', data: {} }
+      mockWsSession.onmessage?.({ data: JSON.stringify(next) })
+      expect(messageSpy).toHaveBeenCalledWith(next)
+      expect(session.status).toBe('connected')
+    }
+  )
+
+  it.each([
+    {},
+    { byte_range: null },
+    { byte_range: [0] },
+    { byte_range: [0, 'x'] },
+    { byte_range: [0, -1] },
+  ])('emits an error instead of throwing on an audio_chunk ack with data %j', async (data) => {
+    const { session, errorSpy } = await connectedSession()
+
+    expect(() =>
+      mockWsSession.onmessage?.({
+        data: JSON.stringify({ type: 'audio_chunk', acknowledged: true, data }),
+      })
+    ).not.toThrow()
+    expect(errorSpy).toHaveBeenCalledTimes(1)
+    expect(session.status).toBe('connected')
+  })
+
+  it('only drops newly acknowledged audio from the resend buffer', async () => {
+    const { session, errorSpy } = await connectedSession()
+    session.sendAudio(new Uint8Array([1, 2, 3, 4, 5, 6]))
+
+    const ack = (end: number) =>
+      mockWsSession.onmessage?.({
+        data: JSON.stringify({
+          type: 'audio_chunk',
+          acknowledged: true,
+          data: { byte_range: [0, end] },
+        }),
+      })
+    const resent = () => {
+      mockWsSession.send.mockClear()
+      mockWsSession.onopen?.({ connection: 2, attempt: 1 })
+      return mockWsSession.send.mock.calls.map(([chunk]) => Array.from(chunk as Uint8Array))
+    }
+
+    ack(4)
+    // A stale ack must not move the buffer backwards
+    ack(2)
+    ack(5)
+    expect(resent()).toEqual([[6]])
+
+    // An ack beyond what was sent empties the buffer
+    ack(Number.MAX_SAFE_INTEGER)
+    expect(resent()).toEqual([])
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
   it('still calls HTTP init for startSession flow', async () => {
     const startedSpy = vi.fn()
 
