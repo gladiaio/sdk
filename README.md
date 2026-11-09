@@ -18,11 +18,12 @@ You can also check out [our code samples](https://github.com/gladiaio/gladia-sam
 │   ├── generator/          # Fetches Gladia OpenAPI schema and generates types
 │   ├── sdk-js/             # JavaScript/TypeScript SDK (ESM, CJS, IIFE)
 │   ├── sdk-python/         # Python SDK (sync + async)
-│   └── sdk-go/             # Go SDK (generated types; clients WIP)
+│   └── sdk-go/             # Go SDK
 ├── e2e/
 │   ├── e2e-node-esm/       # E2E tests — Node ESM
 │   ├── e2e-node-cjs/       # E2E tests — Node CJS
 │   ├── e2e-python/         # E2E tests — Python
+│   ├── e2e-go/             # E2E tests — Go
 │   └── javascript-fixtures/
 ├── tools/scripts/           # Release & publish automation
 └── .github/workflows/       # CI, release, publish pipelines
@@ -160,6 +161,7 @@ Steps:
    bun nx run e2e-node-esm:test
    bun nx run e2e-node-cjs:test
    bun nx run e2e-python:test
+   bun nx run e2e-go:test
    ```
 
 ### 3. Managing dependencies

@@ -1,0 +1,34 @@
+{
+  "name": "e2e-go",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "{projectRoot}",
+  "tags": ["type:app", "scope:e2e"],
+  "implicitDependencies": ["sdk-go"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["sdk-go:build"],
+      "options": {
+        "command": "go test -timeout 10m ./...",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "test -z \"$(gofmt -l .)\"",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
+    "format:write": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "gofmt -w .",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}
