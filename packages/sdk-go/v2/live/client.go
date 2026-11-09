@@ -41,6 +41,7 @@ func NewClient(opts clientoptions.GladiaClientOptions) (*Client, error) {
 	}
 	wsClient, err := network.NewWebSocketClient(network.WebSocketClientConfig{
 		BaseURL: wsBase,
+		Headers: opts.HTTPHeaders,
 		Retry:   opts.WSRetry,
 		Timeout: opts.WSTimeout,
 	})
@@ -95,6 +96,7 @@ func (c *Client) ConnectSession(opts ConnectSessionOptions) (*Session, error) {
 	return newSession(sessionConfig{
 		init:     init,
 		existing: existing,
+		apiURL:   c.apiURL,
 		http:     c.http,
 		ws:       c.ws,
 		opts:     c.opts,

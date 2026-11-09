@@ -54,10 +54,10 @@ func main() {
 
 Generated OpenAPI types: `v2/live/generated_types.go`, `v2/prerecorded/generated_types.go`.
 
-### Not yet implemented (structural placeholders exist)
+### Not yet implemented
 
-- Live **WebSocket** streaming (`Session.ConnectWebSocket`, `network.WebSocketClient`)
 - Python-style **async** clients (`async_client.py` equivalents)
+- Full parity tests (`e2e-go`)
 
 Publishing to pkg.go.dev is intentionally deferred.
 
