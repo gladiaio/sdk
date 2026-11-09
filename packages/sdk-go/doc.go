@@ -6,5 +6,5 @@
 //   - network — HTTP and WebSocket clients (Python: network/, JS: network/)
 //   - v2/live, v2/prerecorded — V2 API clients and generated OpenAPI types
 //
-// WebSocket streaming for live sessions is not implemented yet.
+// Live sessions use HTTP init (POST /v2/live) and WebSocket streaming via network.WebSocketClient.
 package gladia
