@@ -6,6 +6,7 @@ This monorepo contains the source code for the official Gladia SDKs and the code
 | --------------------------------------------- | --------------------------------------- | --------------------- |
 | [@gladiaio/sdk](packages/sdk-js/README.md)    | JavaScript / TypeScript SDK             | `packages/sdk-js`     |
 | [gladiaio-sdk](packages/sdk-python/README.md) | Python SDK                              | `packages/sdk-python` |
+| [sdk-go](packages/sdk-go/README.md)           | Go SDK (scaffold)                       | `packages/sdk-go`     |
 | generator                                     | OpenAPI → SDK type generator (internal) | `packages/generator`  |
 
 You can also check out [our code samples](https://github.com/gladiaio/gladia-samples).
@@ -16,7 +17,8 @@ You can also check out [our code samples](https://github.com/gladiaio/gladia-sam
 ├── packages/
 │   ├── generator/          # Fetches Gladia OpenAPI schema and generates types
 │   ├── sdk-js/             # JavaScript/TypeScript SDK (ESM, CJS, IIFE)
-│   └── sdk-python/         # Python SDK (sync + async)
+│   ├── sdk-python/         # Python SDK (sync + async)
+│   └── sdk-go/             # Go SDK (generated types; clients WIP)
 ├── e2e/
 │   ├── e2e-node-esm/       # E2E tests — Node ESM
 │   ├── e2e-node-cjs/       # E2E tests — Node CJS
@@ -39,10 +41,12 @@ OpenAPI schema (api.gladia.io/openapi.json)
    generator
     ├── Live V2
     │   ├──▶ packages/sdk-js/src/v2/live/generated-types.ts
-    │   └──▶ packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py
+    │   ├──▶ packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py
+    │   └──▶ packages/sdk-go/v2/live/generated_types.go
     └── PreRecorded V2
         ├──▶ packages/sdk-js/src/v2/prerecorded/generated-types.ts
-        └──▶ packages/sdk-python/src/gladiaio_sdk/v2/prerecorded/generated_types.py
+        ├──▶ packages/sdk-python/src/gladiaio_sdk/v2/prerecorded/generated_types.py
+        └──▶ packages/sdk-go/v2/prerecorded/generated_types.go
 ```
 
 The generator extracts **Live V2** schemas (`StreamingRequest`, `InitStreamingResponse`, `CallbackLive*Message`, `WebhookLive*Payload`) and **PreRecorded V2** schemas (e.g. `PreRecordedV2InitTranscriptionRequest`, `PreRecordedV2Response`, upload/init types) and produces language-specific type definitions. Each language has its own generator class that extends `BaseGenerator` (`packages/generator/src/generators/base.ts`).

@@ -7,6 +7,7 @@ Before you begin, ensure you have the following installed on your system:
 - **Node.js** (latest [Active LTS](https://nodejs.org/en/about/previous-releases#looking-for-the-latest-release-of-a-version-branch))
 - **Bun**: https://bun.com/docs/installation
 - **uv**: https://docs.astral.sh/uv/getting-started/installation/
+- **Go** 1.22+ (for `packages/sdk-go`): https://go.dev/dl/
 
 Run the following commands to check everything is correctly installed:
 
@@ -14,6 +15,7 @@ Run the following commands to check everything is correctly installed:
 node --version
 bun --version
 uv --version
+go version
 ```
 
 > [!TIP]
