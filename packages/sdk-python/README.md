@@ -256,6 +256,8 @@ When you need the session id from an async session: **`await live_session.get_se
 
 - [Pre-recorded quickstart](https://docs.gladia.io/chapters/pre-recorded-stt/quickstart)
 - [Live quickstart](https://docs.gladia.io/chapters/live-stt/quickstart)
+- [Full documentation](https://docs.gladia.io)
+- [Pricing](https://www.gladia.io/pricing)
 
 ## License
 
