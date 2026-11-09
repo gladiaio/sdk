@@ -8,7 +8,7 @@ This monorepo contains the source code for the official Gladia SDKs and the code
 | [gladiaio-sdk](packages/sdk-python/README.md) | Python SDK                              | `packages/sdk-python` |
 | generator                                     | OpenAPI → SDK type generator (internal) | `packages/generator`  |
 
-You can also check out [our code samples](https://github.com/gladiaio/gladia-samples).
+You can also check out [our code samples](https://github.com/gladiaio/gladia-samples). See the [Gladia documentation](https://docs.gladia.io) to get started and [pricing](https://www.gladia.io/pricing) for plans and limits.
 
 ## Repository architecture
 
@@ -111,6 +111,7 @@ Generated type files are **auto-generated** — do not edit them manually. Inste
    This fetches the latest OpenAPI schema from `https://api.gladia.io/openapi.json`, runs the generator for both Live V2 and PreRecorded V2, and auto-formats the output.
 
 2. Review the changes in the generated files for the surface you care about:
+
    - **Live V2:** `packages/sdk-js/src/v2/live/generated-types.ts`, `packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py`
    - **PreRecorded V2:** `packages/sdk-js/src/v2/prerecorded/generated-types.ts`, `packages/sdk-python/src/gladiaio_sdk/v2/prerecorded/generated_types.py`
 
