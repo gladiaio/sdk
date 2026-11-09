@@ -1,0 +1,74 @@
+{
+  "name": "sdk-go",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "{projectRoot}",
+  "tags": ["scope:sdk"],
+  "targets": {
+    "version:write": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run scripts/write-version.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "version:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["version:write"],
+      "options": {
+        "command": "git diff --exit-code -- HEAD 'version/version.go'",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["version:write"],
+      "options": {
+        "command": "go build ./...",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "go test ./...",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "test -z \"$(gofmt -l .)\"",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
+    "format:write": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "gofmt -w .",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "lint:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go vet ./...",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
+    "type:check": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "go build -o /dev/null ./...",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    }
+  }
+}

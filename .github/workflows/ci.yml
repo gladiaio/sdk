@@ -81,6 +81,10 @@ jobs:
       - name: Install Python deps
         run: bun nx run-many -t sync
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
       - name: Run all the checks
         run: bun nx run-many -t build,test,format:check,lint:check,type:check,version:check
 
