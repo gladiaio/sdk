@@ -8,6 +8,7 @@ import (
 )
 
 func TestNewGladiaClientRequiresKeyOnCloud(t *testing.T) {
+	t.Setenv("GLADIA_API_KEY", "")
 	_, err := gladia.NewGladiaClient(&clientoptions.GladiaClientOptions{
 		APIURL: "https://api.gladia.io",
 	})
