@@ -57,14 +57,27 @@ Generated OpenAPI types: `v2/live/generated_types.go`, `v2/prerecorded/generated
 ### Not yet implemented
 
 - Python-style **async** clients (`async_client.py` equivalents)
-- Full parity tests (`e2e-go`)
-
-Publishing to pkg.go.dev is intentionally deferred.
+- Publishing to pkg.go.dev (release workflow)
 
 ## Development (monorepo)
 
+Regenerate types after OpenAPI changes:
+
 ```sh
 bun nx run generator:generate
+```
+
+Run Go checks for this package (from the repo root):
+
+```sh
+# Preferred: several targets on one project
+bun nx run-many -t build,test,format:check,lint:check,type:check -p sdk-go
+
+# Or one target at a time
 bun nx run sdk-go:build
 bun nx run sdk-go:test
 ```
+
+Do **not** chain targets on a single `nx run` (e.g. `bun nx run sdk-go:build sdk-go:test`). Nx forwards extra arguments to `go build`, which fails with `malformed import path "sdk-go:test"`.
+
+Full API e2e tests live in [`e2e/e2e-go`](../../e2e/e2e-go) (`bun nx run e2e-go:test`). **`GLADIA_API_KEY` is required** (same as `e2e-python`).
