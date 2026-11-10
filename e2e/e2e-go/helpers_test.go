@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -24,15 +25,14 @@ const (
 	shortAudioFile     = "short_split_infinity_16k.wav"
 	annaSashaAudioFile = "anna-and-sasha-16000.wav"
 	pollInterval       = 2 * time.Second
-	pollTimeout        = 6 * time.Minute
+	pollTimeout        = 3 * time.Minute // e2e-python POLL_TIMEOUT_S
 	listTimeout        = 2 * time.Minute
 	youtubePollTimeout = 10 * time.Minute
-	liveConnectTimeout = 30 * time.Second
-	liveSessionTimeout = 2 * time.Minute
-	liveJobWaitTimeout = 2 * time.Minute
-	liveSlotCooldown   = 8 * time.Second
-	liveStartAttempts  = 8
-	e2eHTTPTimeout     = 3 * time.Minute
+	liveConnectTimeout = 45 * time.Second
+	liveJobWaitTimeout = 90 * time.Second // e2e-python job terminal wait (60s) + slack
+	liveSlotCooldown   = 15 * time.Second
+	liveStartAttempts  = 5
+	e2eHTTPTimeout     = 5 * time.Minute
 	youtubeURL         = "https://www.youtube.com/watch?v=DYyY8Nh3TQE"
 	nonexistentJobID   = "00000000-0000-0000-0000-000000000000"
 )
@@ -74,8 +74,22 @@ func shortAudioPath() string {
 
 func newE2EClient(t *testing.T) *gladia.GladiaClient {
 	t.Helper()
+	base := clientoptions.Default()
+	preTO := base.PreRecordedTimeouts
+	preTO.Get = 60 * time.Second
+	preTO.List = 60 * time.Second
+	preTO.Create = 2 * time.Minute
+	liveTO := base.LiveTimeouts
+	liveTO.Get = 60 * time.Second
+	liveTO.List = 60 * time.Second
+	wsRetry := base.WSRetry
+	wsRetry.MaxAttemptsPerConnection = 10
 	client, err := gladia.NewGladiaClient(&clientoptions.GladiaClientOptions{
-		HTTPTimeout: e2eHTTPTimeout,
+		HTTPTimeout:         e2eHTTPTimeout,
+		WSTimeout:           2 * time.Minute,
+		WSRetry:             wsRetry,
+		PreRecordedTimeouts: preTO,
+		LiveTimeouts:        liveTO,
 	})
 	if err != nil {
 		t.Fatalf("NewGladiaClient: %v", err)
@@ -133,13 +147,15 @@ func uploadShortAudio(t *testing.T, pre *prerecorded.Client) *prerecorded.PreRec
 func createAndPollShort(t *testing.T, pre *prerecorded.Client) (*prerecorded.PreRecordedV2InitTranscriptionResponse, *prerecorded.PreRecordedV2Response) {
 	t.Helper()
 	upload := uploadShortAudio(t, pre)
-	ctx, cancel := pollContext(t, pollTimeout)
-	defer cancel()
-	init, err := pre.Create(ctx, prerecordedCreateBody(upload.AudioUrl))
+	createCtx, createCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer createCancel()
+	init, err := pre.Create(createCtx, prerecordedCreateBody(upload.AudioUrl))
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	result, err := pre.Poll(ctx, init.Id, pollInterval)
+	pollCtx, pollCancel := context.WithTimeout(context.Background(), pollTimeout)
+	defer pollCancel()
+	result, err := pre.Poll(pollCtx, init.Id, pollInterval)
 	if err != nil {
 		t.Fatalf("poll: %v", err)
 	}
@@ -273,6 +289,9 @@ func connectLiveSession(t *testing.T, lc *live.Client, audioFile string, init ma
 		lastErr = waitErr
 		if id := sess.SessionID(); id != "" {
 			t.Logf("live start attempt %d failed after session %s created: %v", attempt, id, waitErr)
+			delCtx, delCancel := context.WithTimeout(context.Background(), time.Minute)
+			_, _ = lc.Delete(delCtx, id)
+			delCancel()
 		}
 		sess.EndSession()
 		_ = sess.WaitEnded(30 * time.Second)
@@ -288,12 +307,13 @@ func streamLiveAudioUntilEnded(t *testing.T, sess *live.Session, audio AudioFile
 		sendAudioChunks(audio, sess.SendAudio, 50*time.Millisecond, stopSend)
 		sess.StopRecording()
 	}()
+	wait := liveSessionWaitTimeout(audio)
 	select {
 	case <-ended:
 		close(stopSend)
-	case <-time.After(liveSessionTimeout):
+	case <-time.After(wait):
 		close(stopSend)
-		t.Fatal("timed out waiting for session end")
+		t.Fatalf("timed out waiting for session end after %v", wait)
 	}
 	_ = sess.WaitEnded(30 * time.Second)
 }
@@ -391,6 +411,17 @@ func parseWAV(path string) (AudioFile, error) {
 	}, nil
 }
 
+// liveSessionWaitTimeout covers real-time audio streaming plus post-processing (aligned with e2e-python ended waits).
+func liveSessionWaitTimeout(audio AudioFile) time.Duration {
+	chunk := chunkSize(audio, 50*time.Millisecond)
+	if chunk <= 0 {
+		return 2 * time.Minute
+	}
+	chunks := (len(audio.PCM) + chunk - 1) / chunk
+	stream := time.Duration(chunks) * 50 * time.Millisecond
+	return stream + 90*time.Second
+}
+
 func chunkSize(audio AudioFile, chunkDuration time.Duration) int {
 	bytesPerSample := audio.Config.BitDepth / 8
 	bytesPerSecond := audio.Config.SampleRate * audio.Config.Channels * bytesPerSample
@@ -423,6 +454,10 @@ func liveInitBody(audio AudioFile) map[string]any {
 		"language_config": map[string]any{
 			"languages": []string{"en"},
 		},
+		"messages_config": map[string]any{
+			"receive_acknowledgments":   true,
+			"receive_final_transcripts": true,
+		},
 	}
 }
 
@@ -445,11 +480,8 @@ func splitInfinityPattern() string {
 func assertSplitInfinityTranscript(t *testing.T, full string) {
 	t.Helper()
 	full = strings.TrimSpace(full)
-	if full == "" {
-		t.Fatal("expected non-empty transcript")
-	}
-	matched := strings.Contains(strings.ToLower(full), "split") && strings.Contains(strings.ToLower(full), "infinity")
-	if !matched {
+	pat := regexp.MustCompile(`(?i)^\s*split infinity\p{P}*\s*$`)
+	if !pat.MatchString(full) {
 		t.Fatalf("unexpected transcript %q", full)
 	}
 }

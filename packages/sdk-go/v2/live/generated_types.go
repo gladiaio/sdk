@@ -5,6 +5,8 @@
 
 package live
 
+import "encoding/json"
+
 // Shared Types Types
 type LiveV2Encoding string
 
@@ -619,8 +621,9 @@ type LiveV2TranscriptionResultWithMessages struct {
 	NamedEntityRecognition *LiveV2NamedEntityRecognition `json:"named_entity_recognition,omitempty"`
 	// If `sentiment_analysis` has been enabled, sentiment analysis of the audio speech transcription
 	SentimentAnalysis *LiveV2SentimentAnalysis `json:"sentiment_analysis,omitempty"`
-	// Real-Time messages sent by the server during the live transcription
-	Messages []string `json:"messages,omitempty"`
+	// Real-Time messages sent by the server during the live transcription.
+	// The API returns WebSocket message objects; OpenAPI types this as strings.
+	Messages []json.RawMessage `json:"messages,omitempty"`
 }
 
 type LiveV2Error struct {
