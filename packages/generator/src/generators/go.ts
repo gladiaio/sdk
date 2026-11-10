@@ -163,9 +163,11 @@ export class GoGenerator extends BaseGenerator {
         const overrideKey = `${name}.${propName}`
         const shouldForceOptional = this.fieldOverrides.get(overrideKey) === true
         const isRequired = (schema.required?.includes(propName) ?? false) && !shouldForceOptional
-        const isNullable = isReferencedSchemaObject(propSchemaOrRef)
-          ? propSchemaOrRef.schema.nullable
-          : propSchemaOrRef.nullable
+        const isNullable = Boolean(
+          isReferencedSchemaObject(propSchemaOrRef)
+            ? propSchemaOrRef.schema.nullable
+            : propSchemaOrRef.nullable
+        )
         const baseType = this.getGoType(propSchemaOrRef)
         const goType = this.applyOptionality(
           baseType,
