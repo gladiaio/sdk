@@ -81,12 +81,15 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
 
 ```sh
 bun nx show projects                    # List all projects
-bun nx run sdk-js:test                  # Run a single target
-bun nx run-many -t test                 # Run a target across all projects
+bun nx run sdk-js:test                  # One project, one target
+bun nx run-many -t build,test -p sdk-go # Several targets on one project (Go)
+bun nx run-many -t test                 # One target across all projects
 bun nx run-many -t lint:write           # Auto-fix lint issues
 bun nx run-many -t format:write         # Auto-format code
 bun nx graph                            # Visualize project dependency graph
 ```
+
+`nx run` only accepts a single `project:target`. Extra words are passed through to the shell command (for Go that surfaces as `malformed import path "sdk-go:test"`). Use `run-many` with `-p` when you need multiple targets on the same project.
 
 ### CI checks
 
@@ -94,9 +97,9 @@ Every pull request runs:
 
 - **build** — all packages compile successfully
 - **test** — unit and E2E tests pass
-- **format:check** — Prettier (JS/TS) and Ruff (Python) formatting
-- **lint:check** — ESLint (JS/TS) and Ruff (Python) linting
-- **type:check** — `tsc --noEmit` (JS/TS) and `pyright` (Python)
+- **format:check** — Prettier (JS/TS), Ruff (Python), `gofmt` (Go)
+- **lint:check** — ESLint (JS/TS), Ruff (Python), `go vet` (Go)
+- **type:check** — `tsc --noEmit` (JS/TS), `pyright` (Python), `go build` (Go)
 - **version:check** — generated version files are committed
 - **commitlint** — commit messages follow the conventional format
 - **security** — dependency audit
@@ -154,6 +157,9 @@ Steps:
    bun nx run sdk-python:test
    bun nx run sdk-python:lint:check
    bun nx run sdk-python:type:check
+
+   # Go SDK (use run-many for multiple targets)
+   bun nx run-many -t build,test,format:check,lint:check,type:check -p sdk-go
    ```
 
 4. Run E2E tests if applicable:

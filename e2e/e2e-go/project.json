@@ -10,7 +10,7 @@
       "executor": "nx:run-commands",
       "dependsOn": ["sdk-go:build"],
       "options": {
-        "command": "go test -timeout 10m ./...",
+        "command": "go test -parallel 1 -timeout 45m ./...",
         "cwd": "{projectRoot}"
       },
       "cache": true

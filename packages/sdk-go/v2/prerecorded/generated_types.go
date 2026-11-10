@@ -5,6 +5,8 @@
 
 package prerecorded
 
+import "encoding/json"
+
 // Shared Types Types
 type PreRecordedV2AudioUploadMetadata struct {
 	// Uploaded audio file ID
@@ -695,7 +697,7 @@ type PreRecordedV2SentimentAnalysis struct {
 	// `null` if `success` is `true`. Contains the error details of the failed model
 	Error *PreRecordedV2AddonError `json:"error"`
 	// If `sentiment_analysis` has been enabled, Gladia will analyze the sentiments and emotions of the audio
-	Results string `json:"results"`
+	Results json.RawMessage `json:"results"`
 }
 
 type PreRecordedV2AudioToLlmResult struct {
