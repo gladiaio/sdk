@@ -7,6 +7,7 @@ Before you begin, ensure you have the following installed on your system:
 - **Node.js** (latest [Active LTS](https://nodejs.org/en/about/previous-releases#looking-for-the-latest-release-of-a-version-branch))
 - **Bun**: https://bun.com/docs/installation
 - **uv**: https://docs.astral.sh/uv/getting-started/installation/
+- **Go** 1.22+ (for `packages/sdk-go`): https://go.dev/dl/
 
 Run the following commands to check everything is correctly installed:
 
@@ -14,6 +15,7 @@ Run the following commands to check everything is correctly installed:
 node --version
 bun --version
 uv --version
+go version
 ```
 
 > [!TIP]
@@ -59,6 +61,14 @@ To run a command on a single project ([nx run](https://nx.dev/reference/core-api
 ```sh
 bun nx run sdk-js:test
 ```
+
+To run several targets on one project (for example Go):
+
+```sh
+bun nx run-many -t build,test,format:check -p sdk-go
+```
+
+Only one `project:target` pair is allowed per `nx run`. Anything after it is forwarded to the underlying command. For Go that produces errors such as `malformed import path "sdk-go:test"`.
 
 To run a command on multiple projects ([nx run-many](https://nx.dev/reference/core-api/nx/documents/run-many#runmany)):
 

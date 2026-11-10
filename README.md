@@ -6,6 +6,7 @@ This monorepo contains the source code for the official Gladia SDKs and the code
 | --------------------------------------------- | --------------------------------------- | --------------------- |
 | [@gladiaio/sdk](packages/sdk-js/README.md)    | JavaScript / TypeScript SDK             | `packages/sdk-js`     |
 | [gladiaio-sdk](packages/sdk-python/README.md) | Python SDK                              | `packages/sdk-python` |
+| [sdk-go](packages/sdk-go/README.md)           | Go SDK (scaffold)                       | `packages/sdk-go`     |
 | generator                                     | OpenAPI → SDK type generator (internal) | `packages/generator`  |
 
 You can also check out [our code samples](https://github.com/gladiaio/gladia-samples). See the [Gladia documentation](https://docs.gladia.io) to get started and [pricing](https://www.gladia.io/pricing) for plans and limits.
@@ -16,11 +17,13 @@ You can also check out [our code samples](https://github.com/gladiaio/gladia-sam
 ├── packages/
 │   ├── generator/          # Fetches Gladia OpenAPI schema and generates types
 │   ├── sdk-js/             # JavaScript/TypeScript SDK (ESM, CJS, IIFE)
-│   └── sdk-python/         # Python SDK (sync + async)
+│   ├── sdk-python/         # Python SDK (sync + async)
+│   └── sdk-go/             # Go SDK
 ├── e2e/
 │   ├── e2e-node-esm/       # E2E tests — Node ESM
 │   ├── e2e-node-cjs/       # E2E tests — Node CJS
 │   ├── e2e-python/         # E2E tests — Python
+│   ├── e2e-go/             # E2E tests — Go
 │   └── javascript-fixtures/
 ├── tools/scripts/           # Release & publish automation
 └── .github/workflows/       # CI, release, publish pipelines
@@ -39,10 +42,12 @@ OpenAPI schema (api.gladia.io/openapi.json)
    generator
     ├── Live V2
     │   ├──▶ packages/sdk-js/src/v2/live/generated-types.ts
-    │   └──▶ packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py
+    │   ├──▶ packages/sdk-python/src/gladiaio_sdk/v2/live/generated_types.py
+    │   └──▶ packages/sdk-go/v2/live/generated_types.go
     └── PreRecorded V2
         ├──▶ packages/sdk-js/src/v2/prerecorded/generated-types.ts
-        └──▶ packages/sdk-python/src/gladiaio_sdk/v2/prerecorded/generated_types.py
+        ├──▶ packages/sdk-python/src/gladiaio_sdk/v2/prerecorded/generated_types.py
+        └──▶ packages/sdk-go/v2/prerecorded/generated_types.go
 ```
 
 The generator extracts **Live V2** schemas (`StreamingRequest`, `InitStreamingResponse`, `CallbackLive*Message`, `WebhookLive*Payload`) and **PreRecorded V2** schemas (e.g. `PreRecordedV2InitTranscriptionRequest`, `PreRecordedV2Response`, upload/init types) and produces language-specific type definitions. Each language has its own generator class that extends `BaseGenerator` (`packages/generator/src/generators/base.ts`).
@@ -76,12 +81,15 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
 
 ```sh
 bun nx show projects                    # List all projects
-bun nx run sdk-js:test                  # Run a single target
-bun nx run-many -t test                 # Run a target across all projects
+bun nx run sdk-js:test                  # One project, one target
+bun nx run-many -t build,test -p sdk-go # Several targets on one project (Go)
+bun nx run-many -t test                 # One target across all projects
 bun nx run-many -t lint:write           # Auto-fix lint issues
 bun nx run-many -t format:write         # Auto-format code
 bun nx graph                            # Visualize project dependency graph
 ```
+
+`nx run` only accepts a single `project:target`. Extra words are passed through to the shell command (for Go that surfaces as `malformed import path "sdk-go:test"`). Use `run-many` with `-p` when you need multiple targets on the same project.
 
 ### CI checks
 
@@ -89,9 +97,9 @@ Every pull request runs:
 
 - **build** — all packages compile successfully
 - **test** — unit and E2E tests pass
-- **format:check** — Prettier (JS/TS) and Ruff (Python) formatting
-- **lint:check** — ESLint (JS/TS) and Ruff (Python) linting
-- **type:check** — `tsc --noEmit` (JS/TS) and `pyright` (Python)
+- **format:check** — Prettier (JS/TS), Ruff (Python), `gofmt` (Go)
+- **lint:check** — ESLint (JS/TS), Ruff (Python), `go vet` (Go)
+- **type:check** — `tsc --noEmit` (JS/TS), `pyright` (Python), `go build` (Go)
 - **version:check** — generated version files are committed
 - **commitlint** — commit messages follow the conventional format
 - **security** — dependency audit
@@ -150,6 +158,9 @@ Steps:
    bun nx run sdk-python:test
    bun nx run sdk-python:lint:check
    bun nx run sdk-python:type:check
+
+   # Go SDK (use run-many for multiple targets)
+   bun nx run-many -t build,test,format:check,lint:check,type:check -p sdk-go
    ```
 
 4. Run E2E tests if applicable:
@@ -157,6 +168,7 @@ Steps:
    bun nx run e2e-node-esm:test
    bun nx run e2e-node-cjs:test
    bun nx run e2e-python:test
+   bun nx run e2e-go:test
    ```
 
 ### 3. Managing dependencies
