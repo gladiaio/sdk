@@ -3,7 +3,8 @@ import type { UserConfig } from '@commitlint/types'
 const config: UserConfig = {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    'subject-case': [2, 'always', ['lower-case', 'sentence-case']],
+    // Allow acronyms in subjects (HTTP, API, CI, WebSocket, OpenAPI, etc.).
+    'subject-case': [0],
   },
 }
 
