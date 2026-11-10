@@ -19,7 +19,7 @@ bun nx run e2e-go:test
 Or:
 
 ```sh
-cd e2e/e2e-go && go test -timeout 45m ./...
+cd e2e/e2e-go && go test -parallel 1 -timeout 45m -v ./...
 ```
 
 Build the SDK first if needed:
@@ -34,9 +34,10 @@ bun nx run-many -t build,test -p sdk-go,e2e-go
 
 **Live V2 session:** split-infinity transcript, live NER (Sasha / `NAME_GIVEN`).
 
-**Live V2 jobs:** `get`, `get_file`, `delete`, `delete` 404, `list`.
+**Live V2 jobs:** `TestLiveJobManagement` (single session: `get`, `get_file`, `list`, `delete`) and `delete` 404.
 
 Audio fixtures: `../../data/` (shared with other E2E projects).
 
 - Tests run **serially** (`-parallel 1`) and **live** cases share one session slot (mutex + cooldown between runs) for plans limited to a single concurrent live session.
-- The full suite can take **10–30+ minutes** (YouTube transcribe and multiple live sessions are slow).
+- Nx/`project.json` runs tests with **`-v`** so you can see which case is active (without it, output is silent for a long time).
+- Poll timeouts match **e2e-python** (3 minutes per job; YouTube up to 10 minutes). The full suite is usually **~15–35 minutes** depending on API latency.

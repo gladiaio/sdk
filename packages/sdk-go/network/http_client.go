@@ -188,10 +188,10 @@ func (c *HttpClient) do(ctx context.Context, method, path string, opts ...Reques
 		}
 
 		res, err := c.followRedirects(req)
-		if cancel != nil {
-			cancel()
-		}
 		if err != nil {
+			if cancel != nil {
+				cancel()
+			}
 			if reqCtx.Err() == context.DeadlineExceeded {
 				return nil, &TimeoutError{Timeout: timeout, Message: fmt.Sprintf("request timed out after %s", timeout)}
 			}
@@ -203,16 +203,25 @@ func (c *HttpClient) do(ctx context.Context, method, path string, opts ...Reques
 			return nil, err
 		}
 		if res.StatusCode >= 200 && res.StatusCode < 300 {
+			if cancel != nil {
+				res.Body = &cancelOnCloseBody{ReadCloser: res.Body, cancel: cancel}
+			}
 			return res, nil
 		}
 		httpErr := newHTTPError(method, target.String(), res)
 		shouldRetry := limit == 0 || attempt < limit
 		if shouldRetry && matchesStatus(res.StatusCode, c.retry.StatusCodes) {
 			_ = res.Body.Close()
+			if cancel != nil {
+				cancel()
+			}
 			time.Sleep(c.retry.Delay(attempt))
 			continue
 		}
 		_ = res.Body.Close()
+		if cancel != nil {
+			cancel()
+		}
 		return nil, httpErr
 	}
 }
@@ -342,4 +351,19 @@ func cloneMap(in map[string]string) map[string]string {
 
 func urlParse(raw string) (*url.URL, error) {
 	return url.Parse(raw)
+}
+
+// cancelOnCloseBody releases a per-request context cancel func when the response body is closed.
+type cancelOnCloseBody struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *cancelOnCloseBody) Close() error {
+	err := b.ReadCloser.Close()
+	if b.cancel != nil {
+		b.cancel()
+		b.cancel = nil
+	}
+	return err
 }

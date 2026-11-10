@@ -185,6 +185,57 @@ func Merge(base, override GladiaClientOptions) GladiaClientOptions {
 	if override.WSRetry.MaxAttemptsPerConnection != 0 {
 		out.WSRetry = override.WSRetry
 	}
+	out.PreRecordedTimeouts = mergePreRecordedTimeouts(out.PreRecordedTimeouts, override.PreRecordedTimeouts)
+	out.LiveTimeouts = mergeLiveTimeouts(out.LiveTimeouts, override.LiveTimeouts)
+	return out
+}
+
+func mergePreRecordedTimeouts(base, override PreRecordedV2Timeouts) PreRecordedV2Timeouts {
+	out := base
+	if override.Transcribe > 0 {
+		out.Transcribe = override.Transcribe
+	}
+	if override.Poll > 0 {
+		out.Poll = override.Poll
+	}
+	if override.CreateAndPoll > 0 {
+		out.CreateAndPoll = override.CreateAndPoll
+	}
+	if override.UploadFile > 0 {
+		out.UploadFile = override.UploadFile
+	}
+	if override.GetFile > 0 {
+		out.GetFile = override.GetFile
+	}
+	if override.Create > 0 {
+		out.Create = override.Create
+	}
+	if override.Delete > 0 {
+		out.Delete = override.Delete
+	}
+	if override.Get > 0 {
+		out.Get = override.Get
+	}
+	if override.List > 0 {
+		out.List = override.List
+	}
+	return out
+}
+
+func mergeLiveTimeouts(base, override LiveV2Timeouts) LiveV2Timeouts {
+	out := base
+	if override.Get > 0 {
+		out.Get = override.Get
+	}
+	if override.Delete > 0 {
+		out.Delete = override.Delete
+	}
+	if override.GetFile > 0 {
+		out.GetFile = override.GetFile
+	}
+	if override.List > 0 {
+		out.List = override.List
+	}
 	return out
 }
 

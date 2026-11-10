@@ -25,26 +25,27 @@ type sessionConfig struct {
 
 // Session is an active live session with HTTP init and WebSocket streaming.
 type Session struct {
-	mu          sync.RWMutex
-	handlers    SessionHandlers
-	status      SessionStatus
-	initResp    *LiveV2InitResponse
-	initOptions map[string]any
-	messagesCfg *LiveV2MessagesConfig
-	http        *network.HttpClient
-	wsClient    *network.WebSocketClient
-	wsSession   *network.WebSocketSession
-	opts        clientoptions.GladiaClientOptions
-	region      clientoptions.Region
-	apiURL      string
-	initCtx     context.Context
-	audioBuffer []byte
-	bytesSent   int
-	pendingStop bool
-	readyCh     chan struct{}
-	endedCh     chan struct{}
-	stopOnce    sync.Once
-	readyOnce   sync.Once
+	mu            sync.RWMutex
+	handlers      SessionHandlers
+	status        SessionStatus
+	initResp      *LiveV2InitResponse
+	initOptions   map[string]any
+	messagesCfg   *LiveV2MessagesConfig
+	http          *network.HttpClient
+	wsClient      *network.WebSocketClient
+	wsSession     *network.WebSocketSession
+	opts          clientoptions.GladiaClientOptions
+	region        clientoptions.Region
+	apiURL        string
+	initCtx       context.Context
+	audioBuffer   []byte
+	bytesSent     int
+	pendingStop   bool
+	readyCh       chan struct{}
+	endedCh       chan struct{}
+	stopOnce      sync.Once
+	readyOnce     sync.Once
+	lifecycleOnce sync.Once
 }
 
 func newSession(cfg sessionConfig) (*Session, error) {
@@ -71,15 +72,19 @@ func newSession(cfg sessionConfig) (*Session, error) {
 	if cfg.existing != nil {
 		s.initResp = cfg.existing
 	}
-	go s.lifecycle()
 	return s, nil
 }
 
-// SetHandlers registers lifecycle callbacks. Safe to call before events fire.
+func (s *Session) beginLifecycle() {
+	s.lifecycleOnce.Do(func() { go s.lifecycle() })
+}
+
+// SetHandlers registers lifecycle callbacks and starts the session lifecycle when called the first time.
 func (s *Session) SetHandlers(h SessionHandlers) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.handlers = h
+	s.mu.Unlock()
+	s.beginLifecycle()
 }
 
 // Status returns the session lifecycle state.
@@ -165,13 +170,13 @@ func (s *Session) WaitUntilConnected(ctx context.Context) error {
 }
 
 func (s *Session) lifecycle() {
-	defer s.signalEnded()
 	if s.initResp == nil {
 		if err := s.initSession(); err != nil {
 			return
 		}
 	}
 	s.startSession()
+	<-s.endedCh
 }
 
 func (s *Session) initSession() error {
@@ -287,6 +292,7 @@ func (s *Session) connectWebSocket(wsURL string) {
 	ws.OnClose = func(code int, reason string) {
 		s.doDestroy(code, reason)
 	}
+	ws.Start()
 }
 
 func (s *Session) doDestroy(code int, reason string) {

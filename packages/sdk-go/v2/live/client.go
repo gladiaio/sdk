@@ -39,9 +39,9 @@ func NewClient(opts clientoptions.GladiaClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	// WebSocket URLs from POST /v2/live embed session auth; do not attach x-gladia-key (JS/Python parity).
 	wsClient, err := network.NewWebSocketClient(network.WebSocketClientConfig{
 		BaseURL: wsBase,
-		Headers: opts.HTTPHeaders,
 		Retry:   opts.WSRetry,
 		Timeout: opts.WSTimeout,
 	})

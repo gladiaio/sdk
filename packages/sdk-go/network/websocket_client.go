@@ -59,6 +59,7 @@ type WebSocketSession struct {
 	connectionAttempt int
 	stop              chan struct{}
 	stopOnce          sync.Once
+	startOnce         sync.Once
 	sendMu            sync.Mutex
 
 	OnConnecting func(connection, attempt int)
@@ -68,7 +69,7 @@ type WebSocketSession struct {
 	OnClose      func(code int, reason string)
 }
 
-// CreateSession resolves url against baseURL and starts dialing in the background.
+// CreateSession resolves url against baseURL. Call Start after registering callbacks (OnOpen, etc.).
 func (c *WebSocketClient) CreateSession(pathOrURL string) (*WebSocketSession, error) {
 	u, err := BuildURL(c.baseURL, pathOrURL)
 	if err != nil {
@@ -79,11 +80,20 @@ func (c *WebSocketClient) CreateSession(pathOrURL string) (*WebSocketSession, er
 		retry:      c.retry,
 		timeout:    c.timeout,
 		headers:    c.headers.Clone(),
-		readyState: WSConnecting,
+		readyState: WSClosed,
 		stop:       make(chan struct{}),
 	}
-	go s.connectLoop(false)
 	return s, nil
+}
+
+// Start begins dialing in the background. Register callbacks before calling Start.
+func (s *WebSocketSession) Start() {
+	s.startOnce.Do(func() {
+		s.mu.Lock()
+		s.readyState = WSConnecting
+		s.mu.Unlock()
+		go s.connectLoop(false)
+	})
 }
 
 // ReadyState returns the session ready state.

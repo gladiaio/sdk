@@ -130,16 +130,33 @@ func (c *Client) Poll(ctx context.Context, jobID string, interval time.Duration)
 	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+	path := c.core.BuildJobEndpoint(jobID)
+	type pollSnapshot struct {
+		Status    string `json:"status"`
+		ErrorCode *int   `json:"error_code"`
+	}
 	for {
-		result, err := c.Get(ctx, jobID)
+		var snap pollSnapshot
+		err := c.http.JSON(ctx, http.MethodGet, path, &snap, network.WithTimeout(c.opts.PreRecordedTimeouts.Get))
 		if err != nil {
+			if ctx.Err() != nil {
+				return nil, &network.TimeoutError{Message: c.core.JobTimeoutMessage(jobID, ctx.Err().Error())}
+			}
+			if pollShouldRetryStatus(err) || pollShouldRetryTransport(err) {
+				select {
+				case <-ctx.Done():
+					return nil, &network.TimeoutError{Message: c.core.JobTimeoutMessage(jobID, ctx.Err().Error())}
+				case <-ticker.C:
+					continue
+				}
+			}
 			return nil, err
 		}
-		if c.core.IsJobSuccessful(result.Status) {
-			return result, nil
+		if c.core.IsJobSuccessful(snap.Status) {
+			return c.Get(ctx, jobID)
 		}
-		if c.core.IsJobFailed(result.Status) {
-			return nil, errors.New(c.core.JobErrorMessage(jobID, result.ErrorCode))
+		if c.core.IsJobFailed(snap.Status) {
+			return nil, errors.New(c.core.JobErrorMessage(jobID, snap.ErrorCode))
 		}
 		select {
 		case <-ctx.Done():
@@ -190,4 +207,20 @@ func (c *Client) Transcribe(ctx context.Context, audio any, options any, interva
 		}
 	}
 	return c.CreateAndPoll(ctx, body, interval)
+}
+
+func pollShouldRetryTransport(err error) bool {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var te *network.TimeoutError
+	return errors.As(err, &te)
+}
+
+func pollShouldRetryStatus(err error) bool {
+	var he *network.HttpError
+	if !errors.As(err, &he) {
+		return false
+	}
+	return he.Status == http.StatusRequestTimeout || he.Status == http.StatusTooManyRequests || he.Status >= 500
 }
