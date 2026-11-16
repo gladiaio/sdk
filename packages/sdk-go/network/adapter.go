@@ -3,11 +3,11 @@ package network
 import (
 	"time"
 
-	"github.com/gladiaio/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
 )
 
 // RetryFromOptions converts client retry options to the HTTP client config.
-func RetryFromOptions(opts clientoptions.HttpRetryOptions) HttpRetryConfig {
+func RetryFromOptions(opts clientoptions.HTTPRetryOptions) HTTPRetryConfig {
 	statuses := make([]StatusCodeMatcher, len(opts.StatusCodes))
 	for i, s := range opts.StatusCodes {
 		statuses[i] = StatusCodeMatcher{Single: s.Single, Start: s.Start, End: s.End}
@@ -16,7 +16,7 @@ func RetryFromOptions(opts clientoptions.HttpRetryOptions) HttpRetryConfig {
 	if delay == nil {
 		delay = func(int) time.Duration { return 300 * time.Millisecond }
 	}
-	return HttpRetryConfig{
+	return HTTPRetryConfig{
 		MaxAttempts: opts.MaxAttempts,
 		StatusCodes: statuses,
 		Delay:       delay,

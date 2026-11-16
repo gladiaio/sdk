@@ -16,8 +16,8 @@ func TestLiveJobManagement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	if result.Id != jobID || result.Kind != "live" {
-		t.Fatalf("get: id=%q kind=%q", result.Id, result.Kind)
+	if result.ID != jobID || result.Kind != "live" {
+		t.Fatalf("get: id=%q kind=%q", result.ID, result.Kind)
 	}
 	if result.Status != "done" && result.Status != "processing" {
 		t.Fatalf("get status=%q", result.Status)

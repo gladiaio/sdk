@@ -2,18 +2,18 @@ package live
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
-	"github.com/gladiaio/sdk-go/clientoptions"
-	"github.com/gladiaio/sdk-go/network"
-	"github.com/gladiaio/sdk-go/v2"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/network"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2"
 )
 
 // Client is the live V2 client (JS: LiveV2Client, Python: LiveV2Client).
 type Client struct {
-	http   *network.HttpClient
+	http   *network.HTTPClient
 	ws     *network.WebSocketClient
 	opts   clientoptions.GladiaClientOptions
 	core   v2.JobCore
@@ -30,7 +30,7 @@ func NewClient(opts clientoptions.GladiaClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpClient, err := network.NewHTTPClient(network.HttpClientConfig{
+	httpClient, err := network.NewHTTPClient(network.HTTPClientConfig{
 		BaseURL: httpBase,
 		Headers: opts.HTTPHeaders,
 		Retry:   network.RetryFromOptions(opts.HTTPRetry),
@@ -57,50 +57,69 @@ func NewClient(opts clientoptions.GladiaClientOptions) (*Client, error) {
 	}, nil
 }
 
-// StartSession creates a live session (WebSocket wiring in Session).
-func (c *Client) StartSession(ctx context.Context, init any) (*Session, error) {
-	body, err := InitBodyFromJSON(init, c.apiURL)
+// StartSessionOption customizes StartSession.
+type StartSessionOption func(*startSessionOptions)
+
+type startSessionOptions struct {
+	enterprise *EnterpriseInitOptions
+}
+
+// WithEnterpriseOptions adds Gladia Enterprise-only init fields. They are not
+// sent to the Gladia cloud API (a warning is logged once instead).
+func WithEnterpriseOptions(opts EnterpriseInitOptions) StartSessionOption {
+	return func(o *startSessionOptions) { o.enterprise = &opts }
+}
+
+// StartSession creates a live session (POST /v2/live) and starts streaming in the background.
+//
+// Creation errors are returned synchronously and no handler is called. On
+// success, OnStarted is called, then the WebSocket connects (OnConnecting /
+// OnConnected). Use Session.WaitUntilConnected to block until audio flows;
+// audio sent earlier is buffered and replayed on connect.
+func (c *Client) StartSession(ctx context.Context, init LiveV2InitRequest, handlers SessionHandlers, opts ...StartSessionOption) (*Session, error) {
+	var o startSessionOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	var enterprise any
+	if o.enterprise != nil {
+		enterprise = o.enterprise
+	}
+	body, err := initBody(init, enterprise, c.apiURL)
 	if err != nil {
 		return nil, err
 	}
-	return newSession(sessionConfig{
-		ctx:    ctx,
-		init:   body,
-		region: c.opts.Region,
-		apiURL: c.apiURL,
-		http:   c.http,
-		ws:     c.ws,
-		opts:   c.opts,
-	})
+	var resp LiveV2InitResponse
+	if err := c.http.JSON(ctx, http.MethodPost, buildLiveInitPath(c.opts.Region), &resp, network.WithJSONBody(body)); err != nil {
+		return nil, err
+	}
+	s := newSession(sessionConfig{init: body, existing: &resp, ws: c.ws, handlers: handlers})
+	s.start()
+	return s, nil
 }
 
-// ConnectSession attaches to an existing session WebSocket URL.
-func (c *Client) ConnectSession(opts ConnectSessionOptions) (*Session, error) {
+// ConnectSession attaches to an existing session (e.g. created server-side) and
+// starts streaming in the background, skipping POST /v2/live.
+func (c *Client) ConnectSession(opts ConnectSessionOptions, handlers SessionHandlers) (*Session, error) {
+	if opts.ID == "" || opts.URL == "" {
+		return nil, errors.New("connect session requires ID and URL")
+	}
 	existing := &LiveV2InitResponse{
-		Id:        opts.ID,
-		Url:       opts.URL,
+		ID:        opts.ID,
+		URL:       opts.URL,
 		CreatedAt: opts.CreatedAt,
 	}
 	init := map[string]any{}
 	if opts.MessagesConfig != nil {
-		b, err := json.Marshal(opts.MessagesConfig)
+		mc, err := toMap(opts.MessagesConfig)
 		if err != nil {
-			return nil, err
-		}
-		var mc map[string]any
-		if err := json.Unmarshal(b, &mc); err != nil {
 			return nil, err
 		}
 		init["messages_config"] = mc
 	}
-	return newSession(sessionConfig{
-		init:     init,
-		existing: existing,
-		apiURL:   c.apiURL,
-		http:     c.http,
-		ws:       c.ws,
-		opts:     c.opts,
-	})
+	s := newSession(sessionConfig{init: init, existing: existing, ws: c.ws, handlers: handlers})
+	s.start()
+	return s, nil
 }
 
 // Get fetches a live job by ID.
@@ -111,8 +130,8 @@ func (c *Client) Get(ctx context.Context, jobID string) (*LiveV2Response, error)
 	return &out, err
 }
 
-// List lists live jobs.
-func (c *Client) List(ctx context.Context, params any) (*LiveV2ListResponse, error) {
+// List lists live jobs. Pass a zero LiveV2ListParams for no filters.
+func (c *Client) List(ctx context.Context, params LiveV2ListParams) (*LiveV2ListResponse, error) {
 	path, err := c.core.BuildListEndpoint(params)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,6 @@
 # E2E Go
 
-End-to-end tests for `github.com/gladiaio/sdk-go`, aligned with `e2e-python` (pre-recorded + live V2).
+End-to-end tests for `github.com/gladiaio/sdk/packages/sdk-go`, aligned with `e2e-python` (pre-recorded + live V2).
 
 ## Requirements
 

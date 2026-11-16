@@ -47,6 +47,14 @@ const GO_KEYWORDS = new Set([
   'var',
 ])
 
+// Go initialisms (https://go.dev/wiki/CodeReviewComments#initialisms): `Id` -> `ID`, `Url` -> `URL`, ...
+const GO_INITIALISMS = ['Https', 'Http', 'Json', 'Api', 'Sdk', 'Uri', 'Url', 'Utc', 'Id', 'Ip']
+const GO_INITIALISM_RE = new RegExp(`(${GO_INITIALISMS.join('|')})(?=[A-Z0-9_]|$)`, 'g')
+
+export function applyGoInitialisms(name: string): string {
+  return name.replace(GO_INITIALISM_RE, (word) => word.toUpperCase())
+}
+
 export class GoGenerator extends BaseGenerator {
   private currentPackage = 'live'
 
@@ -143,7 +151,7 @@ export class GoGenerator extends BaseGenerator {
   }
 
   private goFieldName(jsonName: string): string {
-    let name = pascalCase(jsonName)
+    let name = applyGoInitialisms(pascalCase(jsonName))
     if (GO_KEYWORDS.has(name.toLowerCase())) {
       name = `${name}_`
     }

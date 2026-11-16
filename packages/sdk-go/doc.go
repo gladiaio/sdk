@@ -1,10 +1,15 @@
 // Package gladia is the official Gladia API client for Go.
 //
-// Layout mirrors the JavaScript and Python SDKs:
+// The import path ends in sdk-go but the package name is gladia:
 //
-//   - clientoptions — GladiaClientOptions (Python: client_options, JS: types.ts)
-//   - network — HTTP and WebSocket clients (Python: network/, JS: network/)
-//   - v2/live, v2/prerecorded — V2 API clients and generated OpenAPI types
+//	import gladia "github.com/gladiaio/sdk/packages/sdk-go"
 //
-// Live sessions use HTTP init (POST /v2/live) and WebSocket streaming via network.WebSocketClient.
+//	client, err := gladia.NewClient(nil) // reads GLADIA_API_KEY
+//
+// Sub-packages:
+//
+//   - v2/prerecorded — pre-recorded transcription (upload, create, poll, transcribe, jobs)
+//   - v2/live — live transcription sessions (WebSocket streaming) and jobs
+//   - clientoptions — client configuration (API key, region, retries, timeouts)
+//   - network — HTTP and WebSocket clients, HTTPError and TimeoutError
 package gladia

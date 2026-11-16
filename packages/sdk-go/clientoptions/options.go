@@ -18,8 +18,8 @@ const (
 // QueryParams are default HTTP query parameters on every request from an HTTP client.
 type QueryParams map[string]string
 
-// HttpRetryOptions controls HTTP retry behavior.
-type HttpRetryOptions struct {
+// HTTPRetryOptions controls HTTP retry behavior.
+type HTTPRetryOptions struct {
 	MaxAttempts int
 	StatusCodes []StatusCodeMatcher
 	Delay       func(attempt int) time.Duration
@@ -67,7 +67,7 @@ type GladiaClientOptions struct {
 	APIURL              string
 	Region              Region
 	HTTPHeaders         map[string]string
-	HTTPRetry           HttpRetryOptions
+	HTTPRetry           HTTPRetryOptions
 	HTTPTimeout         time.Duration
 	PreRecordedTimeouts PreRecordedV2Timeouts
 	LiveTimeouts        LiveV2Timeouts
@@ -85,8 +85,8 @@ func defaultWSDelay(attempt int) time.Duration {
 	return time.Duration(ms) * time.Millisecond
 }
 
-func defaultHTTPRetry() HttpRetryOptions {
-	return HttpRetryOptions{
+func defaultHTTPRetry() HTTPRetryOptions {
+	return HTTPRetryOptions{
 		MaxAttempts: 2,
 		StatusCodes: []StatusCodeMatcher{
 			{Single: 408},

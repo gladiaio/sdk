@@ -12,8 +12,8 @@ var (
 	warnedFields sync.Map
 )
 
-// IsGladiaCloud reports whether apiURL targets the public Gladia cloud API.
-func IsGladiaCloud(apiURL string) bool {
+// isGladiaCloud reports whether apiURL targets the public Gladia cloud API.
+func isGladiaCloud(apiURL string) bool {
 	u, err := url.Parse(apiURL)
 	if err != nil {
 		return false
@@ -22,9 +22,9 @@ func IsGladiaCloud(apiURL string) bool {
 	return ok
 }
 
-// InitBodyFor strips Enterprise-only fields on Gladia cloud (mirrors JS initBodyFor).
-func InitBodyFor(body map[string]any, apiURL string) map[string]any {
-	if !IsGladiaCloud(apiURL) {
+// initBodyFor strips Enterprise-only fields on Gladia cloud (mirrors JS initBodyFor).
+func initBodyFor(body map[string]any, apiURL string) map[string]any {
+	if !isGladiaCloud(apiURL) {
 		return body
 	}
 	out := make(map[string]any, len(body))
@@ -37,21 +37,39 @@ func InitBodyFor(body map[string]any, apiURL string) map[string]any {
 		}
 		delete(out, field)
 		if _, loaded := warnedFields.LoadOrStore(field, struct{}{}); !loaded {
-			log.Printf("gladiaio/sdk-go: %q is a Gladia Enterprise option, not sent to Gladia cloud API (%s)", field, apiURL)
+			log.Printf("gladia: %q is a Gladia Enterprise option, not sent to Gladia cloud API (%s)", field, apiURL)
 		}
 	}
 	return out
 }
 
-// InitBodyFromJSON decodes init options and applies enterprise filtering.
-func InitBodyFromJSON(opts any, apiURL string) (map[string]any, error) {
-	b, err := json.Marshal(opts)
+// initBody merges the typed init request with optional extra fields, forces
+// acknowledgments on (needed by the resend buffer) and applies enterprise filtering.
+func initBody(init LiveV2InitRequest, extra any, apiURL string) (map[string]any, error) {
+	body, err := toMap(init)
 	if err != nil {
 		return nil, err
 	}
-	var m map[string]any
+	if extra != nil {
+		m, err := toMap(extra)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range m {
+			body[k] = v
+		}
+	}
+	return buildInitBody(body, apiURL), nil
+}
+
+func toMap(v any) (map[string]any, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	m := map[string]any{}
 	if err := json.Unmarshal(b, &m); err != nil {
 		return nil, err
 	}
-	return InitBodyFor(m, apiURL), nil
+	return m, nil
 }

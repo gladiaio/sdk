@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gladiaio/sdk-go"
-	"github.com/gladiaio/sdk-go/clientoptions"
-	"github.com/gladiaio/sdk-go/network"
-	"github.com/gladiaio/sdk-go/v2/live"
-	"github.com/gladiaio/sdk-go/v2/prerecorded"
+	gladia "github.com/gladiaio/sdk/packages/sdk-go"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/network"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2/live"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2/prerecorded"
 )
 
 const (
@@ -72,7 +72,7 @@ func shortAudioPath() string {
 	return dataPath(shortAudioFile)
 }
 
-func newE2EClient(t *testing.T) *gladia.GladiaClient {
+func newE2EClient(t *testing.T) *gladia.Client {
 	t.Helper()
 	base := clientoptions.Default()
 	preTO := base.PreRecordedTimeouts
@@ -84,7 +84,7 @@ func newE2EClient(t *testing.T) *gladia.GladiaClient {
 	liveTO.List = 60 * time.Second
 	wsRetry := base.WSRetry
 	wsRetry.MaxAttemptsPerConnection = 10
-	client, err := gladia.NewGladiaClient(&clientoptions.GladiaClientOptions{
+	client, err := gladia.NewClient(&clientoptions.GladiaClientOptions{
 		HTTPTimeout:         e2eHTTPTimeout,
 		WSTimeout:           2 * time.Minute,
 		WSRetry:             wsRetry,
@@ -92,7 +92,7 @@ func newE2EClient(t *testing.T) *gladia.GladiaClient {
 		LiveTimeouts:        liveTO,
 	})
 	if err != nil {
-		t.Fatalf("NewGladiaClient: %v", err)
+		t.Fatalf("NewClient: %v", err)
 	}
 	return client
 }
@@ -122,12 +122,16 @@ func pollContext(t *testing.T, timeout time.Duration) (context.Context, context.
 	return context.WithTimeout(context.Background(), timeout)
 }
 
-func prerecordedCreateBody(audioURL string) map[string]any {
-	return map[string]any{
-		"audio_url": audioURL,
-		"language_config": map[string]any{
-			"languages": []string{"en"},
-		},
+func prerecordedEnglish() *prerecorded.PreRecordedV2LanguageConfig {
+	return &prerecorded.PreRecordedV2LanguageConfig{
+		Languages: []prerecorded.PreRecordedV2TranscriptionLanguageCode{prerecorded.PreRecordedV2TranscriptionLanguageCodeEn},
+	}
+}
+
+func prerecordedCreateBody(audioURL string) prerecorded.PreRecordedV2InitTranscriptionRequest {
+	return prerecorded.PreRecordedV2InitTranscriptionRequest{
+		AudioURL:       audioURL,
+		LanguageConfig: prerecordedEnglish(),
 	}
 }
 
@@ -138,7 +142,7 @@ func uploadShortAudio(t *testing.T, pre *prerecorded.Client) *prerecorded.PreRec
 	if err != nil {
 		t.Fatalf("upload: %v", err)
 	}
-	if upload.AudioUrl == "" {
+	if upload.AudioURL == "" {
 		t.Fatal("expected audio_url")
 	}
 	return upload
@@ -149,13 +153,13 @@ func createAndPollShort(t *testing.T, pre *prerecorded.Client) (*prerecorded.Pre
 	upload := uploadShortAudio(t, pre)
 	createCtx, createCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer createCancel()
-	init, err := pre.Create(createCtx, prerecordedCreateBody(upload.AudioUrl))
+	init, err := pre.Create(createCtx, prerecordedCreateBody(upload.AudioURL))
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	pollCtx, pollCancel := context.WithTimeout(context.Background(), pollTimeout)
 	defer pollCancel()
-	result, err := pre.Poll(pollCtx, init.Id, pollInterval)
+	result, err := pre.Poll(pollCtx, init.ID, pollInterval)
 	if err != nil {
 		t.Fatalf("poll: %v", err)
 	}
@@ -184,7 +188,7 @@ func findPreRecordedJobInList(t *testing.T, pre *prerecorded.Client, jobID strin
 	pages := 1
 	for !found && page.Next != nil && *page.Next != "" && pages < 10 {
 		next := *page.Next
-		page, err = pre.List(ctx, prerecorded.PreRecordedV2ListParams{Url: &next})
+		page, err = pre.List(ctx, prerecorded.PreRecordedV2ListParams{URL: &next})
 		if err != nil {
 			t.Fatalf("list page: %v", err)
 		}
@@ -201,7 +205,7 @@ func findPreRecordedJobInList(t *testing.T, pre *prerecorded.Client, jobID strin
 
 func listContainsPreRecorded(items []prerecorded.PreRecordedV2Response, id string) bool {
 	for _, item := range items {
-		if item.Id == id {
+		if item.ID == id {
 			return true
 		}
 	}
@@ -226,7 +230,7 @@ func findLiveJobInList(t *testing.T, lc *live.Client, jobID string) {
 	pages := 1
 	for !found && page.Next != nil && *page.Next != "" && pages < 10 {
 		next := *page.Next
-		page, err = lc.List(ctx, live.LiveV2ListParams{Url: &next})
+		page, err = lc.List(ctx, live.LiveV2ListParams{URL: &next})
 		if err != nil {
 			t.Fatalf("list page: %v", err)
 		}
@@ -243,7 +247,7 @@ func findLiveJobInList(t *testing.T, lc *live.Client, jobID string) {
 
 func listContainsLive(items []live.LiveV2Response, id string) bool {
 	for _, item := range items {
-		if item.Id == id {
+		if item.ID == id {
 			return true
 		}
 	}
@@ -251,14 +255,14 @@ func listContainsLive(items []live.LiveV2Response, id string) bool {
 }
 
 func httpErrorStatus(err error) (int, bool) {
-	var he *network.HttpError
+	var he *network.HTTPError
 	if errors.As(err, &he) {
 		return he.Status, true
 	}
 	return 0, false
 }
 
-func connectLiveSession(t *testing.T, lc *live.Client, audioFile string, init map[string]any, handlers live.SessionHandlers) (*live.Session, AudioFile) {
+func connectLiveSession(t *testing.T, lc *live.Client, audioFile string, init *live.LiveV2InitRequest, handlers live.SessionHandlers) (*live.Session, AudioFile) {
 	t.Helper()
 	acquireLiveSlot(t)
 	audio, err := parseWAV(dataPath(audioFile))
@@ -266,7 +270,8 @@ func connectLiveSession(t *testing.T, lc *live.Client, audioFile string, init ma
 		t.Fatal(err)
 	}
 	if init == nil {
-		init = liveInitBody(audio)
+		body := liveInitBody(audio)
+		init = &body
 	}
 	ctx := context.Background()
 	var lastErr error
@@ -274,12 +279,11 @@ func connectLiveSession(t *testing.T, lc *live.Client, audioFile string, init ma
 		if attempt > 1 {
 			time.Sleep(time.Duration(attempt) * liveSlotCooldown)
 		}
-		sess, err := lc.StartSession(ctx, init)
+		sess, err := lc.StartSession(ctx, *init, handlers)
 		if err != nil {
 			lastErr = err
 			continue
 		}
-		sess.SetHandlers(handlers)
 		connectCtx, cancel := context.WithTimeout(ctx, liveConnectTimeout)
 		waitErr := sess.WaitUntilConnected(connectCtx)
 		cancel()
@@ -294,7 +298,7 @@ func connectLiveSession(t *testing.T, lc *live.Client, audioFile string, init ma
 			delCancel()
 		}
 		sess.EndSession()
-		_ = sess.WaitEnded(30 * time.Second)
+		waitSessionEnded(sess, 30*time.Second)
 	}
 	t.Fatalf("live session could not connect after %d attempts (last: %v)", liveStartAttempts, lastErr)
 	return nil, AudioFile{}
@@ -315,10 +319,16 @@ func streamLiveAudioUntilEnded(t *testing.T, sess *live.Session, audio AudioFile
 		close(stopSend)
 		t.Fatalf("timed out waiting for session end after %v", wait)
 	}
-	_ = sess.WaitEnded(30 * time.Second)
+	waitSessionEnded(sess, 30*time.Second)
 }
 
-func runLiveSession(t *testing.T, init map[string]any) string {
+func waitSessionEnded(sess *live.Session, timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	_ = sess.WaitEnded(ctx)
+}
+
+func runLiveSession(t *testing.T, init *live.LiveV2InitRequest) string {
 	t.Helper()
 	lc := liveClient(t)
 	ended := make(chan struct{}, 1)
@@ -445,32 +455,32 @@ func sendAudioChunks(audio AudioFile, send func([]byte), chunkDuration time.Dura
 	}
 }
 
-func liveInitBody(audio AudioFile) map[string]any {
-	return map[string]any{
-		"encoding":    audio.Config.Encoding,
-		"bit_depth":   audio.Config.BitDepth,
-		"sample_rate": audio.Config.SampleRate,
-		"channels":    audio.Config.Channels,
-		"language_config": map[string]any{
-			"languages": []string{"en"},
+func liveInitBody(audio AudioFile) live.LiveV2InitRequest {
+	return live.LiveV2InitRequest{
+		Encoding:   gladia.Ptr(live.LiveV2Encoding(audio.Config.Encoding)),
+		BitDepth:   gladia.Ptr(live.LiveV2BitDepth(audio.Config.BitDepth)),
+		SampleRate: gladia.Ptr(live.LiveV2SampleRate(audio.Config.SampleRate)),
+		Channels:   gladia.Ptr(audio.Config.Channels),
+		LanguageConfig: &live.LiveV2LanguageConfig{
+			Languages: []live.LiveV2TranscriptionLanguageCode{live.LiveV2TranscriptionLanguageCodeEn},
 		},
-		"messages_config": map[string]any{
-			"receive_acknowledgments":   true,
-			"receive_final_transcripts": true,
+		MessagesConfig: &live.LiveV2MessagesConfig{
+			ReceiveAcknowledgments:  gladia.Ptr(true),
+			ReceiveFinalTranscripts: gladia.Ptr(true),
 		},
 	}
 }
 
-func liveInitBodyWithNER(audio AudioFile) map[string]any {
+func liveInitBodyWithNER(audio AudioFile) *live.LiveV2InitRequest {
 	body := liveInitBody(audio)
-	body["realtime_processing"] = map[string]any{
-		"named_entity_recognition": true,
+	body.RealtimeProcessing = &live.LiveV2RealtimeProcessingConfig{
+		NamedEntityRecognition: gladia.Ptr(true),
 	}
-	body["messages_config"] = map[string]any{
-		"receive_final_transcripts":          true,
-		"receive_realtime_processing_events": true,
+	body.MessagesConfig = &live.LiveV2MessagesConfig{
+		ReceiveFinalTranscripts:         gladia.Ptr(true),
+		ReceiveRealtimeProcessingEvents: gladia.Ptr(true),
 	}
-	return body
+	return &body
 }
 
 func splitInfinityPattern() string {

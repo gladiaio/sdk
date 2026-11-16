@@ -3,13 +3,13 @@ package gladia_test
 import (
 	"testing"
 
-	"github.com/gladiaio/sdk-go"
-	"github.com/gladiaio/sdk-go/clientoptions"
+	gladia "github.com/gladiaio/sdk/packages/sdk-go"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
 )
 
-func TestNewGladiaClientRequiresKeyOnCloud(t *testing.T) {
+func TestNewClientRequiresKeyOnCloud(t *testing.T) {
 	t.Setenv("GLADIA_API_KEY", "")
-	_, err := gladia.NewGladiaClient(&clientoptions.GladiaClientOptions{
+	_, err := gladia.NewClient(&clientoptions.GladiaClientOptions{
 		APIURL: "https://api.gladia.io",
 	})
 	if err == nil {
@@ -17,8 +17,8 @@ func TestNewGladiaClientRequiresKeyOnCloud(t *testing.T) {
 	}
 }
 
-func TestNewGladiaClientProxyWithoutKey(t *testing.T) {
-	c, err := gladia.NewGladiaClient(&clientoptions.GladiaClientOptions{
+func TestNewClientProxyWithoutKey(t *testing.T) {
+	c, err := gladia.NewClient(&clientoptions.GladiaClientOptions{
 		APIURL: "https://proxy.example.com/gladia",
 	})
 	if err != nil {

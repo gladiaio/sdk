@@ -10,7 +10,7 @@ import "encoding/json"
 // Shared Types Types
 type PreRecordedV2AudioUploadMetadata struct {
 	// Uploaded audio file ID
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// Uploaded audio filename
 	Filename string `json:"filename"`
 	// Uploaded audio source
@@ -156,7 +156,7 @@ const (
 
 type PreRecordedV2CallbackConfig struct {
 	// The URL to be called with the result of the transcription
-	Url string `json:"url"`
+	URL string `json:"url"`
 	// The HTTP method to be used. Allowed values are `POST` or `PUT` (default: `POST`)
 	Method *PreRecordedV2CallbackMethod `json:"method,omitempty"`
 }
@@ -465,7 +465,7 @@ const (
 
 type PreRecordedV2FileResponse struct {
 	// The file id
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// The name of the uploaded file
 	Filename *string `json:"filename"`
 	// The link used to download the file if audio_url was used
@@ -482,7 +482,7 @@ type PreRecordedV2RequestParamsResponse struct {
 	// **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled
 	CustomVocabularyConfig *PreRecordedV2CustomVocabularyConfig `json:"custom_vocabulary_config,omitempty"`
 	// **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST` request to with the result of the transcription
-	CallbackUrl *string `json:"callback_url,omitempty"`
+	CallbackURL *string `json:"callback_url,omitempty"`
 	// Enable callback for this transcription. If true, the `callback_config` property will be used to customize the callback behaviour
 	Callback *bool `json:"callback,omitempty"`
 	// Customize the callback behaviour (url and http method)
@@ -527,7 +527,7 @@ type PreRecordedV2RequestParamsResponse struct {
 	LanguageConfig *PreRecordedV2LanguageConfig `json:"language_config,omitempty"`
 	// The model used to process the audio. "solaria-1" is used by default.
 	Model    *PreRecordedV2TranscriptionModel `json:"model,omitempty"`
-	AudioUrl *string                          `json:"audio_url"`
+	AudioURL *string                          `json:"audio_url"`
 }
 
 type PreRecordedV2TranscriptionMetadata struct {
@@ -788,12 +788,12 @@ type PreRecordedV2TranscriptionResult struct {
 // Upload request body
 type PreRecordedV2UploadRequest struct {
 	// The URL of the audio or video file to be uploaded.
-	AudioUrl *string `json:"audio_url,omitempty"`
+	AudioURL *string `json:"audio_url,omitempty"`
 }
 
 type PreRecordedV2AudioUploadResponse struct {
 	// Uploaded audio file Gladia URL
-	AudioUrl string `json:"audio_url"`
+	AudioURL string `json:"audio_url"`
 	// Uploaded audio file detected metadata
 	AudioMetadata PreRecordedV2AudioUploadMetadata `json:"audio_metadata"`
 }
@@ -805,7 +805,7 @@ type PreRecordedV2InitTranscriptionRequest struct {
 	// **[Beta]** Custom vocabulary configuration, if `custom_vocabulary` is enabled
 	CustomVocabularyConfig *PreRecordedV2CustomVocabularyConfig `json:"custom_vocabulary_config,omitempty"`
 	// **[Deprecated]** Use `callback`/`callback_config` instead. Callback URL we will do a `POST` request to with the result of the transcription
-	CallbackUrl *string `json:"callback_url,omitempty"`
+	CallbackURL *string `json:"callback_url,omitempty"`
 	// Enable callback for this transcription. If true, the `callback_config` property will be used to customize the callback behaviour
 	Callback *bool `json:"callback,omitempty"`
 	// Customize the callback behaviour (url and http method)
@@ -853,22 +853,22 @@ type PreRecordedV2InitTranscriptionRequest struct {
 	// The model used to process the audio. "solaria-1" is used by default.
 	Model *PreRecordedV2TranscriptionModel `json:"model,omitempty"`
 	// URL to a Gladia file or to an external audio or video file
-	AudioUrl string `json:"audio_url"`
+	AudioURL string `json:"audio_url"`
 }
 
 type PreRecordedV2InitTranscriptionResponse struct {
 	// Id of the job
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// Prebuilt URL with your transcription `id` to fetch the result
-	ResultUrl string `json:"result_url"`
+	ResultURL string `json:"result_url"`
 }
 
 // Result Types
 type PreRecordedV2Response struct {
 	// Id of the job
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// Debug id
-	RequestId string `json:"request_id"`
+	RequestID string `json:"request_id"`
 	// API version
 	Version int `json:"version"`
 	// "queued": the job has been queued. "processing": the job is being processed. "done": the job has been processed and the result is available. "error": an error occurred during the job's processing.
@@ -920,5 +920,5 @@ type PreRecordedV2ListParams struct {
 	Status         []string       `json:"status,omitempty"`
 	CustomMetadata map[string]any `json:"custom_metadata,omitempty"`
 	// Absolute pagination URL (`next`, `first`, or `current` from a previous list response). When set, other filters are ignored.
-	Url *string `json:"url,omitempty"`
+	URL *string `json:"url,omitempty"`
 }

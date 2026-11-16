@@ -12,13 +12,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/gladiaio/sdk-go/clientoptions"
-	"github.com/gladiaio/sdk-go/network"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/network"
 )
 
 // Client is the pre-recorded V2 REST client (JS: PreRecordedV2Client, Python: PreRecordedV2Client).
 type Client struct {
-	http *network.HttpClient
+	http *network.HTTPClient
 	opts clientoptions.GladiaClientOptions
 	core Core
 }
@@ -29,7 +29,7 @@ func NewClient(opts clientoptions.GladiaClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpClient, err := network.NewHTTPClient(network.HttpClientConfig{
+	httpClient, err := network.NewHTTPClient(network.HTTPClientConfig{
 		BaseURL:     base,
 		Headers:     opts.HTTPHeaders,
 		QueryParams: map[string]string{},
@@ -43,7 +43,7 @@ func NewClient(opts clientoptions.GladiaClientOptions) (*Client, error) {
 }
 
 // Create starts a new pre-recorded job.
-func (c *Client) Create(ctx context.Context, body any) (*PreRecordedV2InitTranscriptionResponse, error) {
+func (c *Client) Create(ctx context.Context, body PreRecordedV2InitTranscriptionRequest) (*PreRecordedV2InitTranscriptionResponse, error) {
 	var out PreRecordedV2InitTranscriptionResponse
 	err := c.http.JSON(ctx, http.MethodPost, "/v2/pre-recorded", &out,
 		network.WithJSONBody(body),
@@ -92,8 +92,8 @@ func (c *Client) Get(ctx context.Context, jobID string) (*PreRecordedV2Response,
 	return &out, err
 }
 
-// List returns jobs matching filters.
-func (c *Client) List(ctx context.Context, params any) (*PreRecordedV2ListResponse, error) {
+// List returns jobs matching filters. Pass a zero PreRecordedV2ListParams for no filters.
+func (c *Client) List(ctx context.Context, params PreRecordedV2ListParams) (*PreRecordedV2ListResponse, error) {
 	path, err := c.core.BuildListEndpoint(params)
 	if err != nil {
 		return nil, err
@@ -167,44 +167,30 @@ func (c *Client) Poll(ctx context.Context, jobID string, interval time.Duration)
 }
 
 // CreateAndPoll creates a job then polls until completion.
-func (c *Client) CreateAndPoll(ctx context.Context, body any, interval time.Duration) (*PreRecordedV2Response, error) {
+func (c *Client) CreateAndPoll(ctx context.Context, body PreRecordedV2InitTranscriptionRequest, interval time.Duration) (*PreRecordedV2Response, error) {
 	init, err := c.Create(ctx, body)
 	if err != nil {
 		return nil, err
 	}
-	return c.Poll(ctx, init.Id, interval)
+	return c.Poll(ctx, init.ID, interval)
 }
 
-// Transcribe uploads a local file when needed, then create-and-poll.
-func (c *Client) Transcribe(ctx context.Context, audio any, options any, interval time.Duration) (*PreRecordedV2Response, error) {
-	var audioURL string
-	switch v := audio.(type) {
-	case string:
-		if IsURL(v) {
-			audioURL = v
-		} else {
-			upload, err := c.UploadFile(ctx, v)
-			if err != nil {
-				return nil, err
-			}
-			audioURL = upload.AudioUrl
-		}
-	default:
-		return nil, fmt.Errorf("unsupported audio type %T", audio)
-	}
-	body := map[string]any{"audio_url": audioURL}
+// Transcribe transcribes audio (an http(s) URL or a local file path, uploaded
+// first) with optional options, then polls until the job completes.
+// options.AudioURL is ignored and set from audio.
+func (c *Client) Transcribe(ctx context.Context, audio string, options *PreRecordedV2InitTranscriptionRequest, interval time.Duration) (*PreRecordedV2Response, error) {
+	var body PreRecordedV2InitTranscriptionRequest
 	if options != nil {
-		ob, err := json.Marshal(options)
+		body = *options
+	}
+	if IsURL(audio) {
+		body.AudioURL = audio
+	} else {
+		upload, err := c.UploadFile(ctx, audio)
 		if err != nil {
 			return nil, err
 		}
-		var extra map[string]any
-		if err := json.Unmarshal(ob, &extra); err != nil {
-			return nil, err
-		}
-		for k, val := range extra {
-			body[k] = val
-		}
+		body.AudioURL = upload.AudioURL
 	}
 	return c.CreateAndPoll(ctx, body, interval)
 }
@@ -218,7 +204,7 @@ func pollShouldRetryTransport(err error) bool {
 }
 
 func pollShouldRetryStatus(err error) bool {
-	var he *network.HttpError
+	var he *network.HTTPError
 	if !errors.As(err, &he) {
 		return false
 	}

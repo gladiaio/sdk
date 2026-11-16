@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gladiaio/sdk-go/v2/live"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2/live"
 )
 
 func TestLiveSessionSplitInfinity(t *testing.T) {

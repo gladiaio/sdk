@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-// ListURLParams mirrors JS build-list-url.ts ListUrlParams.
+// ListURLParams mirrors JS build-list-url.ts ListURLParams.
 type ListURLParams struct {
 	Offset         *int
 	Limit          *int

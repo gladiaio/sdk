@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-// HttpRetryConfig is the resolved HTTP retry policy for a client instance.
-type HttpRetryConfig struct {
+// HTTPRetryConfig is the resolved HTTP retry policy for a client instance.
+type HTTPRetryConfig struct {
 	MaxAttempts int
 	StatusCodes []StatusCodeMatcher
 	Delay       func(attempt int) time.Duration
@@ -26,28 +26,28 @@ type StatusCodeMatcher struct {
 	End    int
 }
 
-// HttpClient performs JSON and raw HTTP against the Gladia API.
-type HttpClient struct {
+// HTTPClient performs JSON and raw HTTP against the Gladia API.
+type HTTPClient struct {
 	baseURL            string
 	defaultHeaders     map[string]string
 	defaultQueryParams map[string]string
-	retry              HttpRetryConfig
+	retry              HTTPRetryConfig
 	timeout            time.Duration
 	http               *http.Client
 	trustedOrigin      string
 }
 
-// HttpClientConfig configures a new HttpClient.
-type HttpClientConfig struct {
+// HTTPClientConfig configures a new HTTPClient.
+type HTTPClientConfig struct {
 	BaseURL     string
 	Headers     map[string]string
 	QueryParams map[string]string
-	Retry       HttpRetryConfig
+	Retry       HTTPRetryConfig
 	Timeout     time.Duration
 }
 
-// NewHTTPClient creates an HttpClient with manual redirect handling and credential stripping.
-func NewHTTPClient(cfg HttpClientConfig) (*HttpClient, error) {
+// NewHTTPClient creates an HTTPClient with manual redirect handling and credential stripping.
+func NewHTTPClient(cfg HTTPClientConfig) (*HTTPClient, error) {
 	u, err := urlParse(cfg.BaseURL)
 	if err != nil {
 		return nil, err
@@ -56,11 +56,11 @@ func NewHTTPClient(cfg HttpClientConfig) (*HttpClient, error) {
 	if maxAttempts < 0 {
 		maxAttempts = 0
 	}
-	return &HttpClient{
+	return &HTTPClient{
 		baseURL:            cfg.BaseURL,
 		defaultHeaders:     cloneMap(cfg.Headers),
 		defaultQueryParams: cloneMap(cfg.QueryParams),
-		retry: HttpRetryConfig{
+		retry: HTTPRetryConfig{
 			MaxAttempts: maxAttempts,
 			StatusCodes: cfg.Retry.StatusCodes,
 			Delay:       cfg.Retry.Delay,
@@ -110,19 +110,19 @@ func WithTimeout(d time.Duration) RequestOption {
 	}
 }
 
-func (c *HttpClient) Get(ctx context.Context, path string, opts ...RequestOption) (*http.Response, error) {
+func (c *HTTPClient) Get(ctx context.Context, path string, opts ...RequestOption) (*http.Response, error) {
 	return c.do(ctx, http.MethodGet, path, opts...)
 }
 
-func (c *HttpClient) Post(ctx context.Context, path string, opts ...RequestOption) (*http.Response, error) {
+func (c *HTTPClient) Post(ctx context.Context, path string, opts ...RequestOption) (*http.Response, error) {
 	return c.do(ctx, http.MethodPost, path, opts...)
 }
 
-func (c *HttpClient) Delete(ctx context.Context, path string, opts ...RequestOption) (*http.Response, error) {
+func (c *HTTPClient) Delete(ctx context.Context, path string, opts ...RequestOption) (*http.Response, error) {
 	return c.do(ctx, http.MethodDelete, path, opts...)
 }
 
-func (c *HttpClient) JSON(ctx context.Context, method, path string, dest any, opts ...RequestOption) error {
+func (c *HTTPClient) JSON(ctx context.Context, method, path string, dest any, opts ...RequestOption) error {
 	opts = append(opts, func(rc *requestConfig) {})
 	res, err := c.do(ctx, method, path, opts...)
 	if err != nil {
@@ -135,7 +135,7 @@ func (c *HttpClient) JSON(ctx context.Context, method, path string, dest any, op
 	return fmt.Errorf("unexpected content type: %s", res.Header.Get("Content-Type"))
 }
 
-func (c *HttpClient) do(ctx context.Context, method, path string, opts ...RequestOption) (*http.Response, error) {
+func (c *HTTPClient) do(ctx context.Context, method, path string, opts ...RequestOption) (*http.Response, error) {
 	rc := &requestConfig{}
 	for _, o := range opts {
 		o(rc)
@@ -234,7 +234,7 @@ var crossOriginSensitive = map[string]struct{}{
 	"cookie":        {},
 }
 
-func (c *HttpClient) followRedirects(req *http.Request) (*http.Response, error) {
+func (c *HTTPClient) followRedirects(req *http.Request) (*http.Response, error) {
 	current := req
 	for redirects := 0; redirects <= maxRedirects; redirects++ {
 		if current.URL.Scheme+"://"+current.URL.Host != c.trustedOrigin {
@@ -288,7 +288,7 @@ func matchesStatus(status int, list []StatusCodeMatcher) bool {
 	return false
 }
 
-func newHTTPError(method, rawURL string, res *http.Response) *HttpError {
+func newHTTPError(method, rawURL string, res *http.Response) *HTTPError {
 	bodyBytes, _ := io.ReadAll(res.Body)
 	var parsed map[string]any
 	_ = json.Unmarshal(bodyBytes, &parsed)
@@ -298,7 +298,7 @@ func newHTTPError(method, rawURL string, res *http.Response) *HttpError {
 			msg = m
 		}
 	}
-	err := &HttpError{
+	err := &HTTPError{
 		Method:         method,
 		Status:         res.StatusCode,
 		URL:            rawURL,

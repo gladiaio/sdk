@@ -1,4 +1,4 @@
-module github.com/gladiaio/sdk-go
+module github.com/gladiaio/sdk/packages/sdk-go
 
 go 1.22
 

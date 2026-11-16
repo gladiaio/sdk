@@ -3,7 +3,7 @@ package network
 import (
 	"time"
 
-	"github.com/gladiaio/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
 )
 
 func matchesCloseCode(code int, list []clientoptions.StatusCodeMatcher) bool {

@@ -100,6 +100,36 @@ Run the generator with the following command:
 bun nx run generator:generate
 ```
 
+## Go SDK
+
+`packages/sdk-go` is a Go module (`github.com/gladiaio/sdk/packages/sdk-go`, package `gladia`). Its layout mirrors the JS and Python SDKs:
+
+| Go                                          | JavaScript                             | Python                                          |
+| ------------------------------------------- | -------------------------------------- | ----------------------------------------------- |
+| `gladia` (`Client`)                         | `GladiaClient`                         | `GladiaClient`                                  |
+| `clientoptions`                             | `GladiaClientOptions` in `types.ts`    | `client_options.py`                             |
+| `network` (`HTTPClient`, `WebSocketClient`) | `network/httpClient.ts`, `wsClient.ts` | `network/http_client.py`, `websocket_client.py` |
+| `v2/live`, `v2/prerecorded`                 | `v2/live/`, `v2/prerecorded/`          | `v2/live/`, `v2/prerecorded/`                   |
+| `v2` (`JobCore`, list URLs)                 | `v2/build-list-url.ts` + shared logic  | `v2/core.py`                                    |
+
+Generated types live in `v2/live/generated_types.go` and `v2/prerecorded/generated_types.go` (`packages/generator/src/generators/go.ts`, which applies Go initialisms such as `ID` and `URL`).
+
+Run the checks (from the repo root):
+
+```sh
+bun nx run-many -t build,test,format:check,lint:check,type:check -p sdk-go
+```
+
+Run the unit tests with the race detector when touching live sessions or networking:
+
+```sh
+cd packages/sdk-go && go test -race ./...
+```
+
+E2E tests live in `e2e/e2e-go` and require `GLADIA_API_KEY` (`bun nx run e2e-go:test`, ~15–35 minutes).
+
+Not implemented yet: release automation. `packages/sdk-go` is excluded from `nx release` and the Release / Publish workflows. A Go release is a `packages/sdk-go/vX.Y.Z` tag (Go ignores `sdk-go@X.Y.Z` tags), optionally followed by `GOPROXY=proxy.golang.org go list -m github.com/gladiaio/sdk/packages/sdk-go@vX.Y.Z`. Until then `sdk.version` stays `0.0.0`.
+
 ## Handle package dependencies
 
 Each package have their own dependencies.  

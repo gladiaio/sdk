@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gladiaio/sdk-go/v2"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2"
 )
 
 // Core holds pre-recorded-specific helpers (Python: PreRecordedV2Core).

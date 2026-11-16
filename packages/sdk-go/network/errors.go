@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// HttpError is returned for non-2xx HTTP responses.
-type HttpError struct {
+// HTTPError is returned for non-2xx HTTP responses.
+type HTTPError struct {
 	Method         string
 	Status         int
 	URL            string
@@ -19,7 +19,7 @@ type HttpError struct {
 	ResponseHeader http.Header
 }
 
-func (e *HttpError) Error() string {
+func (e *HTTPError) Error() string {
 	parts := []string{e.Message, e.RequestID, e.ID, fmt.Sprint(e.Status), e.Method + " " + e.URL}
 	out := make([]string, 0, len(parts))
 	for _, p := range parts {

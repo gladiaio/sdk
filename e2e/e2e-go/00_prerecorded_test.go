@@ -4,6 +4,9 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	gladia "github.com/gladiaio/sdk/packages/sdk-go"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2/prerecorded"
 )
 
 func TestPreRecordedUploadFile(t *testing.T) {
@@ -30,11 +33,11 @@ func TestPreRecordedCreate(t *testing.T) {
 	pre := prerecordedClient(t)
 	upload := uploadShortAudio(t, pre)
 	ctx := context.Background()
-	init, err := pre.Create(ctx, prerecordedCreateBody(upload.AudioUrl))
+	init, err := pre.Create(ctx, prerecordedCreateBody(upload.AudioURL))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if init.Id == "" || init.ResultUrl == "" {
+	if init.ID == "" || init.ResultURL == "" {
 		t.Fatal("expected id and result_url")
 	}
 }
@@ -42,15 +45,15 @@ func TestPreRecordedCreate(t *testing.T) {
 func TestPreRecordedPoll(t *testing.T) {
 	pre := prerecordedClient(t)
 	init, result := createAndPollShort(t, pre)
-	if result.Status != "done" || result.Id != init.Id {
-		t.Fatalf("poll: got status=%q id=%q", result.Status, result.Id)
+	if result.Status != "done" || result.ID != init.ID {
+		t.Fatalf("poll: got status=%q id=%q", result.Status, result.ID)
 	}
 }
 
 func TestPreRecordedGet(t *testing.T) {
 	pre := prerecordedClient(t)
 	init, _ := createAndPollShort(t, pre)
-	got, err := pre.Get(context.Background(), init.Id)
+	got, err := pre.Get(context.Background(), init.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,13 +65,13 @@ func TestPreRecordedGet(t *testing.T) {
 func TestPreRecordedList(t *testing.T) {
 	pre := prerecordedClient(t)
 	init, _ := createAndPollShort(t, pre)
-	findPreRecordedJobInList(t, pre, init.Id)
+	findPreRecordedJobInList(t, pre, init.ID)
 }
 
 func TestPreRecordedDelete(t *testing.T) {
 	pre := prerecordedClient(t)
 	init, _ := createAndPollShort(t, pre)
-	ok, err := pre.Delete(context.Background(), init.Id)
+	ok, err := pre.Delete(context.Background(), init.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +98,7 @@ func TestPreRecordedGetFile(t *testing.T) {
 	if result.Status != "done" {
 		t.Fatal(result.Status)
 	}
-	data, err := pre.GetFile(context.Background(), init.Id)
+	data, err := pre.GetFile(context.Background(), init.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,9 +111,7 @@ func TestPreRecordedTranscribeLocalFile(t *testing.T) {
 	pre := prerecordedClient(t)
 	ctx, cancel := pollContext(t, pollTimeout)
 	defer cancel()
-	opts := map[string]any{
-		"language_config": map[string]any{"languages": []string{"en"}},
-	}
+	opts := &prerecorded.PreRecordedV2InitTranscriptionRequest{LanguageConfig: prerecordedEnglish()}
 	result, err := pre.Transcribe(ctx, shortAudioPath(), opts, pollInterval)
 	if err != nil {
 		t.Fatal(err)
@@ -125,9 +126,9 @@ func TestPreRecordedTranscribeWithOptionsDict(t *testing.T) {
 	pre := prerecordedClient(t)
 	ctx, cancel := pollContext(t, pollTimeout)
 	defer cancel()
-	opts := map[string]any{
-		"language_config":    map[string]any{"languages": []string{"en"}},
-		"sentiment_analysis": true,
+	opts := &prerecorded.PreRecordedV2InitTranscriptionRequest{
+		LanguageConfig:    prerecordedEnglish(),
+		SentimentAnalysis: gladia.Ptr(true),
 	}
 	result, err := pre.Transcribe(ctx, shortAudioPath(), opts, pollInterval)
 	if err != nil {
@@ -142,9 +143,9 @@ func TestPreRecordedTranscribeNamedEntityRecognition(t *testing.T) {
 	pre := prerecordedClient(t)
 	ctx, cancel := pollContext(t, pollTimeout)
 	defer cancel()
-	opts := map[string]any{
-		"language_config":          map[string]any{"languages": []string{"en"}},
-		"named_entity_recognition": true,
+	opts := &prerecorded.PreRecordedV2InitTranscriptionRequest{
+		LanguageConfig:         prerecordedEnglish(),
+		NamedEntityRecognition: gladia.Ptr(true),
 	}
 	result, err := pre.Transcribe(ctx, dataPath(annaSashaAudioFile), opts, pollInterval)
 	if err != nil {
@@ -180,9 +181,7 @@ func TestPreRecordedTranscribeURL(t *testing.T) {
 	pre := prerecordedClient(t)
 	ctx, cancel := pollContext(t, youtubePollTimeout)
 	defer cancel()
-	opts := map[string]any{
-		"language_config": map[string]any{"languages": []string{"en"}},
-	}
+	opts := &prerecorded.PreRecordedV2InitTranscriptionRequest{LanguageConfig: prerecordedEnglish()}
 	result, err := pre.Transcribe(ctx, youtubeURL, opts, pollInterval)
 	if err != nil {
 		t.Fatal(err)
@@ -200,7 +199,7 @@ func TestPreRecordedCreateAndPoll(t *testing.T) {
 	upload := uploadShortAudio(t, pre)
 	ctx, cancel := pollContext(t, pollTimeout)
 	defer cancel()
-	result, err := pre.CreateAndPoll(ctx, prerecordedCreateBody(upload.AudioUrl), pollInterval)
+	result, err := pre.CreateAndPoll(ctx, prerecordedCreateBody(upload.AudioURL), pollInterval)
 	if err != nil {
 		t.Fatal(err)
 	}

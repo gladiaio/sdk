@@ -3,10 +3,10 @@ package gladia
 import (
 	"strings"
 
-	"github.com/gladiaio/sdk-go/clientoptions"
-	"github.com/gladiaio/sdk-go/v2/live"
-	"github.com/gladiaio/sdk-go/v2/prerecorded"
-	"github.com/gladiaio/sdk-go/version"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2/live"
+	"github.com/gladiaio/sdk/packages/sdk-go/v2/prerecorded"
+	"github.com/gladiaio/sdk/packages/sdk-go/version"
 )
 
 var gladiaVersion = "SdkGo/" + version.SDKVersion
@@ -14,13 +14,13 @@ var gladiaVersion = "SdkGo/" + version.SDKVersion
 // ClientOptions is an alias for the shared options type (Python: client_options, JS: types.ts).
 type ClientOptions = clientoptions.GladiaClientOptions
 
-// GladiaClient is the SDK entrypoint.
-type GladiaClient struct {
+// Client is the SDK entrypoint.
+type Client struct {
 	options clientoptions.GladiaClientOptions
 }
 
-// NewGladiaClient builds a client with defaults merged with opts.
-func NewGladiaClient(opts *ClientOptions) (*GladiaClient, error) {
+// NewClient builds a client with defaults merged with opts.
+func NewClient(opts *ClientOptions) (*Client, error) {
 	base := clientoptions.Default()
 	if opts != nil {
 		base = clientoptions.Merge(base, *opts)
@@ -29,10 +29,10 @@ func NewGladiaClient(opts *ClientOptions) (*GladiaClient, error) {
 	if err := clientoptions.Validate(base); err != nil {
 		return nil, err
 	}
-	return &GladiaClient{options: base}, nil
+	return &Client{options: base}, nil
 }
 
-func (c *GladiaClient) resolvedOptions(override *ClientOptions) (clientoptions.GladiaClientOptions, error) {
+func (c *Client) resolvedOptions(override *ClientOptions) (clientoptions.GladiaClientOptions, error) {
 	merged := c.options
 	if override != nil {
 		merged = clientoptions.Merge(merged, *override)
@@ -64,7 +64,7 @@ func mergeHeaders(base, extra map[string]string) map[string]string {
 }
 
 // PreRecordedV2 returns the pre-recorded V2 client.
-func (c *GladiaClient) PreRecordedV2(override *ClientOptions) (*prerecorded.Client, error) {
+func (c *Client) PreRecordedV2(override *ClientOptions) (*prerecorded.Client, error) {
 	opts, err := c.resolvedOptions(override)
 	if err != nil {
 		return nil, err
@@ -73,10 +73,17 @@ func (c *GladiaClient) PreRecordedV2(override *ClientOptions) (*prerecorded.Clie
 }
 
 // LiveV2 returns the live V2 client.
-func (c *GladiaClient) LiveV2(override *ClientOptions) (*live.Client, error) {
+func (c *Client) LiveV2(override *ClientOptions) (*live.Client, error) {
 	opts, err := c.resolvedOptions(override)
 	if err != nil {
 		return nil, err
 	}
 	return live.NewClient(opts)
+}
+
+// Ptr returns a pointer to v. Handy for optional fields of request types:
+//
+//	live.LiveV2InitRequest{SampleRate: gladia.Ptr(live.LiveV2SampleRate16000)}
+func Ptr[T any](v T) *T {
+	return &v
 }

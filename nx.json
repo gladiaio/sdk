@@ -117,7 +117,7 @@
     }
   },
   "release": {
-    "projects": ["packages/*", "!packages/generator"],
+    "projects": ["packages/*", "!packages/generator", "!packages/sdk-go"],
     "projectsRelationship": "independent",
     "changelog": {
       "projectChangelogs": {
@@ -137,6 +137,5 @@
     "releaseTag": {
       "checkAllBranchesWhen": true
     }
-  },
-  "analytics": true
+  }
 }

@@ -374,7 +374,7 @@ type LiveV2MessagesConfig struct {
 
 type LiveV2CallbackConfig struct {
 	// URL on which we will do a `POST` request with configured messages
-	Url *string `json:"url,omitempty"`
+	URL *string `json:"url,omitempty"`
 	// If true, partial transcript will be sent to the defined callback.
 	ReceivePartialTranscripts *bool `json:"receive_partial_transcripts,omitempty"`
 	// If true, final transcript will be sent to the defined callback.
@@ -397,7 +397,7 @@ type LiveV2CallbackConfig struct {
 
 type LiveV2FileResponse struct {
 	// The file id
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// The name of the uploaded file
 	Filename *string `json:"filename"`
 	// The link used to download the file if audio_url was used
@@ -645,7 +645,7 @@ type LiveV2EndRecordingMessageData struct {
 
 type LiveV2TranslationData struct {
 	// Id of the utterance used for this result
-	UtteranceId string `json:"utterance_id"`
+	UtteranceID string `json:"utterance_id"`
 	// The transcribed utterance
 	Utterance LiveV2Utterance `json:"utterance"`
 	// The original language in `iso639-1` or `iso639-2` format depending on the language
@@ -658,7 +658,7 @@ type LiveV2TranslationData struct {
 
 type LiveV2NamedEntityRecognitionData struct {
 	// Id of the utterance used for this result
-	UtteranceId string `json:"utterance_id"`
+	UtteranceID string `json:"utterance_id"`
 	// The transcribed utterance
 	Utterance LiveV2Utterance `json:"utterance"`
 	// The NER results
@@ -696,7 +696,7 @@ type LiveV2SentimentAnalysisResult struct {
 
 type LiveV2SentimentAnalysisData struct {
 	// Id of the utterance used for this result
-	UtteranceId string `json:"utterance_id"`
+	UtteranceID string `json:"utterance_id"`
 	// The transcribed utterance
 	Utterance LiveV2Utterance `json:"utterance"`
 	// The sentiment analysis results
@@ -712,7 +712,7 @@ type LiveV2StopRecordingAckData struct {
 
 type LiveV2TranscriptMessageData struct {
 	// Id of the utterance
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// Flag to indicate if the transcript is final or not
 	IsFinal bool `json:"is_final"`
 	// The transcribed utterance
@@ -728,7 +728,7 @@ type LiveV2SpeechMessageData struct {
 
 type LiveV2EventPayload struct {
 	// Id of the job
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
 // Init Session Types
@@ -772,19 +772,19 @@ type LiveV2InitRequest struct {
 
 type LiveV2InitResponse struct {
 	// Id of the job
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// Creation date
 	CreatedAt string `json:"created_at"`
 	// The websocket url to connect to for sending audio data. The url will contain the temporary token to authenticate the session.
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 // Job Management Types
 type LiveV2Response struct {
 	// Id of the job
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// Debug id
-	RequestId string `json:"request_id"`
+	RequestID string `json:"request_id"`
 	// API version
 	Version int `json:"version"`
 	// "queued": the job has been queued. "processing": the job is being processed. "done": the job has been processed and the result is available. "error": an error occurred during the job's processing.
@@ -835,13 +835,13 @@ type LiveV2ListParams struct {
 	Status         []string       `json:"status,omitempty"`
 	CustomMetadata map[string]any `json:"custom_metadata,omitempty"`
 	// Absolute pagination URL (`next`, `first`, or `current` from a previous list response). When set, other filters are ignored.
-	Url *string `json:"url,omitempty"`
+	URL *string `json:"url,omitempty"`
 }
 
 // WebSocket Messages Types
 type LiveV2AudioChunkAckMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	// Flag to indicate if the action was successfully acknowledged
@@ -855,7 +855,7 @@ type LiveV2AudioChunkAckMessage struct {
 
 type LiveV2EndRecordingMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -865,7 +865,7 @@ type LiveV2EndRecordingMessage struct {
 
 type LiveV2EndSessionMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -873,7 +873,7 @@ type LiveV2EndSessionMessage struct {
 
 type LiveV2TranslationMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	// Error message if the addon failed
@@ -885,7 +885,7 @@ type LiveV2TranslationMessage struct {
 
 type LiveV2NamedEntityRecognitionMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	// Error message if the addon failed
@@ -897,7 +897,7 @@ type LiveV2NamedEntityRecognitionMessage struct {
 
 type LiveV2PostFinalTranscriptMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -907,7 +907,7 @@ type LiveV2PostFinalTranscriptMessage struct {
 
 type LiveV2PostSummarizationMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	// Error message if the addon failed
@@ -919,7 +919,7 @@ type LiveV2PostSummarizationMessage struct {
 
 type LiveV2PostTranscriptMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -929,7 +929,7 @@ type LiveV2PostTranscriptMessage struct {
 
 type LiveV2SentimentAnalysisMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	// Error message if the addon failed
@@ -941,7 +941,7 @@ type LiveV2SentimentAnalysisMessage struct {
 
 type LiveV2StartRecordingMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -949,7 +949,7 @@ type LiveV2StartRecordingMessage struct {
 
 type LiveV2StartSessionMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -957,7 +957,7 @@ type LiveV2StartSessionMessage struct {
 
 type LiveV2StopRecordingAckMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	// Flag to indicate if the action was successfully acknowledged
@@ -971,7 +971,7 @@ type LiveV2StopRecordingAckMessage struct {
 
 type LiveV2TranscriptMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -981,7 +981,7 @@ type LiveV2TranscriptMessage struct {
 
 type LiveV2SpeechStartMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -991,7 +991,7 @@ type LiveV2SpeechStartMessage struct {
 
 type LiveV2SpeechEndMessage struct {
 	// Id of the live session
-	SessionId string `json:"session_id"`
+	SessionID string `json:"session_id"`
 	// Date of creation of the message. The date is formatted as an ISO 8601 string
 	CreatedAt string `json:"created_at"`
 	Type_     string `json:"type"`
@@ -1006,7 +1006,7 @@ type LiveV2WebSocketMessage any
 // Callback Messages Types
 type LiveV2CallbackAudioChunkAckMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2AudioChunkAckMessage `json:"payload"`
@@ -1014,7 +1014,7 @@ type LiveV2CallbackAudioChunkAckMessage struct {
 
 type LiveV2CallbackEndRecordingMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2EndRecordingMessage `json:"payload"`
@@ -1022,7 +1022,7 @@ type LiveV2CallbackEndRecordingMessage struct {
 
 type LiveV2CallbackEndSessionMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2EndSessionMessage `json:"payload"`
@@ -1030,7 +1030,7 @@ type LiveV2CallbackEndSessionMessage struct {
 
 type LiveV2CallbackTranslationMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2TranslationMessage `json:"payload"`
@@ -1038,7 +1038,7 @@ type LiveV2CallbackTranslationMessage struct {
 
 type LiveV2CallbackNamedEntityRecognitionMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2NamedEntityRecognitionMessage `json:"payload"`
@@ -1046,7 +1046,7 @@ type LiveV2CallbackNamedEntityRecognitionMessage struct {
 
 type LiveV2CallbackPostFinalTranscriptMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2PostFinalTranscriptMessage `json:"payload"`
@@ -1054,7 +1054,7 @@ type LiveV2CallbackPostFinalTranscriptMessage struct {
 
 type LiveV2CallbackPostSummarizationMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2PostSummarizationMessage `json:"payload"`
@@ -1062,7 +1062,7 @@ type LiveV2CallbackPostSummarizationMessage struct {
 
 type LiveV2CallbackPostTranscriptMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2PostTranscriptMessage `json:"payload"`
@@ -1070,7 +1070,7 @@ type LiveV2CallbackPostTranscriptMessage struct {
 
 type LiveV2CallbackSentimentAnalysisMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2SentimentAnalysisMessage `json:"payload"`
@@ -1078,7 +1078,7 @@ type LiveV2CallbackSentimentAnalysisMessage struct {
 
 type LiveV2CallbackStartRecordingMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2StartRecordingMessage `json:"payload"`
@@ -1086,7 +1086,7 @@ type LiveV2CallbackStartRecordingMessage struct {
 
 type LiveV2CallbackStartSessionMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2StartSessionMessage `json:"payload"`
@@ -1094,7 +1094,7 @@ type LiveV2CallbackStartSessionMessage struct {
 
 type LiveV2CallbackStopRecordingAckMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2StopRecordingAckMessage `json:"payload"`
@@ -1102,7 +1102,7 @@ type LiveV2CallbackStopRecordingAckMessage struct {
 
 type LiveV2CallbackTranscriptMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2TranscriptMessage `json:"payload"`
@@ -1110,7 +1110,7 @@ type LiveV2CallbackTranscriptMessage struct {
 
 type LiveV2CallbackSpeechStartMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2SpeechStartMessage `json:"payload"`
@@ -1118,7 +1118,7 @@ type LiveV2CallbackSpeechStartMessage struct {
 
 type LiveV2CallbackSpeechEndMessage struct {
 	// Id of the job
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Event string `json:"event"`
 	// The live message payload as sent to the WebSocket
 	Payload LiveV2SpeechEndMessage `json:"payload"`

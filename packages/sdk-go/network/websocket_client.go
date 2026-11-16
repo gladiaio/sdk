@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/gladiaio/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
 )
 
 // WebSocketClient dials live session streams (JS: WebSocketClient).
@@ -103,23 +103,21 @@ func (s *WebSocketSession) ReadyState() ReadyState {
 	return s.readyState
 }
 
-// Send writes a text or binary frame when OPEN.
+// defaultWriteTimeout bounds a single frame write when no WebSocket timeout is configured.
+const defaultWriteTimeout = 10 * time.Second
+
+// Send writes a binary frame when OPEN. The write is bounded by the configured
+// WebSocket timeout so a stalled network cannot block the caller forever.
 func (s *WebSocketSession) Send(data []byte) error {
-	s.mu.Lock()
-	state := s.readyState
-	conn := s.conn
-	s.mu.Unlock()
-	if state != WSOpen || conn == nil {
-		return errors.New("websocket is not open")
-	}
-	s.sendMu.Lock()
-	defer s.sendMu.Unlock()
-	ctx := context.Background()
-	return conn.Write(ctx, websocket.MessageBinary, data)
+	return s.write(websocket.MessageBinary, data)
 }
 
-// SendText sends a text WebSocket frame.
+// SendText writes a text frame when OPEN (bounded like Send).
 func (s *WebSocketSession) SendText(text string) error {
+	return s.write(websocket.MessageText, []byte(text))
+}
+
+func (s *WebSocketSession) write(typ websocket.MessageType, data []byte) error {
 	s.mu.Lock()
 	state := s.readyState
 	conn := s.conn
@@ -127,9 +125,18 @@ func (s *WebSocketSession) SendText(text string) error {
 	if state != WSOpen || conn == nil {
 		return errors.New("websocket is not open")
 	}
+	timeout := s.timeout
+	if timeout <= 0 {
+		timeout = defaultWriteTimeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	s.sendMu.Lock()
 	defer s.sendMu.Unlock()
-	return conn.Write(context.Background(), websocket.MessageText, []byte(text))
+	if err := conn.Write(ctx, typ, data); err != nil {
+		return fmt.Errorf("websocket write: %w", err)
+	}
+	return nil
 }
 
 // Close initiates close with code and reason.

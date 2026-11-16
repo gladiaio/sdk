@@ -10,14 +10,14 @@ import (
 	"time"
 )
 
-func TestHttpClientReadsLargeResponseBody(t *testing.T) {
+func TestHTTPClientReadsLargeResponseBody(t *testing.T) {
 	payload := strings.Repeat("x", 64*1024)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(payload))
 	}))
 	t.Cleanup(srv.Close)
 
-	client, err := NewHTTPClient(HttpClientConfig{BaseURL: srv.URL, Timeout: time.Second})
+	client, err := NewHTTPClient(HTTPClientConfig{BaseURL: srv.URL, Timeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}

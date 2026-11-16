@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/gladiaio/sdk-go/clientoptions"
-	"github.com/gladiaio/sdk-go/network"
+	"github.com/gladiaio/sdk/packages/sdk-go/clientoptions"
+	"github.com/gladiaio/sdk/packages/sdk-go/network"
 )
 
 const maxResumeChunkBytes = 512 * 1024
@@ -34,7 +34,7 @@ func buildInitBody(init map[string]any, apiURL string) map[string]any {
 	}
 	mc["receive_acknowledgments"] = true
 	body["messages_config"] = mc
-	return InitBodyFor(body, apiURL)
+	return initBodyFor(body, apiURL)
 }
 
 func parseWSMessage(data []byte) (map[string]any, error) {
@@ -85,22 +85,28 @@ func acknowledgedByteEnd(msg map[string]any) (int, error) {
 	}
 }
 
-func trimAcknowledgedBuffer(buf []byte, bytesSent, byteEnd int) ([]byte, int) {
-	if byteEnd <= bytesSent {
-		return buf, bytesSent
+// trimAcknowledgedBuffer drops the bytes acknowledged up to byteEnd (absolute
+// stream offset) from buf, whose first byte sits at absolute offset offset.
+// Stale or duplicate acknowledgments (byteEnd <= offset) are ignored.
+func trimAcknowledgedBuffer(buf []byte, offset, byteEnd int) ([]byte, int) {
+	if byteEnd <= offset {
+		return buf, offset
 	}
-	drop := byteEnd - bytesSent
+	drop := byteEnd - offset
 	if drop > len(buf) {
 		drop = len(buf)
 	}
 	return buf[drop:], byteEnd
 }
 
-func sendAudioInChunks(ws *network.WebSocketSession, audio []byte) {
+func sendAudioInChunks(ws *network.WebSocketSession, audio []byte) error {
 	for off := 0; off < len(audio); off += maxResumeChunkBytes {
 		end := min(off+maxResumeChunkBytes, len(audio))
-		_ = ws.Send(audio[off:end])
+		if err := ws.Send(audio[off:end]); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func messagesConfigFromInit(init map[string]any) *LiveV2MessagesConfig {
@@ -121,11 +127,4 @@ func messagesConfigFromInit(init map[string]any) *LiveV2MessagesConfig {
 
 func receiveLifecycleEvents(cfg *LiveV2MessagesConfig) bool {
 	return cfg != nil && cfg.ReceiveLifecycleEvents != nil && *cfg.ReceiveLifecycleEvents
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

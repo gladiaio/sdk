@@ -2,12 +2,12 @@
 
 This monorepo contains the source code for the official Gladia SDKs and the code generator that powers them.
 
-| Package                                       | Description                             | Path                  |
-| --------------------------------------------- | --------------------------------------- | --------------------- |
-| [@gladiaio/sdk](packages/sdk-js/README.md)    | JavaScript / TypeScript SDK             | `packages/sdk-js`     |
-| [gladiaio-sdk](packages/sdk-python/README.md) | Python SDK                              | `packages/sdk-python` |
-| [sdk-go](packages/sdk-go/README.md)           | Go SDK (scaffold)                       | `packages/sdk-go`     |
-| generator                                     | OpenAPI → SDK type generator (internal) | `packages/generator`  |
+| Package                                                              | Description                             | Path                  |
+| -------------------------------------------------------------------- | --------------------------------------- | --------------------- |
+| [@gladiaio/sdk](packages/sdk-js/README.md)                           | JavaScript / TypeScript SDK             | `packages/sdk-js`     |
+| [gladiaio-sdk](packages/sdk-python/README.md)                        | Python SDK                              | `packages/sdk-python` |
+| [github.com/gladiaio/sdk/packages/sdk-go](packages/sdk-go/README.md) | Go SDK                                  | `packages/sdk-go`     |
+| generator                                                            | OpenAPI → SDK type generator (internal) | `packages/generator`  |
 
 You can also check out [our code samples](https://github.com/gladiaio/gladia-samples). See the [Gladia documentation](https://docs.gladia.io) to get started and [pricing](https://www.gladia.io/pricing) for plans and limits.
 
