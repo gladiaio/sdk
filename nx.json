@@ -120,6 +120,7 @@
     "projects": ["packages/*", "!packages/generator"],
     "projectsRelationship": "independent",
     "changelog": {
+      "automaticFromRef": true,
       "projectChangelogs": {
         "renderOptions": {
           "authors": false,

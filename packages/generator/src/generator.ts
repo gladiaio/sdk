@@ -1,4 +1,5 @@
 import { BaseGenerator } from './generators/base.ts'
+import { GoGenerator } from './generators/go.ts'
 import { PythonGenerator } from './generators/python.ts'
 import { TypeScriptGenerator } from './generators/typescript.ts'
 import { buildListParamsSchema, collectAllReferencedObject } from './helpers.ts'
@@ -22,6 +23,7 @@ export class Generator {
     this.options = options
     this.generators.push(new TypeScriptGenerator())
     this.generators.push(new PythonGenerator())
+    this.generators.push(new GoGenerator())
   }
 
   async generate(): Promise<void> {

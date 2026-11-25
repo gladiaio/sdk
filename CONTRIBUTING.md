@@ -7,6 +7,7 @@ Before you begin, ensure you have the following installed on your system:
 - **Node.js** (latest [Active LTS](https://nodejs.org/en/about/previous-releases#looking-for-the-latest-release-of-a-version-branch))
 - **Bun**: https://bun.com/docs/installation
 - **uv**: https://docs.astral.sh/uv/getting-started/installation/
+- **Go** 1.22+ (for `packages/sdk-go`): https://go.dev/dl/
 
 Run the following commands to check everything is correctly installed:
 
@@ -14,6 +15,7 @@ Run the following commands to check everything is correctly installed:
 node --version
 bun --version
 uv --version
+go version
 ```
 
 > [!TIP]
@@ -60,6 +62,14 @@ To run a command on a single project ([nx run](https://nx.dev/reference/core-api
 bun nx run sdk-js:test
 ```
 
+To run several targets on one project (for example Go):
+
+```sh
+bun nx run-many -t build,test,format:check -p sdk-go
+```
+
+Only one `project:target` pair is allowed per `nx run`. Anything after it is forwarded to the underlying command. For Go that produces errors such as `malformed import path "sdk-go:test"`.
+
 To run a command on multiple projects ([nx run-many](https://nx.dev/reference/core-api/nx/documents/run-many#runmany)):
 
 ```sh
@@ -89,6 +99,36 @@ Run the generator with the following command:
 ```sh
 bun nx run generator:generate
 ```
+
+## Go SDK
+
+`packages/sdk-go` is a Go module (`github.com/gladiaio/sdk/packages/sdk-go`, package `gladia`). Its layout mirrors the JS and Python SDKs:
+
+| Go                                          | JavaScript                             | Python                                          |
+| ------------------------------------------- | -------------------------------------- | ----------------------------------------------- |
+| `gladia` (`Client`)                         | `GladiaClient`                         | `GladiaClient`                                  |
+| `clientoptions`                             | `GladiaClientOptions` in `types.ts`    | `client_options.py`                             |
+| `network` (`HTTPClient`, `WebSocketClient`) | `network/httpClient.ts`, `wsClient.ts` | `network/http_client.py`, `websocket_client.py` |
+| `v2/live`, `v2/prerecorded`                 | `v2/live/`, `v2/prerecorded/`          | `v2/live/`, `v2/prerecorded/`                   |
+| `v2` (`JobCore`, list URLs)                 | `v2/build-list-url.ts` + shared logic  | `v2/core.py`                                    |
+
+Generated types live in `v2/live/generated_types.go` and `v2/prerecorded/generated_types.go` (`packages/generator/src/generators/go.ts`, which applies Go initialisms such as `ID` and `URL`).
+
+Run the checks (from the repo root):
+
+```sh
+bun nx run-many -t build,test,format:check,lint:check,type:check -p sdk-go
+```
+
+Run the unit tests with the race detector when touching live sessions or networking:
+
+```sh
+cd packages/sdk-go && go test -race ./...
+```
+
+E2E tests live in `e2e/e2e-go` and require `GLADIA_API_KEY` (`bun nx run e2e-go:test`, ~15–35 minutes).
+
+Releases go through the same Release / Publish workflows as the other SDKs (see [Release](#release)).
 
 ## Handle package dependencies
 
@@ -126,9 +166,19 @@ Each SDK is released independently through a pull request, since `main` only acc
    git log --oneline "$(git tag --list 'sdk-js@*' --sort=-v:refname | head -n 1)"..HEAD -- packages/sdk-js
    ```
 
-2. Run **Actions > Release > Run workflow** with the project (`sdk-js` or `sdk-python`) and the version (for example `2.3.0`). It opens a `chore(release): sdk-js@2.3.0` pull request from the `release/sdk-js@2.3.0` branch, which bumps the manifest, the version file, the lockfiles and the changelog.
+2. Run **Actions > Release > Run workflow** with the project (`sdk-js`, `sdk-python` or `sdk-go`) and the version (for example `2.3.0`). It opens a `chore(release): sdk-js@2.3.0` pull request from the `release/sdk-js@2.3.0` branch, which bumps the manifest, the version file, the lockfiles and the changelog.
 3. Review and merge the pull request once CI is green.
 4. Merging it runs the **Publish** workflow: it checks that the merged version matches the branch, runs the checks, publishes the package to npm or PyPI, and creates the `sdk-js@2.3.0` tag and GitHub release on the merge commit.
+
+### Go SDK releases
+
+Go has no package registry: `go get` resolves versions from git tags, and a module in a subdirectory needs tags prefixed with that directory. So for `sdk-go`:
+
+- The version lives in `packages/sdk-go/sdk.version` (bumped by the Release workflow through `tools/release/go-version-actions.cjs`; `version:write` regenerates `version/version.go`, sent in the `x-gladia-version` header).
+- "Publishing" (`nx-release-publish` → `packages/sdk-go/scripts/publish.mjs`) pushes the module tag `packages/sdk-go/vX.Y.Z` on the merge commit, then asks proxy.golang.org to fetch it so `go get github.com/gladiaio/sdk/packages/sdk-go@vX.Y.Z` works right away and pkg.go.dev lists it. The `sdk-go@X.Y.Z` tag and GitHub release are created as for the other SDKs.
+- A pushed version is permanent: proxy.golang.org and the checksum database cache it forever, so never move or delete a `packages/sdk-go/v*` tag. Release a new patch instead, and use a [`retract`](https://go.dev/ref/mod#go-mod-file-retract) directive in `go.mod` to flag a bad version.
+- Stay on `v0.x` while the API may still change. `v1` is a compatibility promise; `v2+` requires changing the module path to `github.com/gladiaio/sdk/packages/sdk-go/v2` (the publish script refuses a mismatch).
+- The repository `LICENSE` is added to the module by the Go tooling, so pkg.go.dev shows the docs.
 
 If publishing fails, fix the cause and run **Actions > Publish > Run workflow** on `main` with the project to retry. It skips the GitHub release if the tag already exists.
 
