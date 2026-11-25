@@ -128,7 +128,7 @@ cd packages/sdk-go && go test -race ./...
 
 E2E tests live in `e2e/e2e-go` and require `GLADIA_API_KEY` (`bun nx run e2e-go:test`, ~15–35 minutes).
 
-Not implemented yet: release automation. `packages/sdk-go` is excluded from `nx release` and the Release / Publish workflows. A Go release is a `packages/sdk-go/vX.Y.Z` tag (Go ignores `sdk-go@X.Y.Z` tags), optionally followed by `GOPROXY=proxy.golang.org go list -m github.com/gladiaio/sdk/packages/sdk-go@vX.Y.Z`. Until then `sdk.version` stays `0.0.0`.
+Releases go through the same Release / Publish workflows as the other SDKs (see [Release](#release)).
 
 ## Handle package dependencies
 
@@ -166,9 +166,19 @@ Each SDK is released independently through a pull request, since `main` only acc
    git log --oneline "$(git tag --list 'sdk-js@*' --sort=-v:refname | head -n 1)"..HEAD -- packages/sdk-js
    ```
 
-2. Run **Actions > Release > Run workflow** with the project (`sdk-js` or `sdk-python`) and the version (for example `2.3.0`). It opens a `chore(release): sdk-js@2.3.0` pull request from the `release/sdk-js@2.3.0` branch, which bumps the manifest, the version file, the lockfiles and the changelog.
+2. Run **Actions > Release > Run workflow** with the project (`sdk-js`, `sdk-python` or `sdk-go`) and the version (for example `2.3.0`). It opens a `chore(release): sdk-js@2.3.0` pull request from the `release/sdk-js@2.3.0` branch, which bumps the manifest, the version file, the lockfiles and the changelog.
 3. Review and merge the pull request once CI is green.
 4. Merging it runs the **Publish** workflow: it checks that the merged version matches the branch, runs the checks, publishes the package to npm or PyPI, and creates the `sdk-js@2.3.0` tag and GitHub release on the merge commit.
+
+### Go SDK releases
+
+Go has no package registry: `go get` resolves versions from git tags, and a module in a subdirectory needs tags prefixed with that directory. So for `sdk-go`:
+
+- The version lives in `packages/sdk-go/sdk.version` (bumped by the Release workflow through `tools/release/go-version-actions.cjs`; `version:write` regenerates `version/version.go`, sent in the `x-gladia-version` header).
+- "Publishing" (`nx-release-publish` → `packages/sdk-go/scripts/publish.mjs`) pushes the module tag `packages/sdk-go/vX.Y.Z` on the merge commit, then asks proxy.golang.org to fetch it so `go get github.com/gladiaio/sdk/packages/sdk-go@vX.Y.Z` works right away and pkg.go.dev lists it. The `sdk-go@X.Y.Z` tag and GitHub release are created as for the other SDKs.
+- A pushed version is permanent: proxy.golang.org and the checksum database cache it forever, so never move or delete a `packages/sdk-go/v*` tag. Release a new patch instead, and use a [`retract`](https://go.dev/ref/mod#go-mod-file-retract) directive in `go.mod` to flag a bad version.
+- Stay on `v0.x` while the API may still change. `v1` is a compatibility promise; `v2+` requires changing the module path to `github.com/gladiaio/sdk/packages/sdk-go/v2` (the publish script refuses a mismatch).
+- The repository `LICENSE` is added to the module by the Go tooling, so pkg.go.dev shows the docs.
 
 If publishing fails, fix the cause and run **Actions > Publish > Run workflow** on `main` with the project to retry. It skips the GitHub release if the tag already exists.
 

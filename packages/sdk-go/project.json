@@ -69,6 +69,18 @@
         "cwd": "{projectRoot}"
       },
       "cache": true
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/publish.mjs",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "release": {
+    "version": {
+      "versionActions": "tools/release/go-version-actions.cjs"
     }
   }
 }

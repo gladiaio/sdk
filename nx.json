@@ -117,9 +117,10 @@
     }
   },
   "release": {
-    "projects": ["packages/*", "!packages/generator", "!packages/sdk-go"],
+    "projects": ["packages/*", "!packages/generator"],
     "projectsRelationship": "independent",
     "changelog": {
+      "automaticFromRef": true,
       "projectChangelogs": {
         "renderOptions": {
           "authors": false,

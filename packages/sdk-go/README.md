@@ -9,8 +9,10 @@ Go **1.22+**.
 ## Installation
 
 ```sh
-go get github.com/gladiaio/sdk/packages/sdk-go
+go get github.com/gladiaio/sdk/packages/sdk-go@latest
 ```
+
+Versions are listed on [pkg.go.dev](https://pkg.go.dev/github.com/gladiaio/sdk/packages/sdk-go?tab=versions). The SDK is `v0.x`: minor versions may still contain breaking changes until `v1.0.0`.
 
 The package name is `gladia`; importing it with an explicit name keeps call sites clear:
 

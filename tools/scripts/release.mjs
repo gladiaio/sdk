@@ -21,7 +21,7 @@ if (argv.verbose) {
 }
 
 if (!argv.project || !/^\d+\.\d+\.\d+$/.test(argv.version ?? '')) {
-  console.error('Usage: bun run release -- --project <sdk-js|sdk-python> --version X.Y.Z')
+  console.error('Usage: bun run release -- --project <sdk-js|sdk-python|sdk-go> --version X.Y.Z')
   process.exit(1)
 }
 
